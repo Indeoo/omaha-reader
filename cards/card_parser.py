@@ -5,256 +5,320 @@ import numpy as np
 from cards.template_loader import load_templates
 
 # ─── Configuration ────────────────────────────────────────────────────────────
-# Multiple HSV ranges to try (you may need to adjust these)
-TABLE_HSV_RANGES = [
-    # Original range
-    ((36, 50, 50), (86, 255, 255)),
-    # Wider green range
-    ((25, 30, 30), (95, 255, 255)),
-    # Dark green range
-    ((40, 40, 40), (80, 255, 150)),
-    # Very wide range
-    ((20, 20, 20), (100, 255, 255))
-]
+MATCH_CONFIDENCE = 0.70
 
-# how much confidence is enough to accept a match
-MATCH_CONFIDENCE = 0.90
-
-# paths
+# Paths
 BASE_DIR = os.path.dirname(__file__)
 FULL_TEMPLATE_DIR = os.path.normpath(os.path.join(BASE_DIR, 'templates', 'full_cards'))
-HANDS_TEMPLATE_DIR = os.path.normpath(os.path.join(BASE_DIR, 'templates', 'hand_cards'))
 INPUT_DIR = os.path.normpath(os.path.join(BASE_DIR, 'screenshots'))
 OUTPUT_DIR = os.path.normpath(os.path.join(BASE_DIR, 'output'))
 DEBUG_DIR = os.path.normpath(os.path.join(BASE_DIR, 'debug'))
 
 
-def analyze_image_colors(img, output_path=None):
+def find_colored_cards(img):
     """
-    Analyze the HSV color distribution in the image to help tune table detection.
+    Detect poker cards by finding solid colored rectangular regions.
+    Looking for: BLACK, GREEN, RED, BLUE backgrounds with white text.
     """
+    print("=== COLORED CARD DETECTION ===")
+
+    # Convert to HSV for better color detection
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
     h, s, v = cv2.split(hsv)
 
-    print(f"HSV Analysis:")
-    print(f"  Hue: min={h.min()}, max={h.max()}, mean={h.mean():.1f}")
-    print(f"  Saturation: min={s.min()}, max={s.max()}, mean={s.mean():.1f}")
-    print(f"  Value: min={v.min()}, max={v.max()}, mean={v.mean():.1f}")
+    # Define color ranges for card backgrounds
+    color_ranges = [
+        # Format: (lower_hsv, upper_hsv, color_name)
+        ((0, 0, 0), (180, 255, 80), "Black"),  # Black cards (low value)
+        ((40, 50, 50), (80, 255, 255), "Green"),  # Green cards
+        ((0, 50, 50), (10, 255, 255), "Red_1"),  # Red cards (lower range)
+        ((170, 50, 50), (180, 255, 255), "Red_2"),  # Red cards (upper range)
+        ((100, 50, 50), (130, 255, 255), "Blue"),  # Blue cards
+    ]
 
-    if output_path:
-        # Save HSV channels for visual inspection
-        cv2.imwrite(output_path.replace('.png', '_hue.png'), h)
-        cv2.imwrite(output_path.replace('.png', '_sat.png'), s)
-        cv2.imwrite(output_path.replace('.png', '_val.png'), v)
+    all_boxes = []
+
+    for lower, upper, color_name in color_ranges:
+        print(f"\nLooking for {color_name} cards...")
+
+        # Create mask for this color range
+        mask = cv2.inRange(hsv, lower, upper)
+
+        # Clean up the mask
+        kernel = np.ones((3, 3), np.uint8)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)  # Remove noise
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)  # Fill gaps
+
+        # Save debug mask
+        debug_path = os.path.join(DEBUG_DIR, f"mask_{color_name.lower()}.png")
+        cv2.imwrite(debug_path, mask)
+
+        # Find contours
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        for i, contour in enumerate(contours):
+            x, y, w, h = cv2.boundingRect(contour)
+            area = w * h
+            aspect_ratio = w / h
+
+            print(f"  {color_name} contour {i}: ({x},{y}) {w}x{h}, area={area}, aspect={aspect_ratio:.2f}")
+
+            # Card criteria based on your examples
+            if (1000 < area < 25000 and  # Card-sized area
+                    0.8 < aspect_ratio < 2.2 and  # Rectangular shape
+                    w > 50 and h > 60 and  # Minimum dimensions
+                    w < 250 and h < 350):  # Maximum dimensions
+
+                print(f"    ✓ ACCEPTED as {color_name} card")
+                all_boxes.append((x, y, w, h, color_name))
+            else:
+                print(f"    ✗ REJECTED")
+
+    # Remove color info for return, just keep boxes
+    return [(x, y, w, h) for x, y, w, h, _ in all_boxes]
 
 
-def verify_templates(templates):
+def find_saturated_regions(img):
     """
-    Check template format and convert if necessary.
+    Alternative: Find regions with high saturation (colored cards vs neutral background)
     """
-    print("Template verification:")
-    converted_templates = {}
+    print("\n=== SATURATED REGION DETECTION ===")
 
-    for name, tpl in templates.items():
-        print(f"  {name}: shape={tpl.shape}, dtype={tpl.dtype}")
-
-        # Convert to grayscale if needed
-        if len(tpl.shape) == 3:
-            tpl_gray = cv2.cvtColor(tpl, cv2.COLOR_BGR2GRAY)
-            print(f"    Converted to grayscale: {tpl_gray.shape}")
-        else:
-            tpl_gray = tpl
-
-        # Ensure uint8 dtype
-        if tpl_gray.dtype != np.uint8:
-            tpl_gray = tpl_gray.astype(np.uint8)
-            print(f"    Converted to uint8")
-
-        converted_templates[name] = tpl_gray
-
-    return converted_templates
-
-
-def find_card_boxes_multi_method(img, debug_path=None):
-    """
-    Try multiple methods to find card boxes and return the best result.
-    """
-    all_methods_boxes = []
-
-    # Method 1: Original HSV masking with multiple ranges
-    for i, (lower, upper) in enumerate(TABLE_HSV_RANGES):
-        boxes = find_card_boxes_hsv(img, lower, upper)
-        all_methods_boxes.append((f"HSV_Range_{i}", boxes))
-
-        if debug_path:
-            hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-            mask = cv2.inRange(hsv, lower, upper)
-            inv = cv2.bitwise_not(mask)
-            cv2.imwrite(debug_path.replace('.png', f'_hsv_mask_{i}.png'), mask)
-            cv2.imwrite(debug_path.replace('.png', f'_hsv_inv_{i}.png'), inv)
-
-    # Method 2: Edge detection approach
-    boxes = find_card_boxes_edges(img)
-    all_methods_boxes.append(("Edges", boxes))
-
-    # Method 3: Adaptive threshold approach
-    boxes = find_card_boxes_adaptive(img)
-    all_methods_boxes.append(("Adaptive", boxes))
-
-    # Print results from all methods
-    for method_name, boxes in all_methods_boxes:
-        print(f"  {method_name}: {len(boxes)} boxes")
-
-    # Return the method with most reasonable number of boxes (between 2-10)
-    valid_methods = [(name, boxes) for name, boxes in all_methods_boxes
-                     if 2 <= len(boxes) <= 10]
-
-    if valid_methods:
-        # Choose method with most boxes (but reasonable count)
-        best_method = max(valid_methods, key=lambda x: len(x[1]))
-        print(f"  Selected method: {best_method[0]} with {len(best_method[1])} boxes")
-        return best_method[1]
-    else:
-        # Fallback: return method with most boxes
-        if all_methods_boxes:
-            best_method = max(all_methods_boxes, key=lambda x: len(x[1]))
-            print(f"  Fallback to: {best_method[0]} with {len(best_method[1])} boxes")
-            return best_method[1]
-
-    return []
-
-
-def find_card_boxes_hsv(img, table_hsv_lower, table_hsv_upper):
-    """
-    Original HSV-based card detection method.
-    """
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, table_hsv_lower, table_hsv_upper)
-    inv = cv2.bitwise_not(mask)
+    h, s, v = cv2.split(hsv)
 
-    # Add morphological operations to clean up the mask
-    kernel = np.ones((3, 3), np.uint8)
-    inv = cv2.morphologyEx(inv, cv2.MORPH_CLOSE, kernel)
-    inv = cv2.morphologyEx(inv, cv2.MORPH_OPEN, kernel)
+    # Look for regions with high saturation (colored cards)
+    _, sat_mask = cv2.threshold(s, 100, 255, cv2.THRESH_BINARY)
 
-    cnts, _ = cv2.findContours(inv, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Also consider regions with medium saturation but good contrast
+    _, sat_mask2 = cv2.threshold(s, 50, 255, cv2.THRESH_BINARY)
+    _, val_mask = cv2.threshold(v, 80, 255, cv2.THRESH_BINARY)
+    combined_mask = cv2.bitwise_and(sat_mask2, val_mask)
+
+    # Combine both approaches
+    final_mask = cv2.bitwise_or(sat_mask, combined_mask)
+
+    # Clean up
+    kernel = np.ones((5, 5), np.uint8)
+    final_mask = cv2.morphologyEx(final_mask, cv2.MORPH_CLOSE, kernel)
+    final_mask = cv2.morphologyEx(final_mask, cv2.MORPH_OPEN, kernel)
+
+    # Save debug
+    cv2.imwrite(os.path.join(DEBUG_DIR, "saturation_mask.png"), final_mask)
+
+    contours, _ = cv2.findContours(final_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     boxes = []
-    for c in cnts:
-        x, y, w, h = cv2.boundingRect(c)
-        aspect = w / float(h)
+    for i, contour in enumerate(contours):
+        x, y, w, h = cv2.boundingRect(contour)
         area = w * h
+        aspect_ratio = w / h
 
-        # More flexible aspect ratio and area thresholds
-        if 0.5 < aspect < 2.0 and area > 5000:
+        print(f"  Saturated contour {i}: ({x},{y}) {w}x{h}, area={area}, aspect={aspect_ratio:.2f}")
+
+        if (1000 < area < 25000 and
+                0.8 < aspect_ratio < 2.2 and
+                w > 50 and h > 60 and
+                w < 250 and h < 350):
+
+            print(f"    ✓ ACCEPTED as colored region")
             boxes.append((x, y, w, h))
+        else:
+            print(f"    ✗ REJECTED")
 
     return boxes
 
 
-def find_card_boxes_edges(img):
+def find_contrast_edges(img):
     """
-    Edge detection based approach.
+    Find rectangular regions with strong internal contrast (colored background + white text)
     """
+    print("\n=== CONTRAST EDGE DETECTION ===")
+
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Apply Gaussian blur to reduce noise
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-
-    # Edge detection
+    # Apply strong Gaussian blur then find edges
+    # This helps find regions with internal contrast (text on colored background)
+    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
     edges = cv2.Canny(blurred, 50, 150)
 
-    # Dilate to connect nearby edges
+    # Dilate to connect text edges within cards
     kernel = np.ones((3, 3), np.uint8)
-    edges = cv2.dilate(edges, kernel, iterations=2)
+    edges = cv2.dilate(edges, kernel, iterations=1)
 
-    cnts, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Close gaps to form solid regions
+    kernel_large = np.ones((7, 7), np.uint8)
+    edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel_large)
+
+    # Save debug
+    cv2.imwrite(os.path.join(DEBUG_DIR, "contrast_edges.png"), edges)
+
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     boxes = []
-    for c in cnts:
-        x, y, w, h = cv2.boundingRect(c)
-        aspect = w / float(h)
+    for i, contour in enumerate(contours):
+        x, y, w, h = cv2.boundingRect(contour)
         area = w * h
+        aspect_ratio = w / h
 
-        if 0.5 < aspect < 2.0 and area > 5000:
+        print(f"  Edge contour {i}: ({x},{y}) {w}x{h}, area={area}, aspect={aspect_ratio:.2f}")
+
+        if (1000 < area < 25000 and
+                0.8 < aspect_ratio < 2.2 and
+                w > 50 and h > 60 and
+                w < 250 and h < 350):
+
+            print(f"    ✓ ACCEPTED as contrast region")
             boxes.append((x, y, w, h))
+        else:
+            print(f"    ✗ REJECTED")
 
     return boxes
 
 
-def find_card_boxes_adaptive(img):
+def remove_duplicate_boxes(boxes, overlap_threshold=0.3):
+    """Remove overlapping boxes"""
+    if len(boxes) <= 1:
+        return boxes
+
+    # Sort by area (largest first)
+    boxes_with_area = [(x, y, w, h, w * h) for x, y, w, h in boxes]
+    boxes_with_area.sort(key=lambda x: x[4], reverse=True)
+
+    filtered_boxes = []
+
+    for x1, y1, w1, h1, area1 in boxes_with_area:
+        overlap_found = False
+
+        for x2, y2, w2, h2 in filtered_boxes:
+            # Calculate intersection over union
+            xi1, yi1 = max(x1, x2), max(y1, y2)
+            xi2, yi2 = min(x1 + w1, x2 + w2), min(y1 + h1, y2 + h2)
+
+            if xi1 < xi2 and yi1 < yi2:
+                intersection = (xi2 - xi1) * (yi2 - yi1)
+                union = area1 + w2 * h2 - intersection
+                iou = intersection / union if union > 0 else 0
+
+                if iou > overlap_threshold:
+                    overlap_found = True
+                    break
+
+        if not overlap_found:
+            filtered_boxes.append((x1, y1, w1, h1))
+
+    return filtered_boxes
+
+
+def find_poker_cards_corrected(img):
     """
-    Adaptive thresholding approach.
+    Main detection function for COLORED cards with white text
     """
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    print(f"Image shape: {img.shape}")
 
-    # Apply adaptive threshold
-    adaptive = cv2.adaptiveThreshold(gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                                     cv2.THRESH_BINARY_INV, 11, 2)
+    # Try all three methods for colored cards
+    colored_boxes = find_colored_cards(img)
+    saturated_boxes = find_saturated_regions(img)
+    contrast_boxes = find_contrast_edges(img)
 
-    # Clean up with morphological operations
-    kernel = np.ones((5, 5), np.uint8)
-    adaptive = cv2.morphologyEx(adaptive, cv2.MORPH_CLOSE, kernel)
-    adaptive = cv2.morphologyEx(adaptive, cv2.MORPH_OPEN, kernel)
+    print(f"\nMethod results:")
+    print(f"  Colored detection: {len(colored_boxes)} cards")
+    print(f"  Saturated detection: {len(saturated_boxes)} cards")
+    print(f"  Contrast detection: {len(contrast_boxes)} cards")
 
-    cnts, _ = cv2.findContours(adaptive, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Combine all methods
+    all_boxes = colored_boxes + saturated_boxes + contrast_boxes
+    unique_boxes = remove_duplicate_boxes(all_boxes)
 
-    boxes = []
-    for c in cnts:
-        x, y, w, h = cv2.boundingRect(c)
-        aspect = w / float(h)
-        area = w * h
+    print(f"  Combined unique: {len(unique_boxes)} cards")
 
-        if 0.5 < aspect < 2.0 and area > 5000:
-            boxes.append((x, y, w, h))
-
-    return boxes
+    return unique_boxes
 
 
-def match_card(card_gray, templates):
-    """
-    Run template matching of a grayscale card image against all grayscale templates.
-    Returns (best_name, best_score) or (None, 0).
-    """
-    best_score = 0.0
-    best_name = None
+def prepare_templates(templates):
+    """Convert templates to grayscale"""
+    processed_templates = {}
 
-    # Ensure card_gray is single channel grayscale
-    if len(card_gray.shape) == 3:
-        card_gray = cv2.cvtColor(card_gray, cv2.COLOR_BGR2GRAY)
+    for name, template in templates.items():
+        if len(template.shape) == 3:
+            template_gray = cv2.cvtColor(template, cv2.COLOR_BGR2GRAY)
+        else:
+            template_gray = template
 
-    # Ensure consistent data type
-    if card_gray.dtype != np.uint8:
-        card_gray = card_gray.astype(np.uint8)
+        if template_gray.dtype != np.uint8:
+            template_gray = template_gray.astype(np.uint8)
 
-    print(f"    Card image shape: {card_gray.shape}, dtype: {card_gray.dtype}")
+        processed_templates[name] = template_gray
 
-    for name, tpl in templates.items():
-        # Ensure template is single channel grayscale
-        if len(tpl.shape) == 3:
-            tpl = cv2.cvtColor(tpl, cv2.COLOR_BGR2GRAY)
+    return processed_templates
 
-        # Ensure consistent data type
-        if tpl.dtype != np.uint8:
-            tpl = tpl.astype(np.uint8)
 
-        # skip if template larger than card crop
-        if tpl.shape[0] > card_gray.shape[0] or tpl.shape[1] > card_gray.shape[1]:
-            continue
+def match_card_improved(card_crop, templates):
+    """Improved template matching"""
+    # Convert to grayscale
+    if len(card_crop.shape) == 3:
+        card_gray = cv2.cvtColor(card_crop, cv2.COLOR_BGR2GRAY)
+    else:
+        card_gray = card_crop
 
-        try:
-            res = cv2.matchTemplate(card_gray, tpl, cv2.TM_CCOEFF_NORMED)
-            _, score, _, _ = cv2.minMaxLoc(res)
+    best_match = None
+    best_score = 0
 
-            if score > best_score:
-                best_score, best_name = score, name
-        except cv2.error as e:
-            print(f"    Template matching error for {name}: {e}")
-            print(f"    Card shape: {card_gray.shape}, Template shape: {tpl.shape}")
-            print(f"    Card dtype: {card_gray.dtype}, Template dtype: {tpl.dtype}")
-            continue
+    # Try multiple scales
+    scales = [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3]
 
-    return best_name, best_score
+    for scale in scales:
+        if scale != 1.0:
+            new_width = int(card_gray.shape[1] * scale)
+            new_height = int(card_gray.shape[0] * scale)
+            if new_width > 0 and new_height > 0:
+                scaled_card = cv2.resize(card_gray, (new_width, new_height))
+            else:
+                continue
+        else:
+            scaled_card = card_gray
+
+        for name, template in templates.items():
+            if (template.shape[0] > scaled_card.shape[0] or
+                    template.shape[1] > scaled_card.shape[1]):
+                continue
+
+            try:
+                result = cv2.matchTemplate(scaled_card, template, cv2.TM_CCOEFF_NORMED)
+                _, score, _, _ = cv2.minMaxLoc(result)
+
+                if score > best_score:
+                    best_score = score
+                    best_match = name
+
+            except cv2.error:
+                continue
+
+    return best_match, best_score
+
+
+def save_detection_results(img, boxes, output_path):
+    """Save image with detected cards outlined"""
+    result_img = img.copy()
+
+    for i, (x, y, w, h) in enumerate(boxes):
+        cv2.rectangle(result_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(result_img, f"Card {i + 1}", (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+
+    cv2.imwrite(output_path, result_img)
+    print(f"Saved detection result: {output_path}")
+
+
+def save_individual_cards(img, boxes, output_dir, base_name):
+    """Save each detected card as individual image"""
+    os.makedirs(output_dir, exist_ok=True)
+
+    for i, (x, y, w, h) in enumerate(boxes):
+        card_crop = img[y:y + h, x:x + w]
+        card_path = os.path.join(output_dir, f"{base_name}_card_{i + 1}.png")
+        cv2.imwrite(card_path, card_crop)
+        print(f"Saved card {i + 1}: {card_path}")
 
 
 # ─── Main Routine ─────────────────────────────────────────────────────────────
@@ -262,77 +326,60 @@ if __name__ == '__main__':
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     os.makedirs(DEBUG_DIR, exist_ok=True)
 
+    print("Loading templates...")
     templates = load_templates(FULL_TEMPLATE_DIR)
+    templates = prepare_templates(templates)
     print(f"Loaded {len(templates)} templates")
 
-    # Verify and convert templates to consistent format
-    templates = verify_templates(templates)
+    for input_file in glob.glob(os.path.join(INPUT_DIR, '*.*')):
+        print(f"\n{'=' * 60}")
+        print(f"Processing: {input_file}")
+        print(f"{'=' * 60}")
 
-    for infile in glob.glob(os.path.join(INPUT_DIR, '*.*')):
-        print(f"\nProcessing: {infile}")
-        img = cv2.imread(infile)
-
+        img = cv2.imread(input_file)
         if img is None:
-            print(f"Could not load image: {infile}")
             continue
 
-        print(f"Image dimensions: {img.shape}")
+        base_name = os.path.splitext(os.path.basename(input_file))[0]
 
-        # Debug: analyze colors in the image
-        debug_base = os.path.join(DEBUG_DIR, os.path.splitext(os.path.basename(infile))[0])
-        analyze_image_colors(img, debug_base + '_analysis.png')
+        # Detect COLORED cards
+        detected_boxes = find_poker_cards_corrected(img)
 
-        # Find card boxes using multiple methods
-        print("Trying different detection methods:")
-        boxes = find_card_boxes_multi_method(img, debug_base + '_debug.png')
+        print(f"\n🎯 FINAL RESULT: Found {len(detected_boxes)} colored cards")
+        for i, (x, y, w, h) in enumerate(detected_boxes):
+            print(f"  Card {i + 1}: ({x},{y}) {w}x{h}")
 
-        print(f"Final result: Found {len(boxes)} cards in {infile}")
+        # Save results
+        detection_result_path = os.path.join(OUTPUT_DIR, f"{base_name}_detected_colored_cards.png")
+        save_detection_results(img, detected_boxes, detection_result_path)
 
-        # Process detected cards
-        for idx, (x, y, w, h) in enumerate(boxes, start=1):
-            print(f"  Processing card {idx}: box=({x},{y},{w},{h})")
-            crop = img[y:y + h, x:x + w]
+        cards_dir = os.path.join(OUTPUT_DIR, f"{base_name}_colored_cards")
+        save_individual_cards(img, detected_boxes, cards_dir, base_name)
 
-            # Ensure we have a valid crop
-            if crop.size == 0:
-                print(f"    Empty crop, skipping card {idx}")
-                continue
+        # Match cards
+        if detected_boxes:
+            print(f"\n🃏 CARD MATCHING:")
+            result_img = img.copy()
 
-            # Convert to grayscale properly
-            crop_gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-            print(f"    Crop shape: {crop.shape} -> {crop_gray.shape}, dtype: {crop_gray.dtype}")
+            for i, (x, y, w, h) in enumerate(detected_boxes):
+                card_crop = img[y:y + h, x:x + w]
+                card_name, confidence = match_card_improved(card_crop, templates)
 
-            name, score = match_card(crop_gray, templates)
-            if name and score >= MATCH_CONFIDENCE:
-                label = f"{name} ({score:.2f})"
-                color = (0, 255, 0)  # Green for confident matches
-                print(f"    Confident match: {label}")
-            else:
-                label = f"Unknown ({score:.2f})" if name else "No match"
-                color = (0, 0, 255)  # Red for uncertain matches
-                print(f"    Low confidence: {label}")
+                if card_name and confidence >= MATCH_CONFIDENCE:
+                    label = f"{card_name} ({confidence:.2f})"
+                    color = (0, 255, 0)
+                    print(f"  Card {i + 1}: {label} ✓")
+                else:
+                    label = f"Unknown ({confidence:.2f})" if card_name else "No match"
+                    color = (0, 0, 255)
+                    print(f"  Card {i + 1}: {label} ✗")
 
-            # annotate on original
-            cv2.rectangle(img, (x, y), (x + w, y + h), color, 2)
-            cv2.putText(img, label, (x, y - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                cv2.rectangle(result_img, (x, y), (x + w, y + h), color, 2)
+                cv2.putText(result_img, label, (x, y - 10),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-            # save the individual crop
-            safe_label = label.replace('/', '_').replace('\\', '_').replace('(', '').replace(')', '').replace(' ', '_')
-            out_crop = os.path.join(
-                OUTPUT_DIR,
-                f"{os.path.splitext(os.path.basename(infile))[0]}_card{idx}_{safe_label}.png"
-            )
-            cv2.imwrite(out_crop, crop)
-            print(f"    Saved crop: {out_crop}")
+            final_result_path = os.path.join(OUTPUT_DIR, f"{base_name}_colored_cards_result.png")
+            cv2.imwrite(final_result_path, result_img)
+            print(f"Saved final result: {final_result_path}")
 
-        # save annotated full image
-        out_annot = os.path.join(
-            OUTPUT_DIR,
-            os.path.splitext(os.path.basename(infile))[0] + '_annotated.png'
-        )
-        cv2.imwrite(out_annot, img)
-
-    print("\nDone processing all screenshots.")
-    print(f"Check the '{DEBUG_DIR}' folder for debugging images.")
-    print("Look at the HSV channel images to understand your table colors better.")
+    print(f"\n🎉 Processing complete!")
