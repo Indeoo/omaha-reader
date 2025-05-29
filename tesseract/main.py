@@ -1,17 +1,35 @@
 # This is a sample Python script.
-
+import numpy as np
 import pytesseract
-from PIL import Image
+from PIL import Image, ImageFilter
 import os
+import cv2
 
 
 def extract_text_from_screenshot(image_path):
-    # Open image with PIL
-    img = Image.open(image_path)
+    # Load image using OpenCV
+    img = cv2.imread(image_path)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    # Extract text from image using pytesseract
-    text = pytesseract.image_to_string(img)
-    print(f"Extracted {image_path}")
+    # Resize (upscale to improve OCR on small icons)
+    gray = cv2.resize(gray, None, fx=3, fy=3, interpolation=cv2.INTER_LINEAR)
+
+    # Threshold to sharpen text
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+    # Optional: sharpen filter
+    thresh = cv2.GaussianBlur(thresh, (3, 3), 0)
+
+    # Convert to PIL
+    pil_img = Image.fromarray(thresh)
+
+    # --- OCR Configuration ---
+    # Unicode suits: ♠♥♦♣ = \u2660\u2665\u2666\u2663
+    config = r'-l eng --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789♠♥♦♣'
+
+    # Extract text
+    text = pytesseract.image_to_string(pil_img, config=config)
+
     return text
 
 
@@ -29,6 +47,7 @@ def process_screenshots_folder(folder_path):
         os.makedirs(folder_results_path, exist_ok=True)
         for filename, image_path in images:
             text = extract_text_from_screenshot(image_path)
+            print(f"Extracted {image_path}")
             results[folder_name][filename] = text
             results_file = os.path.join(folder_results_path, f'{filename}.txt')
             with open(results_file, 'w', encoding='utf-8') as f:
@@ -62,7 +81,7 @@ if __name__ == '__main__':
     results = process_screenshots_folder(screenshots_folder)
 
     # Print extracted text from each screenshot
-    with open('results.txt', 'w', encoding='utf-8') as f:
+    with open('../results.txt', 'w', encoding='utf-8') as f:
         for folder, files in results.items():
             f.write(f'\nFolder: {folder}\n')
             for filename, text in files.items():
