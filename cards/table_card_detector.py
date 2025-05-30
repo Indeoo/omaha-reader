@@ -4,20 +4,17 @@ from typing import List, Tuple, Dict
 import matplotlib.pyplot as plt
 
 
-class PokerCardDetector:
+class TableCardDetector:
     def __init__(self,
-                 hand_card_area_range: Tuple[int, int] = (5000, 15000),
                  table_card_area_range: Tuple[int, int] = (15000, 50000),
                  aspect_ratio_range: Tuple[float, float] = (0.6, 0.8)):
         """
         Initialize the poker card detector
 
         Args:
-            hand_card_area_range: Min and max area for hand cards
             table_card_area_range: Min and max area for table cards
             aspect_ratio_range: Expected aspect ratio range for cards (width/height)
         """
-        self.hand_card_area_range = hand_card_area_range
         self.table_card_area_range = table_card_area_range
         self.aspect_ratio_range = aspect_ratio_range
 
@@ -51,8 +48,8 @@ class PokerCardDetector:
         area = cv2.contourArea(contour)
 
         # Check if area is in expected range for any card type
-        min_area = min(self.hand_card_area_range[0], self.table_card_area_range[0])
-        max_area = max(self.hand_card_area_range[1], self.table_card_area_range[1])
+        min_area = min(self.table_card_area_range[0], self.table_card_area_range[0])
+        max_area = max(self.table_card_area_range[1], self.table_card_area_range[1])
 
         if not (min_area <= area <= max_area):
             return False
@@ -87,26 +84,13 @@ class PokerCardDetector:
 
         return True
 
-    def classify_card_type(self, contour: np.ndarray) -> str:
-        """
-        Classify if the detected card is a hand card or table card based on size
-        """
-        area = cv2.contourArea(contour)
-
-        if self.hand_card_area_range[0] <= area <= self.hand_card_area_range[1]:
-            return "table"
-        elif self.table_card_area_range[0] <= area <= self.table_card_area_range[1]:
-            return "table"
-        else:
-            return "unknown"
-
     def detect_cards(self, image: np.ndarray) -> Dict[str, List[Dict]]:
         """
         Detect all cards in the image and classify them
         Updated for rounded rectangle card detection
 
         Returns:
-            Dictionary with 'hand_cards' and 'table_cards' lists containing card info
+            Dictionary with 'table_cards' lists containing card info
         """
         # Preprocess image
         processed = self.preprocess_image(image)
@@ -114,12 +98,11 @@ class PokerCardDetector:
         # Find contours
         contours, _ = cv2.findContours(processed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-        hand_cards = []
         table_cards = []
 
         for contour in contours:
             if self.is_card_like_contour(contour, image.shape[:2]):
-                card_type = self.classify_card_type(contour)
+                card_type = "table"
 
                 # Get bounding rectangle
                 x, y, w, h = cv2.boundingRect(contour)
@@ -138,13 +121,9 @@ class PokerCardDetector:
                     'center': (int(rect[0][0]), int(rect[0][1]))
                 }
 
-                if card_type == "hand":
-                    hand_cards.append(card_info)
-                elif card_type == "table":
-                    table_cards.append(card_info)
+                table_cards.append(card_info)
 
         return {
-            'hand_cards': hand_cards,
             'table_cards': table_cards
         }
 
@@ -153,12 +132,6 @@ class PokerCardDetector:
         Draw detected cards on the image for visualization
         """
         result_image = image.copy()
-
-        # Draw hand cards in blue
-        for card in detected_cards['hand_cards']:
-            cv2.drawContours(result_image, [card['box_points']], -1, (255, 0, 0), 2)
-            cv2.putText(result_image, 'Hand', card['center'],
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 0), 2)
 
         # Draw table cards in red
         for card in detected_cards['table_cards']:
@@ -199,14 +172,13 @@ class PokerCardDetector:
 
 
 # Example usage and testing functions
-def test_card_detection(image_path: str = None):
+def test_table_card_detection(image_path: str = None):
     """
     Test the card detection system
     """
     # Adjust parameters based on your card images
-    detector = PokerCardDetector(
-        hand_card_area_range=(1000, 8000),  # Smaller cards
-        table_card_area_range=(8000, 25000),  # Larger cards
+    detector = TableCardDetector(
+        table_card_area_range=(1000, 25000),  # Larger cards
         aspect_ratio_range=(0.5, 0.85)  # Typical card proportions
     )
 
@@ -217,36 +189,13 @@ def test_card_detection(image_path: str = None):
             print(f"Could not load image from {image_path}")
             return None, None
     else:
-        # Create a sample image with rectangles for testing
-        image = np.ones((600, 800, 3), dtype=np.uint8) * 50
-
-        # Draw sample "cards" with white borders - hand cards (smaller)
-        cv2.rectangle(image, (48, 48), (132, 182), (255, 255, 255), 2)  # Border
-        cv2.rectangle(image, (50, 50), (130, 180), (200, 200, 200), -1)  # Card
-
-        cv2.rectangle(image, (148, 48), (232, 182), (255, 255, 255), 2)  # Border
-        cv2.rectangle(image, (150, 50), (230, 180), (200, 200, 200), -1)  # Card
-
-        # Draw sample "cards" - table cards (larger)
-        cv2.rectangle(image, (298, 98), (422, 222), (255, 255, 255), 2)  # Border
-        cv2.rectangle(image, (300, 100), (420, 220), (200, 200, 200), -1)  # Card
-
-        cv2.rectangle(image, (448, 98), (572, 222), (255, 255, 255), 2)  # Border
-        cv2.rectangle(image, (450, 100), (570, 220), (200, 200, 200), -1)  # Card
-
-        cv2.rectangle(image, (598, 98), (722, 222), (255, 255, 255), 2)  # Border
-        cv2.rectangle(image, (600, 100), (720, 220), (200, 200, 200), -1)  # Card
+        raise Exception("No image provided")
 
     # Detect cards
     detected_cards = detector.detect_cards(image)
 
     # Print results
-    print(f"Detected {len(detected_cards['hand_cards'])} hand cards")
     print(f"Detected {len(detected_cards['table_cards'])} table cards")
-
-    # Print card details
-    for i, card in enumerate(detected_cards['hand_cards']):
-        print(f"Hand card {i + 1}: area={card['area']:.0f}, center={card['center']}")
 
     for i, card in enumerate(detected_cards['table_cards']):
         print(f"Table card {i + 1}: area={card['area']:.0f}, center={card['center']}")
@@ -279,9 +228,9 @@ def test_card_detection(image_path: str = None):
 
         # Show individual card regions
         plt.subplot(2, 2, 4)
-        if detected_cards['hand_cards'] or detected_cards['table_cards']:
+        if detected_cards['table_cards']:
             # Extract first detected card as example
-            all_cards = detected_cards['hand_cards'] + detected_cards['table_cards']
+            all_cards = detected_cards['table_cards']
             if all_cards:
                 sample_card = detector.extract_card_region(image, all_cards[0])
                 plt.imshow(cv2.cvtColor(sample_card, cv2.COLOR_BGR2RGB))

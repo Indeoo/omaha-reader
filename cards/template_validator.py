@@ -85,26 +85,9 @@ def validate_detected_cards(image, detected_cards, template_dir="templates/full_
         return {"error": "No templates loaded"}
 
     results = {
-        "hand_cards": [],
         "table_cards": [],
         "summary": {"total": 0, "valid": 0, "invalid": 0}
     }
-
-    # Validate hand cards
-    for i, card in enumerate(detected_cards['hand_cards']):
-        card_region = extract_card(image, card)
-        match_name, score, is_valid = match_card_to_templates(card_region, templates, threshold)
-
-        result = {
-            "card_index": i,
-            "match": match_name,
-            "score": score,
-            "is_valid": is_valid,
-            "card_region": card_region  # For debugging/visualization
-        }
-        results["hand_cards"].append(result)
-
-        print(f"Hand card {i + 1}: {match_name} (score: {score:.3f}) - {'✓' if is_valid else '✗'}")
 
     # Validate table cards
     for i, card in enumerate(detected_cards['table_cards']):
@@ -123,8 +106,8 @@ def validate_detected_cards(image, detected_cards, template_dir="templates/full_
         print(f"Table card {i + 1}: {match_name} (score: {score:.3f}) - {'✓' if is_valid else '✗'}")
 
     # Calculate summary
-    total_cards = len(results["hand_cards"]) + len(results["table_cards"])
-    valid_cards = sum(1 for card in results["hand_cards"] + results["table_cards"] if card["is_valid"])
+    total_cards = len(results["table_cards"])
+    valid_cards = sum(1 for card in results["table_cards"] if card["is_valid"])
 
     results["summary"] = {
         "total": total_cards,
