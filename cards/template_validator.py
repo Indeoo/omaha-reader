@@ -15,8 +15,9 @@ def extract_card(image, card_info):
     height = int(rect[1][1])
 
     # Ensure width > height for consistent orientation
-    if width < height:
-        width, height = height, width
+    # # FORCE all cards to be vertical (height > width)
+    # if width > height:
+    #     width, height = height, width
 
     # Destination points for perspective transform
     dst_pts = np.array([

@@ -81,7 +81,7 @@ if __name__ == '__main__':
     results = process_screenshots_folder(screenshots_folder)
 
     # Print extracted text from each screenshot
-    with open('../results.txt', 'w', encoding='utf-8') as f:
+    with open('results.txt', 'w', encoding='utf-8') as f:
         for folder, files in results.items():
             f.write(f'\nFolder: {folder}\n')
             for filename, text in files.items():

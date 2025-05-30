@@ -94,7 +94,7 @@ class PokerCardDetector:
         area = cv2.contourArea(contour)
 
         if self.hand_card_area_range[0] <= area <= self.hand_card_area_range[1]:
-            return "hand"
+            return "table"
         elif self.table_card_area_range[0] <= area <= self.table_card_area_range[1]:
             return "table"
         else:
