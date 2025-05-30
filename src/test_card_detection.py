@@ -317,10 +317,10 @@ def save_detected_cards(debug_results, original_image):
 
 if __name__ == "__main__":
     # Test with your poker image
-    results = test_poker_interface_detection("../screenshots/img.png")
+    results = test_poker_interface_detection("../resources/screenshots/img.png")
 
     # Load the original image for saving cards
-    image = cv2.imread("../screenshots/img.png")
+    image = cv2.imread("../resources/screenshots/img.png")
 
     # Save detected cards
     save_detected_cards(results, image)
