@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict
 
 from matplotlib import pyplot as plt
 
-from cards.table_card_detector import TableCardDetector
+from table_card_detector import TableCardDetector
 
 
 class HandCardDetector:

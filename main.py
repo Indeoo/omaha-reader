@@ -1,12 +1,9 @@
 import os
 
 import cv2
-import numpy as np
-from matplotlib import pyplot as plt
 
-from cards.hand_card_detector import HandCardDetector, test_hand_card_detection
-from cards.table_card_detector import test_table_card_detection, TableCardDetector
-from cards.template_validator import validate_detected_cards, extract_card
+from hand_card_detector import test_hand_card_detection
+from template_validator import extract_card
 
 
 def save_detected_cards(image, detected_cards, output_dir="detected_cards"):

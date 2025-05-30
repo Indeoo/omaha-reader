@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-from cards.template_loader import load_templates
+from template_loader import load_templates
 
 
 def extract_card(image, card_info):
