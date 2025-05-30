@@ -300,7 +300,7 @@ def save_detected_cards(debug_results, original_image):
     Simple function to save detected cards to detected_cards/ folder
     """
     # Create folder
-    os.makedirs("detected_cards", exist_ok=True)
+    os.makedirs("../detected_cards", exist_ok=True)
 
     # Get detected cards from method 1 (primary method)
     detected_cards = debug_results['cards_method1']
@@ -317,10 +317,10 @@ def save_detected_cards(debug_results, original_image):
 
 if __name__ == "__main__":
     # Test with your poker image
-    results = test_poker_interface_detection("screenshots/img.png")
+    results = test_poker_interface_detection("../screenshots/img.png")
 
     # Load the original image for saving cards
-    image = cv2.imread("screenshots/img.png")
+    image = cv2.imread("../screenshots/img.png")
 
     # Save detected cards
     save_detected_cards(results, image)

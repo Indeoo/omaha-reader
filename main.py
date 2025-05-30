@@ -2,8 +2,8 @@ import os
 
 import cv2
 
-from hand_card_detector import test_hand_card_detection
-from template_validator import extract_card
+from src.hand_card_detector import test_hand_card_detection
+from src.template_validator import extract_card
 
 
 def save_detected_cards(image, detected_cards, output_dir="detected_cards"):

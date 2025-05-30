@@ -4,8 +4,6 @@ from typing import List, Tuple, Dict
 
 from matplotlib import pyplot as plt
 
-from table_card_detector import TableCardDetector
-
 
 class HandCardDetector:
     def __init__(self,
@@ -335,49 +333,3 @@ def test_hand_card_detection(image_path: str = None):
 
     return hand_cards, result_image
 
-
-# Example of using both detectors together
-def detect_all_cards(image_path: str):
-    """
-    Use both table and hand card detectors together
-    """
-
-    # Initialize both detectors
-    table_detector = TableCardDetector()
-    hand_detector = HandCardDetector()
-
-    # Load image
-    image = cv2.imread(image_path)
-    if image is None:
-        print(f"Could not load image from {image_path}")
-        return
-
-    # Detect table cards
-    table_results = table_detector.detect_cards(image)
-    table_cards = table_results['table_cards']
-
-    # Detect hand cards
-    hand_cards = hand_detector.detect_hand_cards(image)
-
-    # Combine results
-    print(f"Total cards detected:")
-    print(f"  Table cards: {len(table_cards)}")
-    print(f"  Hand cards: {len(hand_cards)}")
-
-    # Draw all cards on one image
-    result_image = image.copy()
-
-    # Draw table cards in red
-    for card in table_cards:
-        cv2.drawContours(result_image, [card['box_points']], -1, (0, 0, 255), 2)
-        cv2.putText(result_image, 'Table', card['center'],
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
-
-    # Draw hand cards in green
-    result_image = hand_detector.draw_detected_hand_cards(result_image, hand_cards)
-
-    return {
-        'table_cards': table_cards,
-        'hand_cards': hand_cards,
-        'result_image': result_image
-    }
