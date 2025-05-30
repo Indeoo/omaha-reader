@@ -3,7 +3,8 @@ import os
 import cv2
 
 from src.hand_card_detector import test_hand_card_detection
-from src.template_validator import extract_card
+from src.table_card_detector import test_table_card_detection
+from src.template_validator import extract_card, validate_detected_cards
 
 
 def save_detected_cards(image, detected_cards, output_dir="detected_cards"):
@@ -31,9 +32,9 @@ if __name__ == "__main__":
     imagePath = "screenshots/img.png"
     image = cv2.imread(imagePath)
 
-    # detected_table_cards, result_image = test_table_card_detection(imagePath)
-    # save_detected_cards(image, detected_table_cards)
-    # validation_results = validate_detected_cards(image, detected_table_cards)
+    detected_table_cards, result_image = test_table_card_detection(imagePath)
+    save_detected_cards(image, detected_table_cards)
+    validation_results = validate_detected_cards(image, detected_table_cards)
 
 
 
