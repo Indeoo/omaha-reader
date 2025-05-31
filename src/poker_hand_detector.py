@@ -1,10 +1,9 @@
-import glob
 import os
 import cv2
 import numpy as np
 from typing import List, Tuple, Dict
 
-from src.template_loader import load_templates
+from src.utils.template_loader import load_templates
 
 
 class PokerHandDetector:

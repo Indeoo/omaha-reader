@@ -1,7 +1,6 @@
 import cv2
 import numpy as np
-from typing import List, Tuple, Dict
-import matplotlib.pyplot as plt
+from typing import Tuple, Dict
 import os
 
 
