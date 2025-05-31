@@ -2,9 +2,9 @@ import os
 
 import cv2
 
-from src.debug_hand_detector import debug_hand_detection
 from src.poker_hand_detector import test_template_first_detection, save_detected_cards_template_first
-from src.template_validator import extract_card
+from src.table_card_detector import test_table_card_detection
+from src.template_validator import extract_card, validate_detected_cards
 
 
 def save_detected_cards(image, detected_cards, output_dir="resources/detected_cards"):
@@ -28,17 +28,13 @@ def save_detected_cards(image, detected_cards, output_dir="resources/detected_ca
 
 
 # Usage example:
-# if __name__ == "__main__":
-#     imagePath = "resources/screenshots/img.png"
-#     image = cv2.imread(imagePath)
-#
-#     detected_table_cards, result_image = test_table_card_detection(imagePath)
-#     save_detected_cards(image, detected_table_cards)
-#     validation_results = validate_detected_cards(image, detected_table_cards)
-#
-#
-#
-#     results = test_hand_card_detection(imagePath)
+if __name__ == "__main__":
+    imagePath = "resources/screenshots/img.png"
+    image = cv2.imread(imagePath)
+
+    detected_table_cards, result_image = test_table_card_detection(imagePath)
+    save_detected_cards(image, detected_table_cards)
+    validation_results = validate_detected_cards(image, detected_table_cards)
 
 
 # if __name__ == "__main__":
@@ -100,16 +96,8 @@ def save_detected_cards(image, detected_cards, output_dir="resources/detected_ca
 #             print("Matplotlib not available for display")
 
 
-
-
-# if __name__ == "__main__":
-#     image_path = "resources/screenshots/img.png"
-#     debug_results = debug_hand_detection(image_path)
-
-#
-# Example usage
 if __name__ == "__main__":
-    image_path = "resources/screenshots/img.png"
+    image_path = "resources/screenshots/02_HM3HudProcess_exe_ptTableCover.png"
     templates_dir = "resources/templates/hand_cards/"
 
     # Test template-first detection
