@@ -243,7 +243,7 @@ class PokerHandDetector:
 
         return summary
 
-def template_detection(image, templates_dir):
+def detect_by_template(image, templates_dir):
     """
     Test the template-first detection approach
     """
@@ -349,5 +349,5 @@ def read_hand(image_path, templates_dir):
         print(f"Could not load image: {image_path}")
         return None
 
-    results = template_detection(image, templates_dir)
+    results = detect_by_template(image, templates_dir)
     process_results(results, debug=True)
