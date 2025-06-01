@@ -314,3 +314,39 @@ def save_detected_cards_template_first(results, output_dir="detected_cards_templ
         print(f"Saved: {filename}")
 
     return len(detections)
+
+
+def process_results(results, debug):
+    if results and debug:
+        # Save detected cards
+        save_detected_cards_template_first(results)
+
+        # Optional: Display results
+        try:
+            import matplotlib.pyplot as plt
+
+            plt.figure(figsize=(15, 8))
+
+            # Original image
+            plt.subplot(1, 2, 1)
+            plt.imshow(cv2.cvtColor(results['original'], cv2.COLOR_BGR2RGB))
+            plt.title('Original Image')
+            plt.axis('off')
+
+            # Result with detections
+            plt.subplot(1, 2, 2)
+            plt.imshow(cv2.cvtColor(results['result_image'], cv2.COLOR_BGR2RGB))
+            plt.title(f"Detections ({results['summary']['total']} found)")
+            plt.axis('off')
+
+            plt.tight_layout()
+            plt.show()
+
+        except ImportError:
+            print("Matplotlib not available for display")
+
+
+def read_hand(image_path, templates_dir):
+    # Test template-first detection
+    results = test_template_first_detection(image_path, templates_dir)
+    process_results(results, debug=True)
