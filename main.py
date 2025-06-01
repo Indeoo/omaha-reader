@@ -7,18 +7,18 @@ from src.utils.template_validator import validate_detected_cards
 
 
 # Usage example:
+# if __name__ == "__main__":
+#     imagePath = "resources/screenshots/img.png"
+#     image = cv2.imread(imagePath)
+#
+#     detected_table_cards, result_image = test_table_card_detection(imagePath)
+#     save_detected_cards(image, detected_table_cards)
+#     validation_results = validate_detected_cards(image, detected_table_cards)
+#
+
+
 if __name__ == "__main__":
-    imagePath = "resources/screenshots/img.png"
-    image = cv2.imread(imagePath)
-
-    detected_table_cards, result_image = test_table_card_detection(imagePath)
-    save_detected_cards(image, detected_table_cards)
-    validation_results = validate_detected_cards(image, detected_table_cards)
-
-
-
-if __name__ == "__main__":
-    image_path = "resources/screenshots/02_HM3HudProcess_exe_ptTableCover.png"
+    image_path = "resources/screenshots/02_Lobby_exe__0_02__0_05_Pot_Limit_Omaha.png"
     templates_dir = "resources/templates/hand_cards/"
 
     # Test template-first detection
