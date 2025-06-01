@@ -243,17 +243,11 @@ class PokerHandDetector:
 
         return summary
 
-def test_template_first_detection(image_path: str, templates_dir: str = "resources/templates/hand_cards/"):
+def template_detection(image, templates_dir):
     """
     Test the template-first detection approach
     """
     detector = PokerHandDetector(templates_dir=templates_dir)
-
-    # Load image
-    image = cv2.imread(image_path)
-    if image is None:
-        print(f"Could not load image: {image_path}")
-        return None
 
     print(f"Loaded image: {image.shape}")
     print(f"Loaded {len(detector.templates)} templates")
@@ -348,5 +342,12 @@ def process_results(results, debug):
 
 def read_hand(image_path, templates_dir):
     # Test template-first detection
-    results = test_template_first_detection(image_path, templates_dir)
+
+    # Load image
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Could not load image: {image_path}")
+        return None
+
+    results = template_detection(image, templates_dir)
     process_results(results, debug=True)
