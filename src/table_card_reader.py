@@ -152,6 +152,10 @@ def read_table_card(image, template_dir):
     save_detected_cards(result_image, detected_cards)
     validate_detected_cards(result_image, detected_cards, template_dir)
 
+    process_results(detected_cards, detector, image, result_image)
+
+
+def process_results(detected_cards, detector, image, result_image):
     # Display results (if running in an environment with display)
     try:
         plt.figure(figsize=(15, 10))
