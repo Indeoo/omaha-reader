@@ -4,6 +4,8 @@ from typing import List, Tuple, Dict
 import matplotlib.pyplot as plt
 
 from src.utils.image_preprocessor import ImagePreprocessor
+from src.utils.save_utils import save_detected_cards
+from src.utils.template_validator import validate_detected_cards
 
 
 class TableCardDetector:
@@ -152,7 +154,7 @@ class TableCardDetector:
 
 
 # Example usage and testing functions
-def read_table_card(image):
+def read_table_card(image, template_dir):
     """
     Test the card detection system
     """
@@ -173,6 +175,8 @@ def read_table_card(image):
 
     # Draw results
     result_image = detector.draw_detected_cards(image, detected_cards)
+    save_detected_cards(result_image, detected_cards)
+    validate_detected_cards(result_image, detected_cards, template_dir)
 
     # Display results (if running in an environment with display)
     try:
@@ -213,5 +217,3 @@ def read_table_card(image):
     except Exception as e:
         print(f"Display not available: {e}")
         print("But detection completed successfully")
-
-    return detected_cards, result_image

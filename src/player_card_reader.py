@@ -252,7 +252,7 @@ class PlayerCardReader:
         return summary
 
 @benchmark
-def detect_by_template(image, templates_dir):
+def read_player_cards(image, templates_dir):
     """
     Test the template-first detection approach
     """
