@@ -254,14 +254,14 @@ class PlayerCardReader(CardReader):
 def read_player_cards(image, templates_dir):
     player_card_reader = PlayerCardReader(templates_dir=templates_dir)
 
-    detections = player_card_reader.read(image)
+    readed_cards = player_card_reader.read(image)
 
     # Extract regions for each detection
-    detections_with_regions = player_card_reader.extract_detected_regions(image, detections)
-    summary = write_summary(detections, detections_with_regions, player_card_reader)
+    detections_with_regions = player_card_reader.extract_detected_regions(image, readed_cards)
+    summary = write_summary(readed_cards, detections_with_regions, player_card_reader)
 
     # Create visualization
-    result_image = player_card_reader.draw_detected_cards(image, detections)
+    result_image = draw_detected_cards(image, readed_cards)
 
     readed_cards = {
         'original': image,

@@ -20,6 +20,24 @@ class TableCardReader(CardReader):
         self.image_preprocessor = ImagePreprocessor()
         self.templates = load_templates(template_dir)
 
+    def read(self, image: np.ndarray):
+        # Detect cards
+        readed_cards = self.detect(image)
+        # Print results
+        print(f"Detected {len(readed_cards)} table cards")
+        for i, card in enumerate(readed_cards):
+            print(f"Table card {i + 1}: area={card['area']:.0f}, center={card['center']}")
+        # Draw results
+        result_image = self.draw_detected_cards(image, readed_cards)
+        extracted_cards = []
+        for card in readed_cards:
+            card_region = extract_card(image, card)
+            extracted_cards.append(card_region)
+        save_detected_cards(extracted_cards)
+        self.validate_detected_cards(result_image, readed_cards)
+
+        return readed_cards
+
     def detect(self, image: np.ndarray) -> Dict[str, List[Dict]]:
         """
         Detect all cards in the image and classify them
@@ -214,25 +232,6 @@ def read_table_card(image, template_dir):
         template_dir
     )
 
-    # Detect cards
-    detected_cards = table_card_reader.detect(image)
+    readed_cards = table_card_reader.read(image)
 
-    # Print results
-    print(f"Detected {len(detected_cards)} table cards")
-
-    for i, card in enumerate(detected_cards):
-        print(f"Table card {i + 1}: area={card['area']:.0f}, center={card['center']}")
-
-    # Draw results
-    result_image = table_card_reader.draw_detected_cards(image, detected_cards)
-
-    extracted_cards = []
-
-    for card in detected_cards:
-        card_region = extract_card(image, card)
-        extracted_cards.append(card_region)
-
-    save_detected_cards(extracted_cards)
-    table_card_reader.validate_detected_cards(result_image, detected_cards)
-
-    process_results(detected_cards, "table", image=image, detector=table_card_reader)
+    process_results(readed_cards, "table", image=image, detector=table_card_reader)
