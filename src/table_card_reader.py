@@ -152,7 +152,7 @@ class TableCardDetector:
 
 
 # Example usage and testing functions
-def test_table_card_detection(image):
+def read_table_card(image):
     """
     Test the card detection system
     """

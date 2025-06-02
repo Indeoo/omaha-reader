@@ -1,7 +1,7 @@
 import cv2
 
 from src.player_card_reader import detect_by_template, process_results
-from src.table_card_reader import test_table_card_detection
+from src.table_card_reader import read_table_card
 from src.utils.save_utils import save_detected_cards
 from src.utils.template_validator import validate_detected_cards
 
