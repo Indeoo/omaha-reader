@@ -290,9 +290,7 @@ def detect_by_template(image, templates_dir):
 
 
 def save_detected_cards_template_first(results, output_dir="detected_cards_template_first"):
-    """
-    Save each detected card region
-    """
+    """Save each detected card region"""
     os.makedirs(output_dir, exist_ok=True)
 
     detections = results['detections']
@@ -308,7 +306,6 @@ def save_detected_cards_template_first(results, output_dir="detected_cards_templ
         print(f"Saved: {filename}")
 
     return len(detections)
-
 
 def process_results(results, debug):
     if results and debug:
@@ -340,14 +337,14 @@ def process_results(results, debug):
             print("Matplotlib not available for display")
 
 
-def read_hand(image_path, templates_dir):
+def read_hand(image, templates_dir):
     # Test template-first detection
 
-    # Load image
-    image = cv2.imread(image_path)
-    if image is None:
-        print(f"Could not load image: {image_path}")
-        return None
+    # # Load image
+    # image = cv2.imread(image_path)
+    # if image is None:
+    #     print(f"Could not load image: {image_path}")
+    #     return None
 
     results = detect_by_template(image, templates_dir)
     process_results(results, debug=True)

@@ -20,5 +20,6 @@ if __name__ == "__main__":
 # if __name__ == "__main__":
 #     image_path = "resources/screenshots/02_Lobby_exe__0_02__0_05_Pot_Limit_Omaha.png"
 #     templates_dir = "resources/templates/hand_cards/"
+#    image = cv2.imread(imagePath)
 #
-#     read_hand(image_path, templates_dir)
+#     read_hand(image, templates_dir)
