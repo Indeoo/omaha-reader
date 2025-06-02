@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict
+from src.utils.template_loader import load_templates
 
 
 def extract_card(image: np.ndarray, card_info: Dict, force_vertical: bool = True) -> np.ndarray:
@@ -71,10 +72,6 @@ def match_card_to_templates(card_region, templates, threshold=0.6):
 
     is_valid = best_score >= threshold
     return best_match, best_score, is_valid
-
-
-from typing import Dict
-from src.utils.template_loader import load_templates
 
 
 def validate_detected_cards(image, detected_cards, template_dir, threshold=0.6):

@@ -2,8 +2,6 @@ import cv2
 
 from src.player_card_reader import read_player_cards
 from src.table_card_reader import read_table_card
-from src.utils.save_utils import save_detected_cards
-from src.utils.template_validator import validate_detected_cards
 
 
 # Usage example:
@@ -20,4 +18,3 @@ if __name__ == "__main__":
 #     image = cv2.imread(imagePath)
 #
 #     readed_cards = read_player_cards(image, templates_dir)
-#     process_results(readed_cards, debug=True)

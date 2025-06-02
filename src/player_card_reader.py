@@ -1,4 +1,3 @@
-import os
 import cv2
 import numpy as np
 from typing import List, Tuple, Dict
@@ -290,12 +289,14 @@ def read_player_cards(image, templates_dir):
     # Create visualization
     result_image = detector.draw_detected_cards(image, detections)
 
-    return {
+    readed_cards = {
         'original': image,
         'result_image': result_image,
         'detections': detections_with_regions,
         'summary': summary
     }
+
+    process_results(readed_cards, debug=True)
 
 def process_results(results, debug):
     if results and debug:
