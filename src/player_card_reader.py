@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 from typing import List, Tuple, Dict
 
+from src.utils.benchmark_utils import benchmark
+from src.utils.save_utils import save_detected_player_cards
 from src.utils.template_loader import load_templates
 
 
@@ -249,6 +251,7 @@ class PlayerCardReader:
 
         return summary
 
+@benchmark
 def detect_by_template(image, templates_dir):
     """
     Test the template-first detection approach
@@ -294,29 +297,10 @@ def detect_by_template(image, templates_dir):
         'summary': summary
     }
 
-
-def save_detected_cards_template_first(results, output_dir="detected_cards_template_first"):
-    """Save each detected card region"""
-    os.makedirs(output_dir, exist_ok=True)
-
-    detections = results['detections']
-
-    for i, detection in enumerate(detections):
-        card_region = detection['card_region']
-        template_name = detection['template_name']
-        confidence = detection['match_score']
-        scale = detection['scale']
-
-        filename = f"{output_dir}/{template_name}_conf{confidence:.2f}_scale{scale:.1f}_{i}.png"
-        cv2.imwrite(filename, card_region)
-        print(f"Saved: {filename}")
-
-    return len(detections)
-
 def process_results(results, debug):
     if results and debug:
         # Save detected cards
-        save_detected_cards_template_first(results)
+        save_detected_player_cards(results)
 
         # Optional: Display results
         try:
