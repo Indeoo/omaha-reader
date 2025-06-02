@@ -1,6 +1,8 @@
 import os
 import cv2
 from pathlib import Path
+from datetime import datetime
+from typing import List, Dict
 from src.table_card_reader import TableCardReader
 from src.utils.template_validator import extract_card
 
@@ -23,8 +25,12 @@ def process_all_screenshots(
     print(f"🎯 Initializing TableCardReader with templates from: {templates_dir}")
     table_card_reader = TableCardReader(template_dir=templates_dir)
 
-    # Create output directory
-    os.makedirs(output_dir, exist_ok=True)
+    # Create output directory with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamped_output_dir = Path(output_dir) / f"detection_{timestamp}"
+    os.makedirs(timestamped_output_dir, exist_ok=True)
+
+    print(f"💾 Results will be saved to: {timestamped_output_dir}")
 
     # Get all timestamp folders
     screenshots_path = Path(screenshots_dir)
@@ -53,7 +59,7 @@ def process_all_screenshots(
         print(f"   🖼️  Found {len(image_files)} images")
 
         # Create output folder for this timestamp
-        folder_output_dir = Path(output_dir) / folder_name
+        folder_output_dir = timestamped_output_dir / folder_name
         os.makedirs(folder_output_dir, exist_ok=True)
 
         folder_cards_count = 0
@@ -112,13 +118,13 @@ def process_all_screenshots(
     print(f"📁 Folders processed: {len(timestamp_folders)}")
     print(f"🖼️  Images processed: {total_images_processed}")
     print(f"🃏 Total cards detected: {total_cards_detected}")
-    print(f"💾 Results saved to: {output_dir}")
+    print(f"💾 Results saved to: {timestamped_output_dir}")
     print(f"=" * 60)
 
 
 def process_single_folder(
         folder_path: str,
-        output_dir: str = "results/card_result",
+        output_dir: str = "resources/card_result",
         templates_dir: str = "resources/templates/full_cards"
 ):
     """
