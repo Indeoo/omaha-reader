@@ -5,10 +5,11 @@ import matplotlib.pyplot as plt
 
 from src.utils.image_preprocessor import ImagePreprocessor
 from src.utils.save_utils import save_detected_cards
-from src.utils.template_validator import validate_detected_cards, extract_card
+from src.utils.template_loader import load_templates
+from src.utils.template_validator import extract_card, match_card_to_templates
 
 
-class TableCardDetector:
+class TableCardReader:
     def __init__(self,
                  table_card_area_range: Tuple[int, int] = (15000, 50000),
                  aspect_ratio_range: Tuple[float, float] = (0.6, 0.8)):
@@ -105,9 +106,7 @@ class TableCardDetector:
 
                 table_cards.append(card_info)
 
-        return {
-            'table_cards': table_cards
-        }
+        return table_cards
 
     def draw_detected_cards(self, image: np.ndarray, detected_cards: Dict) -> np.ndarray:
         """
@@ -116,7 +115,7 @@ class TableCardDetector:
         result_image = image.copy()
 
         # Draw table cards in red
-        for card in detected_cards['table_cards']:
+        for card in detected_cards:
             cv2.drawContours(result_image, [card['box_points']], -1, (0, 0, 255), 2)
             cv2.putText(result_image, 'Table', card['center'],
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
@@ -126,33 +125,131 @@ class TableCardDetector:
     def extract_card_region(self, image: np.ndarray, card_info: Dict) -> np.ndarray:
         extract_card(image, card_info)
 
+    def validate_detected_cards(self, image, detected_cards, template_dir, threshold=0.6):
+        """
+        Validate detected cards against templates
 
-# Example usage and testing functions
+        Args:
+            image: Original image (numpy array)
+            detected_cards: Output from your detect_cards() function
+            template_dir: Directory containing template images
+            threshold: Minimum match score (0.0-1.0)
+
+        Returns:
+            Dictionary with validation results
+        """
+        print(f"🔍 Starting validation with threshold: {threshold}")
+        print(f"📁 Loading templates from: {template_dir}")
+
+        # Load templates
+        templates = load_templates(template_dir)
+
+        if not templates:
+            print(f"❌ No templates loaded from {template_dir}")
+            return {"error": "No templates loaded"}
+
+        print(f"✅ Loaded {len(templates)} templates: {list(templates.keys())}")
+
+        results = {
+            "table_cards": [],
+            "summary": {"total": 0, "valid": 0, "invalid": 0}
+        }
+
+        valid_matches = []
+        invalid_matches = []
+
+        # Validate table cards
+        print(f"🎯 Validating {len(detected_cards)} detected cards...")
+
+        for i, card in enumerate(detected_cards):
+            card_region = extract_card(image, card)
+            match_name, score, is_valid = match_card_to_templates(card_region, templates, threshold)
+
+            result = {
+                "card_index": i,
+                "match": match_name,
+                "score": score,
+                "is_valid": is_valid,
+                "card_region": card_region
+            }
+            results["table_cards"].append(result)
+
+            # Detailed logging for each card
+            status = "✓ VALID" if is_valid else "✗ INVALID"
+            print(f"Card {i + 1:2d}: {match_name or 'NO_MATCH':>8s} | Score: {score:.3f} | {status}")
+
+            # Collect results for summary
+            if is_valid:
+                valid_matches.append(f"{match_name} ({score:.3f})")
+            else:
+                invalid_matches.append(f"{match_name or 'NO_MATCH'} ({score:.3f})")
+
+        # Calculate summary
+        total_cards = len(results["table_cards"])
+        valid_cards = sum(1 for card in results["table_cards"] if card["is_valid"])
+
+        results["summary"] = {
+            "total": total_cards,
+            "valid": valid_cards,
+            "invalid": total_cards - valid_cards,
+            "validation_rate": (valid_cards / total_cards * 100) if total_cards > 0 else 0
+        }
+
+        # Enhanced summary logging
+        print("\n" + "=" * 60)
+        print("📊 VALIDATION SUMMARY")
+        print("=" * 60)
+        print(f"Total cards detected: {total_cards}")
+        print(f"Valid cards: {valid_cards}")
+        print(f"Invalid cards: {total_cards - valid_cards}")
+        print(f"Validation rate: {results['summary']['validation_rate']:.1f}%")
+
+        if valid_matches:
+            print(f"\n✅ VALID CARDS ({len(valid_matches)}):")
+            for i, match in enumerate(valid_matches, 1):
+                print(f"  {i:2d}. {match}")
+
+        if invalid_matches:
+            print(f"\n❌ INVALID CARDS ({len(invalid_matches)}):")
+            for i, match in enumerate(invalid_matches, 1):
+                print(f"  {i:2d}. {match}")
+
+        if not valid_matches and not invalid_matches:
+            print("⚠️  No cards were processed!")
+
+        print("=" * 60)
+
+        return results
+
+
 def read_table_card(image, template_dir):
-    """
-    Test the card detection system
-    """
-    # Adjust parameters based on your card images
-    detector = TableCardDetector(
+    table_card_reader = TableCardReader(
         table_card_area_range=(1000, 25000),  # Larger cards
         aspect_ratio_range=(0.5, 0.85)  # Typical card proportions
     )
 
     # Detect cards
-    detected_cards = detector.detect_cards(image)
+    detected_cards = table_card_reader.detect_cards(image)
 
     # Print results
-    print(f"Detected {len(detected_cards['table_cards'])} table cards")
+    print(f"Detected {len(detected_cards)} table cards")
 
-    for i, card in enumerate(detected_cards['table_cards']):
+    for i, card in enumerate(detected_cards):
         print(f"Table card {i + 1}: area={card['area']:.0f}, center={card['center']}")
 
     # Draw results
-    result_image = detector.draw_detected_cards(image, detected_cards)
-    save_detected_cards(result_image, detected_cards)
-    validate_detected_cards(result_image, detected_cards, template_dir)
+    result_image = table_card_reader.draw_detected_cards(image, detected_cards)
 
-    process_results(detected_cards, detector, image, result_image)
+    extracted_cards = []
+
+    for card in detected_cards:
+        card_region = extract_card(image, card)
+        extracted_cards.append(card_region)
+
+    save_detected_cards(extracted_cards)
+    table_card_reader.validate_detected_cards(result_image, detected_cards, template_dir)
+
+    process_results(detected_cards, table_card_reader, image, result_image)
 
 
 def process_results(detected_cards, detector, image, result_image):

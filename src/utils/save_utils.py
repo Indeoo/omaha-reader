@@ -1,9 +1,8 @@
 import os
 import cv2
-from src.utils.template_validator import extract_card
 
 
-def save_detected_cards(image, detected_cards, output_dir="resources/detected_cards"):
+def save_detected_cards(extracted_cards, output_dir="resources/detected_cards"):
     """
     Save each detected card as a separate PNG file
 
@@ -14,14 +13,13 @@ def save_detected_cards(image, detected_cards, output_dir="resources/detected_ca
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    for i, card in enumerate(detected_cards['table_cards']):
-        card_region = extract_card(image, card)
+    for i, card in enumerate(extracted_cards):
         filename = os.path.join(output_dir, f"table_card_{i + 1}.png")
-        cv2.imwrite(filename, card_region)
+        cv2.imwrite(filename, card)
         print(f"Saved: {filename}")
 
 
-def save_detected_player_cards(results, output_dir="resources/detected_player_cards"):
+def save_readed_player_cards(results, output_dir="resources/readed_player_cards"):
     """Save each detected card region"""
     os.makedirs(output_dir, exist_ok=True)
 

@@ -3,7 +3,7 @@ import numpy as np
 from typing import List, Tuple, Dict
 
 from src.utils.benchmark_utils import benchmark
-from src.utils.save_utils import save_detected_player_cards
+from src.utils.save_utils import save_readed_player_cards
 from src.utils.template_loader import load_templates
 
 
@@ -301,7 +301,7 @@ def read_player_cards(image, templates_dir):
 def process_results(results, debug):
     if results and debug:
         # Save detected cards
-        save_detected_player_cards(results)
+        save_readed_player_cards(results)
 
         # Optional: Display results
         try:
