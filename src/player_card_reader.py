@@ -46,7 +46,9 @@ class PlayerCardReader(CardReader):
         filtered_detections = self._filter_overlapping_detections(all_detections)
         sorted_detections = self._sort_detections_by_position(filtered_detections)
 
-        return sorted_detections
+        detections_with_regions = self.extract_detected_regions(image, sorted_detections)
+
+        return detections_with_regions
 
     def _find_all_template_matches(self, image: np.ndarray) -> List[Dict]:
         """Find matches for all templates in the image"""
@@ -250,27 +252,6 @@ class PlayerCardReader(CardReader):
             summary["cards"][card_name] += 1
 
         return summary
-
-def read_player_cards(image, templates_dir):
-    player_card_reader = PlayerCardReader(templates_dir=templates_dir)
-
-    readed_cards = player_card_reader.read(image)
-
-    # Extract regions for each detection
-    detections_with_regions = player_card_reader.extract_detected_regions(image, readed_cards)
-    summary = write_summary(readed_cards, detections_with_regions, player_card_reader)
-
-    # Create visualization
-    result_image = player_card_reader.draw_detected_cards(image, readed_cards)
-
-    readed_cards = {
-        'original': image,
-        'result_image': result_image,
-        'detections': detections_with_regions,
-        'summary': summary
-    }
-
-    process_results(readed_cards, "player", debug=True)
 
 
 def write_summary(detections, detections_with_regions, player_card_reader):

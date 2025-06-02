@@ -11,8 +11,8 @@ from src.utils.template_validator import extract_card, match_card_to_templates
 
 class TableCardReader(CardReader):
     def __init__(self,
-                 table_card_area_range: Tuple[int, int] = (15000, 50000),
-                 aspect_ratio_range: Tuple[float, float] = (0.6, 0.8),
+                 table_card_area_range: Tuple[int, int] = (1000, 25000),
+                 aspect_ratio_range: Tuple[float, float] = (0.5, 0.85),
                  template_dir = "resources/templates/table_cards/",):
         self.table_card_area_range = table_card_area_range
         self.aspect_ratio_range = aspect_ratio_range
@@ -32,6 +32,7 @@ class TableCardReader(CardReader):
         for card in readed_cards:
             card_region = extract_card(image, card)
             extracted_cards.append(card_region)
+
         save_detected_cards(extracted_cards)
         self.validate_detected_cards(result_image, readed_cards)
 
