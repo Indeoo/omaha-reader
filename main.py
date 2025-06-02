@@ -1,7 +1,7 @@
 import cv2
 
-from src.poker_hand_detector import read_hand
-from src.table_card_detector import test_table_card_detection
+from src.player_card_reader import read_hand
+from src.table_card_reader import test_table_card_detection
 from src.utils.save_utils import save_detected_cards
 from src.utils.template_validator import validate_detected_cards
 

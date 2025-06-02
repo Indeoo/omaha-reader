@@ -6,7 +6,7 @@ from typing import List, Tuple, Dict
 from src.utils.template_loader import load_templates
 
 
-class PokerHandDetector:
+class PlayerCardReader:
     def __init__(self, templates_dir: str = "resources/templates/hand_cards/"):
         """
         Template-first detector that scans the entire image directly with templates
@@ -247,7 +247,7 @@ def detect_by_template(image, templates_dir):
     """
     Test the template-first detection approach
     """
-    detector = PokerHandDetector(templates_dir=templates_dir)
+    detector = PlayerCardReader(templates_dir=templates_dir)
 
     print(f"Loaded image: {image.shape}")
     print(f"Loaded {len(detector.templates)} templates")
