@@ -3,6 +3,7 @@ import numpy as np
 from typing import List, Tuple, Dict
 
 from src.utils.benchmark_utils import benchmark
+from src.utils.result_processor import process_results
 from src.utils.save_utils import save_readed_player_cards
 from src.utils.template_loader import load_templates
 
@@ -296,33 +297,4 @@ def read_player_cards(image, templates_dir):
         'summary': summary
     }
 
-    process_results(readed_cards, debug=True)
-
-def process_results(results, debug):
-    if results and debug:
-        # Save detected cards
-        save_readed_player_cards(results)
-
-        # Optional: Display results
-        try:
-            import matplotlib.pyplot as plt
-
-            plt.figure(figsize=(15, 8))
-
-            # Original image
-            plt.subplot(1, 2, 1)
-            plt.imshow(cv2.cvtColor(results['original'], cv2.COLOR_BGR2RGB))
-            plt.title('Original Image')
-            plt.axis('off')
-
-            # Result with detections
-            plt.subplot(1, 2, 2)
-            plt.imshow(cv2.cvtColor(results['result_image'], cv2.COLOR_BGR2RGB))
-            plt.title(f"Detections ({results['summary']['total']} found)")
-            plt.axis('off')
-
-            plt.tight_layout()
-            plt.show()
-
-        except ImportError:
-            print("Matplotlib not available for display")
+    process_results(readed_cards, "player", debug=True)

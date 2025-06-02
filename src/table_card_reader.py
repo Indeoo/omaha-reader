@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
 from typing import List, Tuple, Dict
-import matplotlib.pyplot as plt
 
 from src.utils.image_preprocessor import ImagePreprocessor
+from src.utils.result_processor import process_results
 from src.utils.save_utils import save_detected_cards
 from src.utils.template_loader import load_templates
 from src.utils.template_validator import extract_card, match_card_to_templates
@@ -249,46 +249,4 @@ def read_table_card(image, template_dir):
     save_detected_cards(extracted_cards)
     table_card_reader.validate_detected_cards(result_image, detected_cards, template_dir)
 
-    process_results(detected_cards, table_card_reader, image, result_image)
-
-
-def process_results(detected_cards, detector, image, result_image):
-    # Display results (if running in an environment with display)
-    try:
-        plt.figure(figsize=(15, 10))
-
-        # Show original image
-        plt.subplot(2, 2, 1)
-        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        plt.title('Original Image')
-        plt.axis('off')
-
-        # Show preprocessed image
-        plt.subplot(2, 2, 2)
-        processed = detector.image_preprocessor.preprocess_image(image)
-        plt.imshow(processed, cmap='gray')
-        plt.title('Preprocessed (Edge Detection)')
-        plt.axis('off')
-
-        # Show detected cards
-        plt.subplot(2, 2, 3)
-        plt.imshow(cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB))
-        plt.title('Detected Cards')
-        plt.axis('off')
-
-        # Show individual card regions
-        plt.subplot(2, 2, 4)
-        if detected_cards['table_cards']:
-            # Extract first detected card as example
-            all_cards = detected_cards['table_cards']
-            if all_cards:
-                sample_card = detector.extract_card_region(image, all_cards[0])
-                plt.imshow(cv2.cvtColor(sample_card, cv2.COLOR_BGR2RGB))
-                plt.title('Sample Extracted Card')
-        plt.axis('off')
-
-        plt.tight_layout()
-        plt.show()
-    except Exception as e:
-        print(f"Display not available: {e}")
-        print("But detection completed successfully")
+    process_results(detected_cards, "table", image=image, detector=table_card_reader)
