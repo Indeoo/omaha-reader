@@ -41,7 +41,7 @@ def write_summary(readed_cards, player_card_reader):
 if __name__ == "__main__":
     # Player card reading
     imagePath = "resources/screenshots/02_Lobby_exe__0_02__0_05_Pot_Limit_Omaha.png"
-    templates_dir = "resources/templates/hand_cards/"
+    templates_dir = "resources/templates/player_cards/"
     image = cv2.imread(imagePath)
     player_card_reader = PlayerCardReader(templates_dir=templates_dir)
     readed_cards = player_card_reader.read(image)

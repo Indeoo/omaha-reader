@@ -15,7 +15,7 @@ class PlayerCardReader(CardReader):
     DEFAULT_MATCH_THRESHOLD = 0.6
     DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
 
-    def __init__(self, templates_dir: str = "resources/templates/hand_cards/"):
+    def __init__(self, templates_dir: str = "resources/templates/player_cards/"):
         """
         Template-first detector that scans the entire image directly with templates
         No preprocessing, no assumptions about colors or regions
