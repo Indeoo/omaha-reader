@@ -1,8 +1,10 @@
+
 import cv2
 import numpy as np
 from typing import List, Tuple, Dict
 
 from src.card_reader import CardReader
+from src.readed_card import ReadedCard
 from src.utils.image_preprocessor import ImagePreprocessor
 from src.utils.save_utils import save_detected_cards
 from src.utils.template_loader import load_templates
@@ -13,38 +15,71 @@ class TableCardReader(CardReader):
     def __init__(self,
                  table_card_area_range: Tuple[int, int] = (1000, 25000),
                  aspect_ratio_range: Tuple[float, float] = (0.5, 0.85),
-                 template_dir = "resources/templates/table_cards/",):
+                 template_dir="resources/templates/table_cards/", ):
         self.table_card_area_range = table_card_area_range
         self.aspect_ratio_range = aspect_ratio_range
         self.image_preprocessor = ImagePreprocessor()
         self.templates = load_templates(template_dir)
 
-    def read(self, image: np.ndarray):
+    def read(self, image: np.ndarray) -> List[ReadedCard]:
+        """
+        Detect table cards and return as ReadedCard objects
+
+        Returns:
+            List of ReadedCard objects
+        """
         # Detect cards
-        readed_cards = self.detect(image)
+        detected_cards = self.detect(image)
+
         # Print results
-        print(f"Detected {len(readed_cards)} table cards")
-        for i, card in enumerate(readed_cards):
+        print(f"Detected {len(detected_cards)} table cards")
+        for i, card in enumerate(detected_cards):
             print(f"Table card {i + 1}: area={card['area']:.0f}, center={card['center']}")
-        # Draw results
-        result_image = self.draw_detected_cards(image, readed_cards)
+
+        # Convert to ReadedCard objects with validation
+        readed_cards = []
         extracted_cards = []
-        for card in readed_cards:
+
+        for i, card in enumerate(detected_cards):
+            # Extract card region
             card_region = extract_card(image, card)
             extracted_cards.append(card_region)
 
+            # Validate against templates
+            match_name, score, is_valid = match_card_to_templates(card_region, self.templates, threshold=0.6)
+
+            # Create ReadedCard object
+            x, y, w, h = card['bounding_rect']
+            readed_card = ReadedCard(
+                card_index=i,
+                card_region=card_region,
+                bounding_rect=card['bounding_rect'],
+                center=card['center'],
+                area=card['area'],
+                template_name=match_name,
+                match_score=score,
+                is_valid=is_valid,
+                contour=card['contour'],
+                rotated_rect=card['rotated_rect'],
+                box_points=card['box_points']
+            )
+            readed_cards.append(readed_card)
+
+        # Save detected cards
         save_detected_cards(extracted_cards)
-        self.validate_detected_cards(result_image, readed_cards)
+
+        # Print validation results
+        self._print_validation_results(readed_cards)
 
         return readed_cards
 
-    def detect(self, image: np.ndarray) -> Dict[str, List[Dict]]:
+    def detect(self, image: np.ndarray) -> List[Dict]:
         """
         Detect all cards in the image and classify them
         Updated for rounded rectangle card detection
 
         Returns:
-            Dictionary with 'table_cards' lists containing card info
+            List of dictionaries containing card info
         """
         # Preprocess image
         processed = self.image_preprocessor.preprocess_image(image)
@@ -122,81 +157,42 @@ class TableCardReader(CardReader):
 
         return True
 
-    def draw_detected_cards(self, image: np.ndarray, detected_cards: Dict) -> np.ndarray:
+    def draw_detected_cards(self, image: np.ndarray, readed_cards: List[ReadedCard]) -> np.ndarray:
         """
         Draw detected cards on the image for visualization
         """
         result_image = image.copy()
 
         # Draw table cards in red
-        for card in detected_cards:
-            cv2.drawContours(result_image, [card['box_points']], -1, (0, 0, 255), 2)
-            cv2.putText(result_image, 'Table', card['center'],
+        for card in readed_cards:
+            cv2.drawContours(result_image, [card.box_points], -1, (0, 0, 255), 2)
+            cv2.putText(result_image, 'Table', card.center,
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
 
         return result_image
 
-    def extract_card_region(self, image: np.ndarray, card_info: Dict) -> np.ndarray:
-        extract_card(image, card_info)
-
-    def validate_detected_cards(self, image, detected_cards, threshold=0.6):
-        """
-        Validate detected cards against templates
-
-        Args:
-            image: Original image (numpy array)
-            detected_cards: Output from your detect_cards() function
-            threshold: Minimum match score (0.0-1.0)
-
-        Returns:
-            Dictionary with validation results
-        """
+    def _print_validation_results(self, readed_cards: List[ReadedCard], threshold=0.6):
+        """Print validation results in the same format as before"""
         print(f"🔍 Starting validation with threshold: {threshold}")
-
-        results = {
-            "table_cards": [],
-            "summary": {"total": 0, "valid": 0, "invalid": 0}
-        }
+        print(f"🎯 Validating {len(readed_cards)} detected cards...")
 
         valid_matches = []
         invalid_matches = []
 
-        # Validate table cards
-        print(f"🎯 Validating {len(detected_cards)} detected cards...")
+        for i, card in enumerate(readed_cards):
+            status = "✓ VALID" if card.is_valid else "✗ INVALID"
+            match_name = card.template_name or 'NO_MATCH'
+            print(f"Card {i + 1:2d}: {match_name:>8s} | Score: {card.match_score:.3f} | {status}")
 
-        for i, card in enumerate(detected_cards):
-            card_region = extract_card(image, card)
-            match_name, score, is_valid = match_card_to_templates(card_region, self.templates, threshold)
-
-            result = {
-                "card_index": i,
-                "match": match_name,
-                "score": score,
-                "is_valid": is_valid,
-                "card_region": card_region
-            }
-            results["table_cards"].append(result)
-
-            # Detailed logging for each card
-            status = "✓ VALID" if is_valid else "✗ INVALID"
-            print(f"Card {i + 1:2d}: {match_name or 'NO_MATCH':>8s} | Score: {score:.3f} | {status}")
-
-            # Collect results for summary
-            if is_valid:
-                valid_matches.append(f"{match_name} ({score:.3f})")
+            if card.is_valid:
+                valid_matches.append(f"{match_name} ({card.match_score:.3f})")
             else:
-                invalid_matches.append(f"{match_name or 'NO_MATCH'} ({score:.3f})")
+                invalid_matches.append(f"{match_name} ({card.match_score:.3f})")
 
         # Calculate summary
-        total_cards = len(results["table_cards"])
-        valid_cards = sum(1 for card in results["table_cards"] if card["is_valid"])
-
-        results["summary"] = {
-            "total": total_cards,
-            "valid": valid_cards,
-            "invalid": total_cards - valid_cards,
-            "validation_rate": (valid_cards / total_cards * 100) if total_cards > 0 else 0
-        }
+        total_cards = len(readed_cards)
+        valid_cards = sum(1 for card in readed_cards if card.is_valid)
+        validation_rate = (valid_cards / total_cards * 100) if total_cards > 0 else 0
 
         # Enhanced summary logging
         print("\n" + "=" * 60)
@@ -205,7 +201,7 @@ class TableCardReader(CardReader):
         print(f"Total cards detected: {total_cards}")
         print(f"Valid cards: {valid_cards}")
         print(f"Invalid cards: {total_cards - valid_cards}")
-        print(f"Validation rate: {results['summary']['validation_rate']:.1f}%")
+        print(f"Validation rate: {validation_rate:.1f}%")
 
         if valid_matches:
             print(f"\n✅ VALID CARDS ({len(valid_matches)}):")
@@ -221,5 +217,3 @@ class TableCardReader(CardReader):
             print("⚠️  No cards were processed!")
 
         print("=" * 60)
-
-        return results

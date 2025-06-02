@@ -3,6 +3,7 @@ import numpy as np
 from typing import List, Tuple, Dict
 
 from src.card_reader import CardReader
+from src.readed_card import ReadedCard
 from src.utils.benchmark_utils import benchmark
 from src.utils.result_processor import process_results
 from src.utils.template_loader import load_templates
@@ -33,10 +34,13 @@ class PlayerCardReader(CardReader):
         self.scale_factors = self.DEFAULT_SCALE_FACTORS
 
     @benchmark
-    def read(self, image: np.ndarray) -> List[Dict]:
+    def read(self, image: np.ndarray) -> List[ReadedCard]:
         """
         Detect hand cards by directly scanning the entire image with each template
         No preprocessing - templates and image used as-is
+
+        Returns:
+            List of ReadedCard objects
         """
         if not self.templates:
             print("No templates loaded!")
@@ -46,9 +50,26 @@ class PlayerCardReader(CardReader):
         filtered_detections = self._filter_overlapping_detections(all_detections)
         sorted_detections = self._sort_detections_by_position(filtered_detections)
 
-        detections_with_regions = self.extract_detected_regions(image, sorted_detections)
+        # Convert to ReadedCard objects
+        readed_cards = []
+        for i, detection in enumerate(sorted_detections):
+            x, y, w, h = detection['bounding_rect']
+            card_region = image[y:y + h, x:x + w].copy()
 
-        return detections_with_regions
+            readed_card = ReadedCard(
+                card_index=i,
+                card_region=card_region,
+                bounding_rect=detection['bounding_rect'],
+                center=detection['center'],
+                area=w * h,
+                template_name=detection['template_name'],
+                match_score=detection['match_score'],
+                is_valid=True,  # Player cards are considered valid if detected
+                scale=detection['scale']
+            )
+            readed_cards.append(readed_card)
+
+        return readed_cards
 
     def _find_all_template_matches(self, image: np.ndarray) -> List[Dict]:
         """Find matches for all templates in the image"""
@@ -61,7 +82,7 @@ class PlayerCardReader(CardReader):
         return all_detections
 
     def _find_single_template_matches(self, image: np.ndarray, template: np.ndarray,
-                                    template_name: str) -> List[Dict]:
+                                      template_name: str) -> List[Dict]:
         """Find all matches of a single template in the image at multiple scales"""
         detections = []
         search_image, offset = self._extract_search_region(image)
@@ -175,101 +196,57 @@ class PlayerCardReader(CardReader):
         """Sort detections by x-coordinate (left to right)"""
         return sorted(detections, key=lambda x: x['center'][0])
 
-    def extract_detected_regions(self, image: np.ndarray, detections: List[Dict]) -> List[Dict]:
-        """
-        Extract the actual image regions for each detection
-        """
-        results = []
-
-        for detection in detections:
-            x, y, w, h = detection['bounding_rect']
-
-            # Extract the region from original image
-            card_region = image[y:y + h, x:x + w].copy()
-
-            # Create enhanced detection info
-            enhanced_detection = detection.copy()
-            enhanced_detection['card_region'] = card_region
-            enhanced_detection['area'] = w * h
-            enhanced_detection['aspect_ratio'] = w / h if h > 0 else 0
-
-            results.append(enhanced_detection)
-
-        return results
-
-    def draw_detected_cards(self, image: np.ndarray, detections: List[Dict]) -> np.ndarray:
+    def draw_detected_cards(self, image: np.ndarray, readed_cards: List[ReadedCard]) -> np.ndarray:
         """
         Draw detected cards on the image
         """
         result = image.copy()
 
-        for i, detection in enumerate(detections):
-            x, y, w, h = detection['bounding_rect']
+        for i, card in enumerate(readed_cards):
+            x, y, w, h = card.bounding_rect
 
             # Draw bounding rectangle
             cv2.rectangle(result, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
             # Draw center point
-            center = detection['center']
-            cv2.circle(result, center, 5, (255, 0, 0), -1)
+            cv2.circle(result, card.center, 5, (255, 0, 0), -1)
 
             # Add label with template name and confidence
-            label = f"{detection['template_name']} ({detection['match_score']:.2f})"
+            label = f"{card.template_name} ({card.match_score:.2f})"
             cv2.putText(result, label, (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
 
             # Add scale info
-            scale_info = f"Scale: {detection['scale']:.1f}"
+            scale_info = f"Scale: {card.scale:.1f}"
             cv2.putText(result, scale_info, (x, y + h + 20),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0), 1)
 
         return result
 
-    def get_detection_summary(self, detections: List[Dict]) -> Dict:
+    def get_detection_summary(self, readed_cards: List[ReadedCard]) -> Dict:
         """
         Get summary information about detections
         """
-        if not detections:
+        if not readed_cards:
             return {
                 "total": 0,
                 "cards": {},
-                "average_confidence": 0.0,  # Add this line
-                "scales_used": []  # Add this line
+                "average_confidence": 0.0,
+                "scales_used": []
             }
 
         summary = {
-            "total": len(detections),
+            "total": len(readed_cards),
             "cards": {},
-            "average_confidence": sum(d['match_score'] for d in detections) / len(detections),
-            "scales_used": sorted(list(set(d['scale'] for d in detections)))
+            "average_confidence": sum(card.match_score for card in readed_cards) / len(readed_cards),
+            "scales_used": sorted(list(set(card.scale for card in readed_cards)))
         }
 
         # Count each card type
-        for detection in detections:
-            card_name = detection['template_name']
+        for card in readed_cards:
+            card_name = card.template_name
             if card_name not in summary["cards"]:
                 summary["cards"][card_name] = 0
             summary["cards"][card_name] += 1
 
         return summary
-
-
-def write_summary(detections, detections_with_regions, player_card_reader):
-    # Get summary
-    summary = player_card_reader.get_detection_summary(detections)
-    print(f"\nDetection Summary:")
-    print(f"Total detections: {summary['total']}")
-    print(f"Average confidence: {summary['average_confidence']:.3f}")
-    print(f"Scales used: {summary['scales_used']}")
-    print(f"Cards found: {summary['cards']}")
-    # Print detailed results
-    print(f"\nDetailed Results:")
-    for i, detection in enumerate(detections_with_regions):
-        print(f"  Detection {i + 1}:")
-        print(f"    Template: {detection['template_name']}")
-        print(f"    Confidence: {detection['match_score']:.3f}")
-        print(f"    Position: {detection['center']}")
-        print(f"    Size: {detection['scaled_size']}")
-        print(f"    Scale: {detection['scale']:.1f}")
-        print()
-    return summary
