@@ -13,17 +13,51 @@ from src.utils.template_validator import extract_card, match_card_to_templates
 class TableCardReader(CardReader):
     def __init__(self,
                  table_card_area_range: Tuple[int, int] = (15000, 50000),
-                 aspect_ratio_range: Tuple[float, float] = (0.6, 0.8)):
-        """
-        Initialize the poker card detector
-
-        Args:
-            table_card_area_range: Min and max area for table cards
-            aspect_ratio_range: Expected aspect ratio range for cards (width/height)
-        """
+                 aspect_ratio_range: Tuple[float, float] = (0.6, 0.8),
+                 template_dir = "resources/templates/table_cards/",):
         self.table_card_area_range = table_card_area_range
         self.aspect_ratio_range = aspect_ratio_range
         self.image_preprocessor = ImagePreprocessor()
+        self.templates = load_templates(template_dir)
+
+    def detect(self, image: np.ndarray) -> Dict[str, List[Dict]]:
+        """
+        Detect all cards in the image and classify them
+        Updated for rounded rectangle card detection
+
+        Returns:
+            Dictionary with 'table_cards' lists containing card info
+        """
+        # Preprocess image
+        processed = self.image_preprocessor.preprocess_image(image)
+
+        # Find contours
+        contours, _ = cv2.findContours(processed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        table_cards = []
+
+        for contour in contours:
+            if self.is_card_like_contour(contour, image.shape[:2]):
+                # Get bounding rectangle
+                x, y, w, h = cv2.boundingRect(contour)
+
+                # Get rotated rectangle for better representation
+                rect = cv2.minAreaRect(contour)
+                box = cv2.boxPoints(rect)
+                box = np.array(box, dtype=np.int32)
+
+                card_info = {
+                    'contour': contour,
+                    'bounding_rect': (x, y, w, h),
+                    'rotated_rect': rect,
+                    'box_points': box,
+                    'area': cv2.contourArea(contour),
+                    'center': (int(rect[0][0]), int(rect[0][1]))
+                }
+
+                table_cards.append(card_info)
+
+        return table_cards
 
     def is_card_like_contour(self, contour: np.ndarray, image_shape: Tuple[int, int]) -> bool:
         """
@@ -70,45 +104,6 @@ class TableCardReader(CardReader):
 
         return True
 
-    def detect_cards(self, image: np.ndarray) -> Dict[str, List[Dict]]:
-        """
-        Detect all cards in the image and classify them
-        Updated for rounded rectangle card detection
-
-        Returns:
-            Dictionary with 'table_cards' lists containing card info
-        """
-        # Preprocess image
-        processed = self.image_preprocessor.preprocess_image(image)
-
-        # Find contours
-        contours, _ = cv2.findContours(processed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-        table_cards = []
-
-        for contour in contours:
-            if self.is_card_like_contour(contour, image.shape[:2]):
-                # Get bounding rectangle
-                x, y, w, h = cv2.boundingRect(contour)
-
-                # Get rotated rectangle for better representation
-                rect = cv2.minAreaRect(contour)
-                box = cv2.boxPoints(rect)
-                box = np.array(box, dtype=np.int32)
-
-                card_info = {
-                    'contour': contour,
-                    'bounding_rect': (x, y, w, h),
-                    'rotated_rect': rect,
-                    'box_points': box,
-                    'area': cv2.contourArea(contour),
-                    'center': (int(rect[0][0]), int(rect[0][1]))
-                }
-
-                table_cards.append(card_info)
-
-        return table_cards
-
     def draw_detected_cards(self, image: np.ndarray, detected_cards: Dict) -> np.ndarray:
         """
         Draw detected cards on the image for visualization
@@ -126,30 +121,19 @@ class TableCardReader(CardReader):
     def extract_card_region(self, image: np.ndarray, card_info: Dict) -> np.ndarray:
         extract_card(image, card_info)
 
-    def validate_detected_cards(self, image, detected_cards, template_dir, threshold=0.6):
+    def validate_detected_cards(self, image, detected_cards, threshold=0.6):
         """
         Validate detected cards against templates
 
         Args:
             image: Original image (numpy array)
             detected_cards: Output from your detect_cards() function
-            template_dir: Directory containing template images
             threshold: Minimum match score (0.0-1.0)
 
         Returns:
             Dictionary with validation results
         """
         print(f"🔍 Starting validation with threshold: {threshold}")
-        print(f"📁 Loading templates from: {template_dir}")
-
-        # Load templates
-        templates = load_templates(template_dir)
-
-        if not templates:
-            print(f"❌ No templates loaded from {template_dir}")
-            return {"error": "No templates loaded"}
-
-        print(f"✅ Loaded {len(templates)} templates: {list(templates.keys())}")
 
         results = {
             "table_cards": [],
@@ -164,7 +148,7 @@ class TableCardReader(CardReader):
 
         for i, card in enumerate(detected_cards):
             card_region = extract_card(image, card)
-            match_name, score, is_valid = match_card_to_templates(card_region, templates, threshold)
+            match_name, score, is_valid = match_card_to_templates(card_region, self.templates, threshold)
 
             result = {
                 "card_index": i,
@@ -225,12 +209,13 @@ class TableCardReader(CardReader):
 
 def read_table_card(image, template_dir):
     table_card_reader = TableCardReader(
-        table_card_area_range=(1000, 25000),  # Larger cards
-        aspect_ratio_range=(0.5, 0.85)  # Typical card proportions
+        (1000, 25000),  # Larger cards
+        (0.5, 0.85),  # Typical card proportions
+        template_dir
     )
 
     # Detect cards
-    detected_cards = table_card_reader.detect_cards(image)
+    detected_cards = table_card_reader.detect(image)
 
     # Print results
     print(f"Detected {len(detected_cards)} table cards")
@@ -248,6 +233,6 @@ def read_table_card(image, template_dir):
         extracted_cards.append(card_region)
 
     save_detected_cards(extracted_cards)
-    table_card_reader.validate_detected_cards(result_image, detected_cards, template_dir)
+    table_card_reader.validate_detected_cards(result_image, detected_cards)
 
     process_results(detected_cards, "table", image=image, detector=table_card_reader)

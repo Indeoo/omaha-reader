@@ -4,7 +4,6 @@ from src.player_card_reader import read_player_cards
 from src.table_card_reader import read_table_card
 
 
-# Usage example:
 # if __name__ == "__main__":
 #     imagePath = "resources/screenshots/img.png"
 #     templates_dir = "resources/templates/full_cards"

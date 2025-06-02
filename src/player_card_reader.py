@@ -25,7 +25,6 @@ class PlayerCardReader(CardReader):
         """
         self.search_region = self.DEFAULT_SEARCH_REGION
         self.min_card_size = self.DEFAULT_MIN_CARD_SIZE
-
         self.templates = load_templates(templates_dir)
 
         # Template matching parameters
@@ -33,7 +32,7 @@ class PlayerCardReader(CardReader):
         self.match_threshold = self.DEFAULT_MATCH_THRESHOLD
         self.scale_factors = self.DEFAULT_SCALE_FACTORS
 
-    def detect_hand_cards(self, image: np.ndarray) -> List[Dict]:
+    def read(self, image: np.ndarray) -> List[Dict]:
         """
         Detect hand cards by directly scanning the entire image with each template
         No preprocessing - templates and image used as-is
@@ -253,29 +252,35 @@ class PlayerCardReader(CardReader):
 
 @benchmark
 def read_player_cards(image, templates_dir):
-    """
-    Test the template-first detection approach
-    """
-    detector = PlayerCardReader(templates_dir=templates_dir)
+    player_card_reader = PlayerCardReader(templates_dir=templates_dir)
 
-    print(f"Loaded image: {image.shape}")
-    print(f"Loaded {len(detector.templates)} templates")
-
-    # Detect cards using template-first approach
-    detections = detector.detect_hand_cards(image)
+    detections = player_card_reader.read(image)
 
     # Extract regions for each detection
-    detections_with_regions = detector.extract_detected_regions(image, detections)
+    detections_with_regions = player_card_reader.extract_detected_regions(image, detections)
+    summary = write_summary(detections, detections_with_regions, player_card_reader)
 
+    # Create visualization
+    result_image = player_card_reader.draw_detected_cards(image, detections)
+
+    readed_cards = {
+        'original': image,
+        'result_image': result_image,
+        'detections': detections_with_regions,
+        'summary': summary
+    }
+
+    process_results(readed_cards, "player", debug=True)
+
+
+def write_summary(detections, detections_with_regions, player_card_reader):
     # Get summary
-    summary = detector.get_detection_summary(detections)
-
+    summary = player_card_reader.get_detection_summary(detections)
     print(f"\nDetection Summary:")
     print(f"Total detections: {summary['total']}")
     print(f"Average confidence: {summary['average_confidence']:.3f}")
     print(f"Scales used: {summary['scales_used']}")
     print(f"Cards found: {summary['cards']}")
-
     # Print detailed results
     print(f"\nDetailed Results:")
     for i, detection in enumerate(detections_with_regions):
@@ -286,15 +291,4 @@ def read_player_cards(image, templates_dir):
         print(f"    Size: {detection['scaled_size']}")
         print(f"    Scale: {detection['scale']:.1f}")
         print()
-
-    # Create visualization
-    result_image = detector.draw_detected_cards(image, detections)
-
-    readed_cards = {
-        'original': image,
-        'result_image': result_image,
-        'detections': detections_with_regions,
-        'summary': summary
-    }
-
-    process_results(readed_cards, "player", debug=True)
+    return summary

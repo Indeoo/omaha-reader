@@ -1,2 +1,6 @@
+import numpy as np
+
+
 class CardReader:
-    pass
+    def read(self, image: np.ndarray):
+        pass
