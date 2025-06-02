@@ -7,6 +7,12 @@ from src.utils.template_loader import load_templates
 
 
 class PlayerCardReader:
+    DEFAULT_SEARCH_REGION = (0.0, 0.5, 1.0, 1.0)
+    DEFAULT_MIN_CARD_SIZE = 20
+    DEFAULT_OVERLAP_THRESHOLD = 0.3
+    DEFAULT_MATCH_THRESHOLD = 0.6
+    DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+
     def __init__(self, templates_dir: str = "resources/templates/hand_cards/"):
         """
         Template-first detector that scans the entire image directly with templates
@@ -15,16 +21,15 @@ class PlayerCardReader:
         Args:
             templates_dir: Directory containing hand card templates
         """
-        self.search_region = (0.0, 0.5, 1.0, 1.0)  # Middle area with cards
+        self.search_region = self.DEFAULT_SEARCH_REGION
+        self.min_card_size = self.DEFAULT_MIN_CARD_SIZE
 
-        self.templates_dir = templates_dir
-        self.templates = load_templates(self.templates_dir)
+        self.templates = load_templates(templates_dir)
 
         # Template matching parameters
-        self.min_card_size = 20
-        self.overlap_threshold = 0.3
-        self.match_threshold = 0.6
-        self.scale_factors = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+        self.overlap_threshold = self.DEFAULT_OVERLAP_THRESHOLD
+        self.match_threshold = self.DEFAULT_MATCH_THRESHOLD
+        self.scale_factors = self.DEFAULT_SCALE_FACTORS
 
     def detect_hand_cards(self, image: np.ndarray) -> List[Dict]:
         """
@@ -165,20 +170,6 @@ class PlayerCardReader:
     def _sort_detections_by_position(self, detections: List[Dict]) -> List[Dict]:
         """Sort detections by x-coordinate (left to right)"""
         return sorted(detections, key=lambda x: x['center'][0])
-
-    def extract_search_region(self, image: np.ndarray) -> Tuple[np.ndarray, Tuple[int, int]]:
-        """Extract the search region from the image"""
-        if self.search_region is None:
-            return image, (0, 0)
-
-        height, width = image.shape[:2]
-        x1 = int(width * self.search_region[0])
-        y1 = int(height * self.search_region[1])
-        x2 = int(width * self.search_region[2])
-        y2 = int(height * self.search_region[3])
-
-        region = image[y1:y2, x1:x2]
-        return region, (x1, y1)
 
     def extract_detected_regions(self, image: np.ndarray, detections: List[Dict]) -> List[Dict]:
         """
@@ -350,9 +341,3 @@ def process_results(results, debug):
 
         except ImportError:
             print("Matplotlib not available for display")
-
-
-def read_hand(image, templates_dir):
-    # Test template-first detection
-    detected_cards = detect_by_template(image, templates_dir)
-    process_results(detected_cards, debug=True)
