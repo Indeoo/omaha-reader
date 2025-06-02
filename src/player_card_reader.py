@@ -2,13 +2,13 @@ import cv2
 import numpy as np
 from typing import List, Tuple, Dict
 
+from src.card_reader import CardReader
 from src.utils.benchmark_utils import benchmark
 from src.utils.result_processor import process_results
-from src.utils.save_utils import save_readed_player_cards
 from src.utils.template_loader import load_templates
 
 
-class PlayerCardReader:
+class PlayerCardReader(CardReader):
     DEFAULT_SEARCH_REGION = (0.0, 0.5, 1.0, 1.0)
     DEFAULT_MIN_CARD_SIZE = 20
     DEFAULT_OVERLAP_THRESHOLD = 0.3

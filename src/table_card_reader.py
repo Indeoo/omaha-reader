@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from typing import List, Tuple, Dict
 
+from src.card_reader import CardReader
 from src.utils.image_preprocessor import ImagePreprocessor
 from src.utils.result_processor import process_results
 from src.utils.save_utils import save_detected_cards
@@ -9,7 +10,7 @@ from src.utils.template_loader import load_templates
 from src.utils.template_validator import extract_card, match_card_to_templates
 
 
-class TableCardReader:
+class TableCardReader(CardReader):
     def __init__(self,
                  table_card_area_range: Tuple[int, int] = (15000, 50000),
                  aspect_ratio_range: Tuple[float, float] = (0.6, 0.8)):

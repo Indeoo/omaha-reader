@@ -1,0 +1,2 @@
+class CardReader:
+    pass
