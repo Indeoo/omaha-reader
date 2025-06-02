@@ -21,6 +21,8 @@ class PlayerCardReader:
         self.templates = load_templates(self.templates_dir)
 
         # Template matching parameters
+        self.min_card_size = 20
+        self.overlap_threshold = 0.3
         self.match_threshold = 0.6
         self.scale_factors = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
 
@@ -33,20 +35,136 @@ class PlayerCardReader:
             print("No templates loaded!")
             return []
 
+        all_detections = self._find_all_template_matches(image)
+        filtered_detections = self._filter_overlapping_detections(all_detections)
+        sorted_detections = self._sort_detections_by_position(filtered_detections)
+
+        return sorted_detections
+
+    def _find_all_template_matches(self, image: np.ndarray) -> List[Dict]:
+        """Find matches for all templates in the image"""
         all_detections = []
 
-        # For each template, scan the entire image
         for template_name, template in self.templates.items():
-            detections = self.find_template_matches(image, template, template_name)
+            detections = self._find_single_template_matches(image, template, template_name)
             all_detections.extend(detections)
 
-        # Remove overlapping detections (keep best matches)
-        filtered_detections = self.remove_overlapping_detections(all_detections)
+        return all_detections
 
-        # Sort by x-coordinate (left to right)
-        filtered_detections.sort(key=lambda x: x['center'][0])
+    def _find_single_template_matches(self, image: np.ndarray, template: np.ndarray,
+                                    template_name: str) -> List[Dict]:
+        """Find all matches of a single template in the image at multiple scales"""
+        detections = []
+        search_image, offset = self._extract_search_region(image)
+        template_h, template_w = template.shape[:2]
 
-        return filtered_detections
+        for scale in self.scale_factors:
+            scale_detections = self._match_template_at_scale(
+                search_image, template, template_name, scale,
+                template_w, template_h, offset
+            )
+            detections.extend(scale_detections)
+
+        return detections
+
+    def _match_template_at_scale(self, search_image: np.ndarray, template: np.ndarray,
+                                 template_name: str, scale: float, template_w: int,
+                                 template_h: int, offset: Tuple[int, int]) -> List[Dict]:
+        """Perform template matching at a specific scale"""
+        scaled_w = int(template_w * scale)
+        scaled_h = int(template_h * scale)
+
+        # Skip if template becomes too small or too large
+        if (scaled_w < self.min_card_size or scaled_h < self.min_card_size or
+                scaled_w > search_image.shape[1] or scaled_h > search_image.shape[0]):
+            return []
+
+        scaled_template = cv2.resize(template, (scaled_w, scaled_h))
+        result = cv2.matchTemplate(search_image, scaled_template, cv2.TM_CCOEFF_NORMED)
+
+        # Find all locations where match is above threshold
+        locations = np.where(result >= self.match_threshold)
+        detections = []
+
+        for y, x in zip(*locations):
+            match_score = result[y, x]
+            center_x = x + scaled_w // 2
+            center_y = y + scaled_h // 2
+
+            detection = {
+                'template_name': template_name,
+                'match_score': float(match_score),
+                'bounding_rect': (x + offset[0], y + offset[1], scaled_w, scaled_h),
+                'center': (center_x + offset[0], center_y + offset[1]),
+                'scale': scale,
+                'template_size': (template_w, template_h),
+                'scaled_size': (scaled_w, scaled_h)
+            }
+            detections.append(detection)
+
+        return detections
+
+    def _extract_search_region(self, image: np.ndarray) -> Tuple[np.ndarray, Tuple[int, int]]:
+        """Extract the search region from the image"""
+        if self.search_region is None:
+            return image, (0, 0)
+
+        height, width = image.shape[:2]
+        x1 = int(width * self.search_region[0])
+        y1 = int(height * self.search_region[1])
+        x2 = int(width * self.search_region[2])
+        y2 = int(height * self.search_region[3])
+
+        region = image[y1:y2, x1:x2]
+        return region, (x1, y1)
+
+    def _filter_overlapping_detections(self, detections: List[Dict]) -> List[Dict]:
+        """Remove overlapping detections, keeping the ones with highest match scores"""
+        if not detections:
+            return []
+
+        # Sort by match score (highest first)
+        detections.sort(key=lambda x: x['match_score'], reverse=True)
+        filtered = []
+
+        for detection in detections:
+            if not self._overlaps_with_existing(detection, filtered):
+                filtered.append(detection)
+
+        return filtered
+
+    def _overlaps_with_existing(self, detection: Dict, accepted_detections: List[Dict]) -> bool:
+        """Check if detection overlaps significantly with any already accepted detection"""
+        for accepted in accepted_detections:
+            overlap = self._calculate_overlap_ratio(detection['bounding_rect'],
+                                                    accepted['bounding_rect'])
+            if overlap > self.overlap_threshold:
+                return True
+        return False
+
+    def _calculate_overlap_ratio(self, rect1: Tuple[int, int, int, int],
+                                 rect2: Tuple[int, int, int, int]) -> float:
+        """Calculate the overlap ratio between two rectangles"""
+        x1, y1, w1, h1 = rect1
+        x2, y2, w2, h2 = rect2
+
+        # Calculate intersection
+        x_overlap = max(0, min(x1 + w1, x2 + w2) - max(x1, x2))
+        y_overlap = max(0, min(y1 + h1, y2 + h2) - max(y1, y2))
+
+        if x_overlap == 0 or y_overlap == 0:
+            return 0.0
+
+        intersection_area = x_overlap * y_overlap
+        area1 = w1 * h1
+        area2 = w2 * h2
+        union_area = area1 + area2 - intersection_area
+
+        return intersection_area / union_area if union_area > 0 else 0.0
+
+    def _sort_detections_by_position(self, detections: List[Dict]) -> List[Dict]:
+        """Sort detections by x-coordinate (left to right)"""
+        return sorted(detections, key=lambda x: x['center'][0])
 
     def extract_search_region(self, image: np.ndarray) -> Tuple[np.ndarray, Tuple[int, int]]:
         """Extract the search region from the image"""
@@ -61,109 +179,6 @@ class PlayerCardReader:
 
         region = image[y1:y2, x1:x2]
         return region, (x1, y1)
-
-    def find_template_matches(self, image: np.ndarray, template: np.ndarray, template_name: str) -> List[Dict]:
-        """
-        Find all matches of a single template in the image at multiple scales
-        """
-        detections = []
-
-        search_image, offset = self.extract_search_region(image)
-
-        # Get template dimensions
-        template_h, template_w = template.shape[:2]
-
-        # Try multiple scales
-        for scale in self.scale_factors:
-            # Resize template
-            scaled_w = int(template_w * scale)
-            scaled_h = int(template_h * scale)
-
-            # Skip if template becomes too small or too large (check against search_image, not full image)
-            if scaled_w < 20 or scaled_h < 20 or scaled_w > search_image.shape[1] or scaled_h > search_image.shape[0]:
-                continue
-
-            scaled_template = cv2.resize(template, (scaled_w, scaled_h))
-
-            # Perform template matching on SEARCH_IMAGE, not full image
-            result = cv2.matchTemplate(search_image, scaled_template, cv2.TM_CCOEFF_NORMED)
-
-            # Find all locations where match is above threshold
-            locations = np.where(result >= self.match_threshold)
-
-            for y, x in zip(*locations):
-                match_score = result[y, x]
-
-                # Calculate center and bounding box (add offset to map back to full image coordinates)
-                center_x = x + scaled_w // 2
-                center_y = y + scaled_h // 2
-
-                detection = {
-                    'template_name': template_name,
-                    'match_score': float(match_score),
-                    'bounding_rect': (x + offset[0], y + offset[1], scaled_w, scaled_h),
-                    'center': (center_x + offset[0], center_y + offset[1]),
-                    'scale': scale,
-                    'template_size': (template_w, template_h),
-                    'scaled_size': (scaled_w, scaled_h)
-                }
-
-                detections.append(detection)
-
-        return detections
-
-    def remove_overlapping_detections(self, detections: List[Dict], overlap_threshold: float = 0.3) -> List[Dict]:
-        """
-        Remove overlapping detections, keeping the ones with highest match scores
-        """
-        if not detections:
-            return []
-
-        # Sort by match score (highest first)
-        detections.sort(key=lambda x: x['match_score'], reverse=True)
-
-        filtered = []
-
-        for detection in detections:
-            # Check if this detection overlaps significantly with any already accepted detection
-            is_overlapping = False
-
-            for accepted in filtered:
-                overlap = self.calculate_overlap(detection['bounding_rect'], accepted['bounding_rect'])
-                if overlap > overlap_threshold:
-                    is_overlapping = True
-                    break
-
-            if not is_overlapping:
-                filtered.append(detection)
-
-        return filtered
-
-    def calculate_overlap(self, rect1: Tuple[int, int, int, int], rect2: Tuple[int, int, int, int]) -> float:
-        """
-        Calculate the overlap ratio between two rectangles
-        """
-        x1, y1, w1, h1 = rect1
-        x2, y2, w2, h2 = rect2
-
-        # Calculate intersection
-        x_overlap = max(0, min(x1 + w1, x2 + w2) - max(x1, x2))
-        y_overlap = max(0, min(y1 + h1, y2 + h2) - max(y1, y2))
-
-        if x_overlap == 0 or y_overlap == 0:
-            return 0.0
-
-        intersection_area = x_overlap * y_overlap
-
-        # Calculate union
-        area1 = w1 * h1
-        area2 = w2 * h2
-        union_area = area1 + area2 - intersection_area
-
-        if union_area == 0:
-            return 0.0
-
-        return intersection_area / union_area
 
     def extract_detected_regions(self, image: np.ndarray, detections: List[Dict]) -> List[Dict]:
         """
@@ -339,12 +354,5 @@ def process_results(results, debug):
 
 def read_hand(image, templates_dir):
     # Test template-first detection
-
-    # # Load image
-    # image = cv2.imread(image_path)
-    # if image is None:
-    #     print(f"Could not load image: {image_path}")
-    #     return None
-
-    results = detect_by_template(image, templates_dir)
-    process_results(results, debug=True)
+    detected_cards = detect_by_template(image, templates_dir)
+    process_results(detected_cards, debug=True)
