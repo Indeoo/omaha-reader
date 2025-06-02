@@ -3,6 +3,8 @@ import numpy as np
 from typing import List, Tuple, Dict
 import matplotlib.pyplot as plt
 
+from src.utils.image_preprocessor import ImagePreprocessor
+
 
 class TableCardDetector:
     def __init__(self,
@@ -17,27 +19,7 @@ class TableCardDetector:
         """
         self.table_card_area_range = table_card_area_range
         self.aspect_ratio_range = aspect_ratio_range
-
-    def preprocess_image(self, image: np.ndarray) -> np.ndarray:
-        """
-        Preprocess the image for better card detection
-        Focus on detecting the rounded rectangle borders
-        """
-        # Convert to grayscale
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-        # Apply Gaussian blur to reduce noise
-        blurred = cv2.GaussianBlur(gray, (3, 3), 0)
-
-        # Use Canny edge detection to find the card borders
-        edges = cv2.Canny(blurred, 50, 150, apertureSize=3)
-
-        # Apply morphological operations to connect edges and fill gaps
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        edges = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel)
-        edges = cv2.dilate(edges, kernel, iterations=1)
-
-        return edges
+        self.image_preprocessor = ImagePreprocessor()
 
     def is_card_like_contour(self, contour: np.ndarray, image_shape: Tuple[int, int]) -> bool:
         """
@@ -93,7 +75,7 @@ class TableCardDetector:
             Dictionary with 'table_cards' lists containing card info
         """
         # Preprocess image
-        processed = self.preprocess_image(image)
+        processed = self.image_preprocessor.preprocess_image(image)
 
         # Find contours
         contours, _ = cv2.findContours(processed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -102,8 +84,6 @@ class TableCardDetector:
 
         for contour in contours:
             if self.is_card_like_contour(contour, image.shape[:2]):
-                card_type = "table"
-
                 # Get bounding rectangle
                 x, y, w, h = cv2.boundingRect(contour)
 
@@ -215,7 +195,7 @@ def test_table_card_detection(image_path: str = None):
 
         # Show preprocessed image
         plt.subplot(2, 2, 2)
-        processed = detector.preprocess_image(image)
+        processed = detector.image_preprocessor.preprocess_image(image)
         plt.imshow(processed, cmap='gray')
         plt.title('Preprocessed (Edge Detection)')
         plt.axis('off')
