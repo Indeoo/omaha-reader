@@ -23,28 +23,43 @@ def extract_card(image: np.ndarray, card_info: Dict, force_vertical: bool = True
     width = int(rect[1][0])
     height = int(rect[1][1])
 
-    # Force vertical orientation if needed (for template matching)
-    if force_vertical and width > height:
-        width, height = height, width
+    # Determine if we need to rotate based on current orientation
+    needs_rotation = force_vertical and width > height
+
+    if needs_rotation:
+        # Swap dimensions for vertical orientation
+        target_width, target_height = height, width
+    else:
+        target_width, target_height = width, height
 
     # Destination points for perspective transform
     dst_pts = np.array([
-        [0, height - 1],
+        [0, target_height - 1],
         [0, 0],
-        [width - 1, 0],
-        [width - 1, height - 1]
+        [target_width - 1, 0],
+        [target_width - 1, target_height - 1]
     ], dtype="float32")
 
     # Source points from detected card
     src_pts = box.astype("float32")
 
+    # If we need rotation, we need to reorder the source points
+    # to match the desired orientation
+    if needs_rotation:
+        # Reorder points to achieve 90-degree counter-clockwise rotation
+        # This rotates the mapping so the card appears upright
+        src_pts = np.array([
+            src_pts[3],  # Move point 3 to position 0
+            src_pts[0],  # Move point 0 to position 1
+            src_pts[1],  # Move point 1 to position 2
+            src_pts[2]  # Move point 2 to position 3
+        ], dtype="float32")
+
     # Get perspective transform matrix and apply
     M = cv2.getPerspectiveTransform(src_pts, dst_pts)
-    warped = cv2.warpPerspective(image, M, (width, height))
+    warped = cv2.warpPerspective(image, M, (target_width, target_height))
 
     return warped
-
-
 def match_card_to_templates(card_region, templates, threshold=0.6):
     """Match extracted card region to templates"""
     if not templates:

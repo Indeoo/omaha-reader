@@ -38,12 +38,12 @@ class TableCardReader(CardReader):
 
         # Convert to ReadedCard objects with validation
         readed_cards = []
-        extracted_cards = []
+        #extracted_cards = []
 
         for i, card in enumerate(detected_cards):
             # Extract card region
             card_region = extract_card(image, card)
-            extracted_cards.append(card_region)
+            #extracted_cards.append(card_region)
 
             # Validate against templates
             match_name, score, is_valid = match_card_to_templates(card_region, self.templates, threshold=0.6)
