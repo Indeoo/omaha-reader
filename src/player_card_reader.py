@@ -32,6 +32,7 @@ class PlayerCardReader(CardReader):
         self.match_threshold = self.DEFAULT_MATCH_THRESHOLD
         self.scale_factors = self.DEFAULT_SCALE_FACTORS
 
+    @benchmark
     def read(self, image: np.ndarray) -> List[Dict]:
         """
         Detect hand cards by directly scanning the entire image with each template
@@ -250,7 +251,6 @@ class PlayerCardReader(CardReader):
 
         return summary
 
-@benchmark
 def read_player_cards(image, templates_dir):
     player_card_reader = PlayerCardReader(templates_dir=templates_dir)
 
@@ -261,7 +261,7 @@ def read_player_cards(image, templates_dir):
     summary = write_summary(readed_cards, detections_with_regions, player_card_reader)
 
     # Create visualization
-    result_image = draw_detected_cards(image, readed_cards)
+    result_image = player_card_reader.draw_detected_cards(image, readed_cards)
 
     readed_cards = {
         'original': image,

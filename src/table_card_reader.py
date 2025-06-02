@@ -4,7 +4,6 @@ from typing import List, Tuple, Dict
 
 from src.card_reader import CardReader
 from src.utils.image_preprocessor import ImagePreprocessor
-from src.utils.result_processor import process_results
 from src.utils.save_utils import save_detected_cards
 from src.utils.template_loader import load_templates
 from src.utils.template_validator import extract_card, match_card_to_templates
@@ -223,15 +222,3 @@ class TableCardReader(CardReader):
         print("=" * 60)
 
         return results
-
-
-def read_table_card(image, template_dir):
-    table_card_reader = TableCardReader(
-        (1000, 25000),  # Larger cards
-        (0.5, 0.85),  # Typical card proportions
-        template_dir
-    )
-
-    readed_cards = table_card_reader.read(image)
-
-    process_results(readed_cards, "table", image=image, detector=table_card_reader)
