@@ -1,12 +1,21 @@
 import cv2
 import numpy as np
+from typing import Dict, Tuple
 
-from src.utils.template_loader import load_templates
 
+def extract_card(image: np.ndarray, card_info: Dict, force_vertical: bool = True) -> np.ndarray:
+    """
+    Extract and straighten a card region using perspective transform.
 
-def extract_card(image, card_info):
-    """Extract card region using perspective transform"""
-    # Get rotated rectangle
+    Args:
+        image: Source image
+        card_info: Card detection info with 'rotated_rect' and 'box_points'
+        force_vertical: If True, ensure height > width for template matching
+
+    Returns:
+        Extracted card image
+    """
+    # Get rotated rectangle and box points
     rect = card_info['rotated_rect']
     box = card_info['box_points']
 
@@ -14,10 +23,9 @@ def extract_card(image, card_info):
     width = int(rect[1][0])
     height = int(rect[1][1])
 
-    # Ensure width > height for consistent orientation
-    # # FORCE all cards to be vertical (height > width)
-    # if width > height:
-    #     width, height = height, width
+    # Force vertical orientation if needed (for template matching)
+    if force_vertical and width > height:
+        width, height = height, width
 
     # Destination points for perspective transform
     dst_pts = np.array([

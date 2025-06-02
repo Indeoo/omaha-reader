@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from src.utils.image_preprocessor import ImagePreprocessor
 from src.utils.save_utils import save_detected_cards
-from src.utils.template_validator import validate_detected_cards
+from src.utils.template_validator import validate_detected_cards, extract_card
 
 
 class TableCardDetector:
@@ -124,33 +124,7 @@ class TableCardDetector:
         return result_image
 
     def extract_card_region(self, image: np.ndarray, card_info: Dict) -> np.ndarray:
-        """
-        Extract and straighten a card region from the image
-        """
-        # Get the rotated rectangle points
-        rect = card_info['rotated_rect']
-        box = card_info['box_points']
-
-        # Get width and height of the rotated rectangle
-        width = int(rect[1][0])
-        height = int(rect[1][1])
-
-        # Define destination points for perspective transform
-        dst_pts = np.array([
-            [0, height - 1],
-            [0, 0],
-            [width - 1, 0],
-            [width - 1, height - 1]
-        ], dtype="float32")
-
-        # Get perspective transform matrix
-        src_pts = box.astype("float32")
-        M = cv2.getPerspectiveTransform(src_pts, dst_pts)
-
-        # Apply perspective transform
-        warped = cv2.warpPerspective(image, M, (width, height))
-
-        return warped
+        extract_card(image, card_info)
 
 
 # Example usage and testing functions
