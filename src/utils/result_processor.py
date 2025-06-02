@@ -17,7 +17,7 @@ def process_results(readed_cards: List[ReadedCard], result_type="player", **kwar
     Args:
         readed_cards: List of ReadedCard objects
         result_type: "player" or "table"
-        **kwargs: Additional arguments (image, detector for table cards)
+        **kwargs: Additional arguments (image, detector for table cards, original_image, result_image for player cards)
     """
 
     if result_type == "table":
@@ -44,8 +44,8 @@ def _process_table_results(readed_cards: List[ReadedCard], image=None, detector=
         _display_table_results(readed_cards, image, detector)
 
 
-def _process_player_results(readed_cards: List[ReadedCard], debug=True):
-    """Process player card results"""
+def _process_player_results(readed_cards: List[ReadedCard], debug=True, original_image=None, result_image=None):
+    """Process player card results with enhanced visualization"""
 
     if not debug or not readed_cards:
         return
@@ -59,7 +59,7 @@ def _process_player_results(readed_cards: List[ReadedCard], debug=True):
 
     # Display if possible
     if MATPLOTLIB_AVAILABLE:
-        _display_player_results(readed_cards)
+        _display_player_results_enhanced(readed_cards, original_image, result_image)
 
 
 def _display_table_results(readed_cards: List[ReadedCard], image, detector):
@@ -99,8 +99,87 @@ def _display_table_results(readed_cards: List[ReadedCard], image, detector):
         print(f"Display not available: {e}")
 
 
+def _display_player_results_enhanced(readed_cards: List[ReadedCard], original_image=None, result_image=None):
+    """Display enhanced player card detection results with original and highlighted images"""
+    try:
+        if not readed_cards:
+            print("No cards to display")
+            return
+
+        # Calculate grid layout based on available images and cards
+        has_original = original_image is not None
+        has_result = result_image is not None
+        num_cards = min(len(readed_cards), 6)  # Show max 6 individual cards
+
+        # Calculate subplot layout
+        if has_original and has_result:
+            # 2 overview images + individual cards
+            total_plots = 2 + num_cards
+            if total_plots <= 4:
+                rows, cols = 2, 2
+            elif total_plots <= 6:
+                rows, cols = 2, 3
+            else:
+                rows, cols = 3, 3
+        elif has_original or has_result:
+            # 1 overview image + individual cards
+            total_plots = 1 + num_cards
+            if total_plots <= 4:
+                rows, cols = 2, 2
+            elif total_plots <= 6:
+                rows, cols = 2, 3
+            else:
+                rows, cols = 3, 3
+        else:
+            # Only individual cards
+            if num_cards <= 4:
+                rows, cols = 2, 2
+            elif num_cards <= 6:
+                rows, cols = 2, 3
+            else:
+                rows, cols = 3, 3
+
+        plt.figure(figsize=(15, 10))
+
+        subplot_idx = 1
+
+        # Display original image if available
+        if has_original:
+            plt.subplot(rows, cols, subplot_idx)
+            plt.imshow(cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB))
+            plt.title('Original Image')
+            plt.axis('off')
+            subplot_idx += 1
+
+        # Display result image with detections if available
+        if has_result:
+            plt.subplot(rows, cols, subplot_idx)
+            plt.imshow(cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB))
+            plt.title(f'Detected Cards ({len(readed_cards)} found)')
+            plt.axis('off')
+            subplot_idx += 1
+
+        # Display individual card regions
+        for i in range(num_cards):
+            if subplot_idx > rows * cols:
+                break
+
+            plt.subplot(rows, cols, subplot_idx)
+            card = readed_cards[i]
+            plt.imshow(cv2.cvtColor(card.card_region, cv2.COLOR_BGR2RGB))
+            plt.title(f"{card.template_name}\n({card.match_score:.2f}, scale:{card.scale:.1f})")
+            plt.axis('off')
+            subplot_idx += 1
+
+        plt.tight_layout()
+        plt.show()
+
+    except Exception as e:
+        print(f"Display not available: {e}")
+
+
 def _display_player_results(readed_cards: List[ReadedCard]):
-    """Display player card detection results"""
+    """Original display player card detection results (for backward compatibility)"""
     try:
         if not readed_cards:
             return

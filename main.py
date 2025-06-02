@@ -26,30 +26,29 @@ def write_summary(readed_cards, player_card_reader):
     return summary
 
 
-# if __name__ == "__main__":
-#     # Table card reading
-#     imagePath = "resources/screenshots/img.png"
-#     templates_dir = "resources/templates/full_cards"
-#     image = cv2.imread(imagePath)
-#     table_card_reader = TableCardReader(template_dir=templates_dir)
-#     readed_cards = table_card_reader.read(image)
-#
-#     result_image = table_card_reader.draw_detected_cards(image, readed_cards)
-#
-#     process_results(readed_cards, "table", image=image, detector=table_card_reader)
-
 if __name__ == "__main__":
-    # Player card reading
-    imagePath = "resources/screenshots/02_Lobby_exe__0_02__0_05_Pot_Limit_Omaha.png"
-    templates_dir = "resources/templates/player_cards/"
+    # Table card reading
+    imagePath = "resources/screenshots/img.png"
+    templates_dir = "resources/templates/full_cards"
     image = cv2.imread(imagePath)
-    player_card_reader = PlayerCardReader(templates_dir=templates_dir)
-    readed_cards = player_card_reader.read(image)
+    table_card_reader = TableCardReader(template_dir=templates_dir)
+    readed_cards = table_card_reader.read(image)
 
-    # Write summary
-    summary = write_summary(readed_cards, player_card_reader)
-    # Create visualization
-    result_image = player_card_reader.draw_detected_cards(image, readed_cards)
+    result_image = table_card_reader.draw_detected_cards(image, readed_cards)
 
-    process_results(readed_cards, "player", debug=True)
+    process_results(readed_cards, "table", image=image, detector=table_card_reader)
 
+# if __name__ == "__main__":
+#     # Player card reading
+#     imagePath = "resources/screenshots/02_Lobby_exe__0_02__0_05_Pot_Limit_Omaha.png"
+#     templates_dir = "resources/templates/player_cards/"
+#     image = cv2.imread(imagePath)
+#     player_card_reader = PlayerCardReader(templates_dir=templates_dir)
+#     readed_cards = player_card_reader.read(image)
+#
+#     # Write summary
+#     summary = write_summary(readed_cards, player_card_reader)
+#     # Create visualization
+#     result_image = player_card_reader.draw_detected_cards(image, readed_cards)
+#
+#     process_results(readed_cards, "player", debug=True, original_image=image, result_image=result_image)
