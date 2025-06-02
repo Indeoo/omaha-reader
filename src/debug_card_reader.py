@@ -4,7 +4,7 @@ from typing import Tuple, Dict
 import os
 
 
-class DebugHandDetector:
+class DebugCardReader:
     def __init__(self):
         """
         Debug version to analyze why cards aren't being detected
@@ -299,7 +299,7 @@ def debug_hand_detection(image_path: str):
     """
     Debug the hand card detection process
     """
-    detector = DebugHandDetector()
+    detector = DebugCardReader()
 
     print("Starting debug analysis...")
     print("=" * 50)

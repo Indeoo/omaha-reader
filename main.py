@@ -5,12 +5,13 @@ from src.table_card_reader import test_table_card_detection
 from src.utils.save_utils import save_detected_cards
 from src.utils.template_validator import validate_detected_cards
 
+
 # Usage example:
 if __name__ == "__main__":
     imagePath = "resources/screenshots/img.png"
     image = cv2.imread(imagePath)
 
-    detected_table_cards, result_image = test_table_card_detection(imagePath)
+    detected_table_cards, result_image = test_table_card_detection(image)
     save_detected_cards(image, detected_table_cards)
     validation_results = validate_detected_cards(image, detected_table_cards)
 

@@ -152,7 +152,7 @@ class TableCardDetector:
 
 
 # Example usage and testing functions
-def test_table_card_detection(image_path: str = None):
+def test_table_card_detection(image):
     """
     Test the card detection system
     """
@@ -161,15 +161,6 @@ def test_table_card_detection(image_path: str = None):
         table_card_area_range=(1000, 25000),  # Larger cards
         aspect_ratio_range=(0.5, 0.85)  # Typical card proportions
     )
-
-    if image_path:
-        # Load image from file
-        image = cv2.imread(image_path)
-        if image is None:
-            print(f"Could not load image from {image_path}")
-            return None, None
-    else:
-        raise Exception("No image provided")
 
     # Detect cards
     detected_cards = detector.detect_cards(image)
