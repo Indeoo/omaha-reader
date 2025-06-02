@@ -66,7 +66,7 @@ class TableCardReader(CardReader):
             readed_cards.append(readed_card)
 
         # Save detected cards
-        save_detected_cards(extracted_cards)
+        save_detected_cards(readed_cards)
 
         # Print validation results
         self._print_validation_results(readed_cards)

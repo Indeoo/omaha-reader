@@ -26,7 +26,6 @@ def write_summary(readed_cards, player_card_reader):
     return summary
 
 
-#
 # if __name__ == "__main__":
 #     # Table card reading
 #     imagePath = "resources/screenshots/img.png"
@@ -35,19 +34,9 @@ def write_summary(readed_cards, player_card_reader):
 #     table_card_reader = TableCardReader(template_dir=templates_dir)
 #     readed_cards = table_card_reader.read(image)
 #
-#     # Convert ReadedCard objects back to old format for process_results
-#     old_format_cards = []
-#     for card in readed_cards:
-#         old_format_cards.append({
-#             'contour': card.contour,
-#             'bounding_rect': card.bounding_rect,
-#             'rotated_rect': card.rotated_rect,
-#             'box_points': card.box_points,
-#             'area': card.area,
-#             'center': card.center
-#         })
+#     result_image = table_card_reader.draw_detected_cards(image, readed_cards)
 #
-#     process_results(old_format_cards, "table", image=image, detector=table_card_reader)
+#     process_results(readed_cards, "table", image=image, detector=table_card_reader)
 
 if __name__ == "__main__":
     # Player card reading
@@ -55,32 +44,12 @@ if __name__ == "__main__":
     templates_dir = "resources/templates/hand_cards/"
     image = cv2.imread(imagePath)
     player_card_reader = PlayerCardReader(templates_dir=templates_dir)
-
     readed_cards = player_card_reader.read(image)
 
     # Write summary
     summary = write_summary(readed_cards, player_card_reader)
-
     # Create visualization
     result_image = player_card_reader.draw_detected_cards(image, readed_cards)
 
-    # Convert to old format for process_results
-    old_format_results = {
-        'original': image,
-        'result_image': result_image,
-        'detections': [
-            {
-                'template_name': card.template_name,
-                'match_score': card.match_score,
-                'bounding_rect': card.bounding_rect,
-                'center': card.center,
-                'scale': card.scale,
-                'card_region': card.card_region,
-                'area': card.area,
-                'aspect_ratio': card.bounding_rect[2] / card.bounding_rect[3] if card.bounding_rect[3] > 0 else 0
-            } for card in readed_cards
-        ],
-        'summary': summary
-    }
+    process_results(readed_cards, "player", debug=True)
 
-    process_results(old_format_results, "player", debug=True)

@@ -5,7 +5,6 @@ from typing import List, Tuple, Dict
 from src.card_reader import CardReader
 from src.readed_card import ReadedCard
 from src.utils.benchmark_utils import benchmark
-from src.utils.result_processor import process_results
 from src.utils.template_loader import load_templates
 
 
