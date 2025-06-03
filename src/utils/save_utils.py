@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 import cv2
 from typing import List
 from src.readed_card import ReadedCard
@@ -20,7 +22,7 @@ def save_detected_cards(readed_cards: List[ReadedCard], output_dir="resources/de
         print(f"Saved: {filename}")
 
 
-def save_readed_player_cards(readed_cards: List[ReadedCard], output_dir="resources/readed_player_cards"):
+def save_readed_player_cards(readed_cards: List[ReadedCard], output_dir=f"resources/player_cards_readed/{datetime.now().strftime("%Y%m%d_%H%M%S")}"):
     """Save each detected card region"""
     os.makedirs(output_dir, exist_ok=True)
 

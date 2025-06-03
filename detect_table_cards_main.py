@@ -2,7 +2,6 @@ import os
 import cv2
 from pathlib import Path
 from datetime import datetime
-from typing import List, Dict
 from src.table_card_reader import TableCardReader
 from src.utils.template_validator import extract_card
 
