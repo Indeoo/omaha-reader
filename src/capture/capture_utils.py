@@ -7,7 +7,7 @@ from PIL import ImageGrab
 from src.capture.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
-def capture_windows(log_mode: str = "console", log_file_path: str = None) -> Tuple[
+def capture_windows(log_mode: str = "none", log_file_path: str = None) -> Tuple[
     List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Capture windows with configurable logging

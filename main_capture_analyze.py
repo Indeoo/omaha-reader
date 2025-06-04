@@ -7,16 +7,13 @@ import ctypes
 import os
 import time
 
-import cv2
 import numpy as np
 from datetime import datetime
-from typing import List, Dict, Any
-from PIL import Image
+from typing import List
 
 from src.capture.capture_utils import capture_windows, save_windows
 from src.cv.opencv_utils import pil_to_cv2
 from src.player_card_reader import PlayerCardReader
-from src.readed_card import ReadedCard
 
 
 # Try to enable DPI awareness
@@ -119,26 +116,10 @@ def main(capture_save=True):
     print("=" * 60)
 
     # Configuration
-    templates_dir = "resources/templates/player_cards/"
     output_dir = "resources/simple_results"
 
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
-
-    # Initialize PlayerCardReader
-    print("🎯 Initializing PlayerCardReader...")
-    try:
-        player_card_reader = PlayerCardReader(templates_dir=templates_dir)
-
-        if not player_card_reader.templates:
-            print("❌ No templates loaded! Please check the templates directory.")
-            return
-
-        print(f"✅ Loaded {len(player_card_reader.templates)} templates")
-
-    except Exception as e:
-        print(f"❌ Error initializing PlayerCardReader: {str(e)}")
-        return
 
     # Capture windows
     print("\n📸 Capturing windows...")
@@ -245,10 +226,25 @@ if __name__ == "__main__":
     print("Player card reader")
     print("------------------------------")
 
+    # Initialize PlayerCardReader
+    print("🎯 Initializing PlayerCardReader...")
     try:
-        while True:
-            main()
-            print("Sleep for 3 second...")
-            time.sleep(3)
+        templates_dir = "resources/templates/player_cards/"
+        player_card_reader = PlayerCardReader(templates_dir=templates_dir)
+
+        if not player_card_reader.templates:
+            raise Exception("❌ No templates loaded! Please check the templates directory.")
+
+        print(f"✅ Loaded {len(player_card_reader.templates)} templates")
+
+        try:
+            while True:
+                main()
+                print("Sleep for 3 second...")
+                time.sleep(3)
+        except Exception as e:
+            print(f"An error occurred: {e}")
+
+
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"❌ Error initializing PlayerCardReader: {str(e)}")
