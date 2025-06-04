@@ -43,36 +43,6 @@ def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardRea
         return []
 
 
-def extract_window_name(filename: str) -> str:
-    """
-    Extract a clean window name from the filename
-
-    Args:
-        filename: Original filename like "01_PokerStars_exe_Lobby_Window.png"
-
-    Returns:
-        Clean window name like "PokerStars_Lobby"
-    """
-    # Remove file extension
-    name = filename.replace('.png', '').replace('.jpg', '').replace('.jpeg', '')
-
-    # Remove number prefix (e.g., "01_")
-    if '_' in name:
-        parts = name.split('_')
-        if parts[0].isdigit() or parts[0].startswith('0'):
-            name = '_'.join(parts[1:])
-
-    # Simplify common patterns
-    name = name.replace('_exe_', '_')
-    name = name.replace('__', '_')
-
-    # Limit length and clean up
-    if len(name) > 30:
-        name = name[:30]
-
-    return name.strip('_')
-
-
 def main(capture_save=True):
     """
     Main function that captures windows and analyzes them for player cards
