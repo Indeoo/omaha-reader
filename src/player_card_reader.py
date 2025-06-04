@@ -239,31 +239,3 @@ class PlayerCardReader(CardReader):
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 0), 1)
 
         return result
-
-    def get_detection_summary(self, readed_cards: List[ReadedCard]) -> Dict:
-        """
-        Get summary information about detections
-        """
-        if not readed_cards:
-            return {
-                "total": 0,
-                "cards": {},
-                "average_confidence": 0.0,
-                "scales_used": []
-            }
-
-        summary = {
-            "total": len(readed_cards),
-            "cards": {},
-            "average_confidence": sum(card.match_score for card in readed_cards) / len(readed_cards),
-            "scales_used": sorted(list(set(card.scale for card in readed_cards)))
-        }
-
-        # Count each card type
-        for card in readed_cards:
-            card_name = card.template_name
-            if card_name not in summary["cards"]:
-                summary["cards"][card_name] = 0
-            summary["cards"][card_name] += 1
-
-        return summary

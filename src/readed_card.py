@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List, Dict
 
 import numpy as np
 
@@ -47,3 +47,98 @@ class ReadedCard:
         self.rotated_rect = rotated_rect
         self.box_points = box_points
 
+    def get_summary(self) -> str:
+        """
+        Get a concise summary of the card information
+
+        Returns:
+            String summary of the card (e.g., "9H (0.85, scale:1.2)" or "AS (0.92, table)")
+        """
+        # Start with template name or placeholder
+        card_name = self.template_name or "UNKNOWN"
+
+        # Format match score
+        score_str = f"{self.match_score:.2f}" if self.match_score is not None else "N/A"
+
+        # Determine card type and add relevant info
+        if self.scale is not None:
+            # Player card - include scale
+            type_info = f"scale:{self.scale:.1f}"
+        elif self.contour is not None or self.rotated_rect is not None:
+            # Table card - indicate it's a table card
+            type_info = "table"
+        else:
+            # Unknown type
+            type_info = "unknown"
+
+        # Add validity indicator if not valid
+        validity = "" if self.is_valid else " ❌"
+
+        return f"{card_name} ({score_str}, {type_info}){validity}"
+
+    def get_detailed_summary(self) -> str:
+        """
+        Get a detailed summary with position and size information
+
+        Returns:
+            Detailed string summary
+        """
+        basic_summary = self.get_summary()
+
+        # Add position and size info
+        x, y, w, h = self.bounding_rect
+        position_info = f"pos:({self.center[0]},{self.center[1]}), size:{w}x{h}"
+
+        return f"{basic_summary} - {position_info}"
+
+    def __str__(self) -> str:
+        """String representation using the summary"""
+        return self.get_summary()
+
+    def __repr__(self) -> str:
+        """Detailed representation for debugging"""
+        return f"ReadedCard(index={self.card_index}, {self.get_detailed_summary()})"
+
+
+def get_detection_summary(readed_cards: List[ReadedCard]) -> Dict:
+    """
+    Get summary information about detections
+    """
+    if not readed_cards:
+        return {
+            "total": 0,
+            "cards": {},
+            "average_confidence": 0.0,
+            "scales_used": []
+        }
+
+    summary = {
+        "total": len(readed_cards),
+        "cards": {},
+        "average_confidence": sum(card.match_score for card in readed_cards) / len(readed_cards),
+        "scales_used": sorted(list(set(card.scale for card in readed_cards)))
+    }
+
+    # Count each card type
+    for card in readed_cards:
+        card_name = card.template_name
+        if card_name not in summary["cards"]:
+            summary["cards"][card_name] = 0
+        summary["cards"][card_name] += 1
+
+    return summary
+
+
+def write_summary(readed_cards):
+    # Get summary from player card reader
+    summary = get_detection_summary(readed_cards)
+    print(f"\nDetection Summary:")
+    print(f"Total detections: {summary['total']}")
+    print(f"Average confidence: {summary['average_confidence']:.3f}")
+    print(f"Scales used: {summary['scales_used']}")
+    print(f"Cards found: {summary['cards']}")
+
+    # Print detailed results using ReadedCard's get_detailed_summary method
+    print(f"\nDetailed Results:")
+    for i, card in enumerate(readed_cards):
+        print(f"  Detection {i + 1}: {card.get_detailed_summary()}")

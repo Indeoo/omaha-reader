@@ -1,29 +1,9 @@
 import cv2
 
 from src.player_card_reader import PlayerCardReader
+from src.readed_card import write_summary
 from src.table_card_reader import TableCardReader
 from src.utils.result_processor import process_results
-
-
-def write_summary(readed_cards, player_card_reader):
-    # Get summary
-    summary = player_card_reader.get_detection_summary(readed_cards)
-    print(f"\nDetection Summary:")
-    print(f"Total detections: {summary['total']}")
-    print(f"Average confidence: {summary['average_confidence']:.3f}")
-    print(f"Scales used: {summary['scales_used']}")
-    print(f"Cards found: {summary['cards']}")
-    # Print detailed results
-    print(f"\nDetailed Results:")
-    for i, card in enumerate(readed_cards):
-        print(f"  Detection {i + 1}:")
-        print(f"    Template: {card.template_name}")
-        print(f"    Confidence: {card.match_score:.3f}")
-        print(f"    Position: {card.center}")
-        print(f"    Size: {card.bounding_rect[2:4]}")
-        print(f"    Scale: {card.scale:.1f}")
-        print()
-    return summary
 
 
 # if __name__ == "__main__":
@@ -33,6 +13,9 @@ def write_summary(readed_cards, player_card_reader):
 #     image = cv2.imread(imagePath)
 #     table_card_reader = TableCardReader(template_dir=templates_dir)
 #     readed_cards = table_card_reader.read(image)
+#
+#     # Write summary
+#     write_summary(readed_cards)
 #
 #     result_image = table_card_reader.draw_detected_cards(image, readed_cards)
 #
@@ -47,7 +30,7 @@ if __name__ == "__main__":
     readed_cards = player_card_reader.read(image)
 
     # Write summary
-    summary = write_summary(readed_cards, player_card_reader)
+    write_summary(readed_cards)
     # Create visualization
     result_image = player_card_reader.draw_detected_cards(image, readed_cards)
 
