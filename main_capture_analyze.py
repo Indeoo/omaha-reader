@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Script that captures windows using capture_utils and analyzes them with PlayerCardReader.
-Outputs results to text files with detailed card detection information.
+Simplified script that captures windows and analyzes them with PlayerCardReader.
+Outputs simple format: WindowName: CardCardCard
 """
 
 import os
@@ -17,172 +17,84 @@ from src.player_card_reader import PlayerCardReader
 from src.readed_card import ReadedCard
 
 
-def analyze_image_with_player_reader(image: np.ndarray, image_name: str,
-                                     player_card_reader: PlayerCardReader) -> Dict[str, Any]:
+def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardReader) -> List[str]:
     """
-    Analyze a single image with PlayerCardReader
+    Analyze image and return just the card names found
 
     Args:
         image: OpenCV image (BGR format)
-        image_name: Name/description of the image
         player_card_reader: PlayerCardReader instance
 
     Returns:
-        Dictionary containing analysis results
+        List of card names (e.g., ['9H', '8D', '5S', '4C'])
     """
-    result = {
-        'image_name': image_name,
-        'cards_found': 0,
-        'cards': [],
-        'error': None,
-        'image_dimensions': image.shape[:2] if image is not None else None
-    }
-
     try:
-        # Read cards using PlayerCardReader
         readed_cards = player_card_reader.read(image)
-        result['cards_found'] = len(readed_cards)
-
-        # Store detailed card information
-        for i, card in enumerate(readed_cards):
-            card_info = {
-                'index': i + 1,
-                'template_name': card.template_name,
-                'match_score': round(card.match_score, 4),
-                'center': card.center,
-                'bounding_rect': card.bounding_rect,
-                'scale': round(card.scale, 2) if card.scale else None,
-                'area': round(card.area, 2)
-            }
-            result['cards'].append(card_info)
-
-        print(f"    ✅ {image_name}: {len(readed_cards)} cards detected")
-
+        # Sort cards by x-position (left to right) and extract template names
+        sorted_cards = sorted(readed_cards, key=lambda card: card.center[0])
+        return [card.template_name for card in sorted_cards]
     except Exception as e:
-        result['error'] = str(e)
-        print(f"    ❌ Error analyzing {image_name}: {str(e)}")
-
-    return result
+        print(f"    ❌ Error analyzing image: {str(e)}")
+        return []
 
 
-def write_analysis_results_to_file(results: List[Dict[str, Any]], output_path: str,
-                                   timestamp: str, total_images: int) -> None:
+def extract_window_name(filename: str) -> str:
     """
-    Write all analysis results to a single comprehensive text file
+    Extract a clean window name from the filename
 
     Args:
-        results: List of analysis result dictionaries
+        filename: Original filename like "01_PokerStars_exe_Lobby_Window.png"
+
+    Returns:
+        Clean window name like "PokerStars_Lobby"
+    """
+    # Remove file extension
+    name = filename.replace('.png', '').replace('.jpg', '').replace('.jpeg', '')
+
+    # Remove number prefix (e.g., "01_")
+    if '_' in name:
+        parts = name.split('_')
+        if parts[0].isdigit() or parts[0].startswith('0'):
+            name = '_'.join(parts[1:])
+
+    # Simplify common patterns
+    name = name.replace('_exe_', '_')
+    name = name.replace('__', '_')
+
+    # Limit length and clean up
+    if len(name) > 30:
+        name = name[:30]
+
+    return name.strip('_')
+
+
+def write_simplified_results(results: List[Dict[str, Any]], output_path: str) -> None:
+    """
+    Write simplified results to file
+
+    Args:
+        results: List of analysis results
         output_path: Path to output file
-        timestamp: Timestamp of the capture session
-        total_images: Total number of images processed
     """
     try:
         with open(output_path, 'w', encoding='utf-8') as f:
-            # Header
-            f.write("=" * 80 + "\n")
-            f.write("WINDOW CAPTURE & PLAYER CARD ANALYSIS RESULTS\n")
-            f.write("=" * 80 + "\n")
-            f.write(f"Capture Timestamp: {timestamp}\n")
-            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Total Images Processed: {total_images}\n")
-            f.write("=" * 80 + "\n\n")
+            f.write(f"Player Hand Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("=" * 60 + "\n\n")
 
-            # Overall summary
-            total_cards = sum(result['cards_found'] for result in results)
-            successful_analyses = sum(1 for result in results if result['error'] is None)
-            failed_analyses = total_images - successful_analyses
+            hands_found = 0
 
-            f.write("📊 OVERALL SUMMARY\n")
-            f.write("-" * 40 + "\n")
-            f.write(f"Total images captured: {total_images}\n")
-            f.write(f"Successfully analyzed: {successful_analyses}\n")
-            f.write(f"Failed analyses: {failed_analyses}\n")
-            f.write(f"Total cards detected: {total_cards}\n")
+            for result in results:
+                window_name = result['window_name']
+                cards = result['cards']
 
-            if successful_analyses > 0:
-                avg_cards = total_cards / successful_analyses
-                f.write(f"Average cards per successful image: {avg_cards:.2f}\n")
-
-            # Card distribution across all images
-            if total_cards > 0:
-                all_card_counts = {}
-                all_scores = []
-                all_scales = []
-
-                for result in results:
-                    if result['error'] is None:
-                        for card in result['cards']:
-                            # Count card types
-                            template_name = card['template_name']
-                            all_card_counts[template_name] = all_card_counts.get(template_name, 0) + 1
-
-                            # Collect scores and scales
-                            all_scores.append(card['match_score'])
-                            if card['scale']:
-                                all_scales.append(card['scale'])
-
-                f.write(f"\n🃏 CARD DISTRIBUTION (All Images)\n")
-                f.write("-" * 40 + "\n")
-                for card_name, count in sorted(all_card_counts.items()):
-                    f.write(f"{card_name}: {count} occurrence{'s' if count > 1 else ''}\n")
-
-                f.write(f"\n📈 DETECTION STATISTICS\n")
-                f.write("-" * 40 + "\n")
-                f.write(f"Average match score: {sum(all_scores) / len(all_scores):.4f}\n")
-                f.write(f"Score range: {min(all_scores):.4f} - {max(all_scores):.4f}\n")
-
-                if all_scales:
-                    f.write(f"Average scale: {sum(all_scales) / len(all_scales):.2f}\n")
-                    f.write(f"Scale range: {min(all_scales):.2f} - {max(all_scales):.2f}\n")
-
-            f.write("\n")
-
-            # Detailed results for each image
-            f.write("📝 DETAILED RESULTS BY IMAGE\n")
-            f.write("=" * 80 + "\n")
-
-            for i, result in enumerate(results, 1):
-                f.write(f"\n📷 IMAGE {i}: {result['image_name']}\n")
-                f.write("-" * 60 + "\n")
-
-                if result['image_dimensions']:
-                    height, width = result['image_dimensions']
-                    f.write(f"Dimensions: {width}x{height} pixels\n")
-
-                if result['error']:
-                    f.write(f"❌ ERROR: {result['error']}\n")
-                    continue
-
-                f.write(f"Cards detected: {result['cards_found']}\n")
-
-                if result['cards']:
-                    # Image-specific card distribution
-                    image_card_counts = {}
-                    for card in result['cards']:
-                        template_name = card['template_name']
-                        image_card_counts[template_name] = image_card_counts.get(template_name, 0) + 1
-
-                    f.write("Card types: ")
-                    f.write(", ".join([f"{name}({count})" for name, count in sorted(image_card_counts.items())]))
-                    f.write("\n")
-
-                    # Individual card details
-                    f.write("\nDetailed card information:\n")
-                    for card in result['cards']:
-                        f.write(f"  {card['index']}. {card['template_name']}\n")
-                        f.write(f"     Score: {card['match_score']:.4f}\n")
-                        f.write(f"     Center: {card['center']}\n")
-                        f.write(f"     Size: {card['bounding_rect'][2]}x{card['bounding_rect'][3]}\n")
-                        if card['scale']:
-                            f.write(f"     Scale: {card['scale']}\n")
-                        f.write(f"     Area: {card['area']}\n")
-                        f.write("\n")
+                if cards:
+                    cards_str = ''.join(cards)
+                    f.write(f"{window_name}: {cards_str}\n")
+                    hands_found += 1
                 else:
-                    f.write("No cards detected in this image.\n")
+                    f.write(f"{window_name}: No cards detected\n")
 
-            f.write("\n" + "=" * 80 + "\n")
-            f.write("End of Analysis Report\n")
-            f.write("=" * 80 + "\n")
+            f.write(f"\nTotal windows with hands detected: {hands_found}/{len(results)}\n")
 
     except Exception as e:
         print(f"❌ Error writing results file: {str(e)}")
@@ -193,12 +105,12 @@ def main():
     """
     Main function that captures windows and analyzes them for player cards
     """
-    print("🚀 Starting Window Capture & Player Card Analysis")
+    print("🚀 Starting Simplified Window Capture & Card Detection")
     print("=" * 60)
 
     # Configuration
     templates_dir = "resources/templates/player_cards/"
-    output_dir = "resources/capture_analysis_results"
+    output_dir = "resources/simple_results"
 
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
@@ -210,11 +122,9 @@ def main():
 
         if not player_card_reader.templates:
             print("❌ No templates loaded! Please check the templates directory.")
-            print(f"Templates directory: {templates_dir}")
             return
 
         print(f"✅ Loaded {len(player_card_reader.templates)} templates")
-        print(f"Templates: {list(player_card_reader.templates.keys())}")
 
     except Exception as e:
         print(f"❌ Error initializing PlayerCardReader: {str(e)}")
@@ -236,67 +146,85 @@ def main():
 
     # Create timestamped output file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_filename = f"capture_analysis_{timestamp}.txt"
+    output_filename = f"hands_{timestamp}.txt"
     output_path = os.path.join(output_dir, output_filename)
 
     print(f"\n🔍 Analyzing {len(captured_images)} captured images...")
-    print(f"📁 Results will be saved to: {output_path}")
 
     # Analyze each captured image
-    analysis_results = []
+    results = []
+    total_hands = 0
 
     for i, captured_item in enumerate(captured_images, 1):
-        image_name = captured_item['filename']
+        filename = captured_item['filename']
         pil_image = captured_item['image']
 
-        print(f"🔍 Analyzing image {i}/{len(captured_images)}: {image_name}")
+        window_name = extract_window_name(filename)
+
+        print(f"🔍 Analyzing {i}/{len(captured_images)}: {window_name}")
 
         try:
             # Convert PIL image to OpenCV format
             cv2_image = pil_to_cv2(pil_image)
 
             # Analyze with PlayerCardReader
-            result = analyze_image_with_player_reader(cv2_image, image_name, player_card_reader)
-            analysis_results.append(result)
+            cards = analyze_image_for_cards(cv2_image, player_card_reader)
+
+            result = {
+                'window_name': window_name,
+                'cards': cards,
+                'original_filename': filename
+            }
+            results.append(result)
+
+            # Print immediate result
+            if cards:
+                cards_str = ''.join(cards)
+                print(f"    ✅ {window_name}: {cards_str}")
+                total_hands += 1
+            else:
+                print(f"    ⚪ {window_name}: No cards detected")
 
         except Exception as e:
-            print(f"    ❌ Error processing {image_name}: {str(e)}")
-            # Add error result
-            error_result = {
-                'image_name': image_name,
-                'cards_found': 0,
+            print(f"    ❌ Error processing {window_name}: {str(e)}")
+            result = {
+                'window_name': window_name,
                 'cards': [],
-                'error': str(e),
-                'image_dimensions': None
+                'original_filename': filename
             }
-            analysis_results.append(error_result)
+            results.append(result)
 
     # Write results to file
-    print(f"\n💾 Writing analysis results...")
+    print(f"\n💾 Writing results to {output_filename}...")
     try:
-        write_analysis_results_to_file(analysis_results, output_path, timestamp, len(captured_images))
-        print(f"✅ Results written to: {output_path}")
+        write_simplified_results(results, output_path)
+        print(f"✅ Results saved to: {output_path}")
 
     except Exception as e:
         print(f"❌ Error writing results: {str(e)}")
         return
 
     # Print final summary
-    total_cards = sum(result['cards_found'] for result in analysis_results)
-    successful_analyses = sum(1 for result in analysis_results if result['error'] is None)
-
     print("\n" + "=" * 60)
-    print("🎉 CAPTURE & ANALYSIS COMPLETE!")
+    print("🎉 DETECTION COMPLETE!")
     print("=" * 60)
-    print(f"Images captured: {len(captured_images)}")
-    print(f"Images successfully analyzed: {successful_analyses}")
-    print(f"Total cards detected: {total_cards}")
+    print(f"Windows analyzed: {len(captured_images)}")
+    print(f"Hands detected: {total_hands}")
+    print(f"📄 Results saved to: {output_path}")
 
-    if successful_analyses > 0:
-        avg_cards = total_cards / successful_analyses
-        print(f"Average cards per image: {avg_cards:.2f}")
+    # Also print results to console for immediate viewing
+    print("\n🃏 DETECTED HANDS:")
+    print("-" * 30)
+    hands_shown = 0
+    for result in results:
+        if result['cards']:
+            cards_str = ''.join(result['cards'])
+            print(f"{result['window_name']}: {cards_str}")
+            hands_shown += 1
 
-    print(f"📄 Detailed results saved to: {output_path}")
+    if hands_shown == 0:
+        print("No hands detected in any window.")
+
     print("=" * 60)
 
 
