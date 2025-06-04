@@ -10,7 +10,7 @@ import win32process
 import win32con
 import win32ui
 
-from utils.utils import benchmark
+from src.utils.benchmark_utils import benchmark
 
 # Try to enable DPI awareness
 try:
@@ -199,7 +199,7 @@ def main():
     # Create timestamped output folder
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    output_folder = os.path.join(current_dir, f"data_screenshots/_{timestamp}")
+    output_folder = os.path.join(current_dir, f"Dropbox/data_screenshots/_{timestamp}")
     os.makedirs(output_folder, exist_ok=True)
 
     print(f"Screenshots will be saved to: {output_folder}")
@@ -234,7 +234,7 @@ def main():
 
         print(f"Capturing window {i}/{len(windows)}: {title} ({process})")
 
-        if "Lobby" not in title and "TableCover" not in title and "Pot":
+        if "Lobby" not in title and "TableCover" not in title and "Pot Limit Omaha" not in title:
             continue
 
         # Create filename

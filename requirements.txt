@@ -1,2 +1,3 @@
 pytesseract==0.3.13
 opencv-python==4.11.0.86
+pywin32==310
