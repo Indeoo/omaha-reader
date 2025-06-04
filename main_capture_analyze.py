@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import List, Dict, Any
 from PIL import Image
 
-from src.capture.capture_utils import capture_windows
+from src.capture.capture_utils import capture_windows, save_windows
 from src.cv.opencv_utils import pil_to_cv2
 from src.player_card_reader import PlayerCardReader
 from src.readed_card import ReadedCard
@@ -103,7 +103,7 @@ def extract_window_name(filename: str) -> str:
 #         raise
 
 
-def main():
+def main(capture_save=True):
     """
     Main function that captures windows and analyzes them for player cards
     """
@@ -145,6 +145,9 @@ def main():
     except Exception as e:
         print(f"❌ Error capturing windows: {str(e)}")
         return
+
+    if capture_save:
+        save_windows(captured_images, windows)
 
     # Create timestamped output file
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
