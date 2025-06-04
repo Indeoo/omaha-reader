@@ -5,6 +5,8 @@ Outputs simple format: WindowName: CardCardCard
 """
 
 import os
+import time
+
 import cv2
 import numpy as np
 from datetime import datetime
@@ -68,37 +70,37 @@ def extract_window_name(filename: str) -> str:
     return name.strip('_')
 
 
-def write_simplified_results(results: List[Dict[str, Any]], output_path: str) -> None:
-    """
-    Write simplified results to file
-
-    Args:
-        results: List of analysis results
-        output_path: Path to output file
-    """
-    try:
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(f"Player Hand Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write("=" * 60 + "\n\n")
-
-            hands_found = 0
-
-            for result in results:
-                window_name = result['window_name']
-                cards = result['cards']
-
-                if cards:
-                    cards_str = ''.join(cards)
-                    f.write(f"{window_name}: {cards_str}\n")
-                    hands_found += 1
-                else:
-                    f.write(f"{window_name}: No cards detected\n")
-
-            f.write(f"\nTotal windows with hands detected: {hands_found}/{len(results)}\n")
-
-    except Exception as e:
-        print(f"❌ Error writing results file: {str(e)}")
-        raise
+# def write_simplified_results(results: List[Dict[str, Any]], output_path: str) -> None:
+#     """
+#     Write simplified results to file
+#
+#     Args:
+#         results: List of analysis results
+#         output_path: Path to output file
+#     """
+#     try:
+#         with open(output_path, 'w', encoding='utf-8') as f:
+#             f.write(f"Player Hand Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+#             f.write("=" * 60 + "\n\n")
+#
+#             hands_found = 0
+#
+#             for result in results:
+#                 window_name = result['window_name']
+#                 cards = result['cards']
+#
+#                 if cards:
+#                     cards_str = ''.join(cards)
+#                     f.write(f"{window_name}: {cards_str}\n")
+#                     hands_found += 1
+#                 else:
+#                     f.write(f"{window_name}: No cards detected\n")
+#
+#             f.write(f"\nTotal windows with hands detected: {hands_found}/{len(results)}\n")
+#
+#     except Exception as e:
+#         print(f"❌ Error writing results file: {str(e)}")
+#         raise
 
 
 def main():
@@ -194,23 +196,23 @@ def main():
             }
             results.append(result)
 
-    # Write results to file
-    print(f"\n💾 Writing results to {output_filename}...")
-    try:
-        write_simplified_results(results, output_path)
-        print(f"✅ Results saved to: {output_path}")
-
-    except Exception as e:
-        print(f"❌ Error writing results: {str(e)}")
-        return
-
-    # Print final summary
-    print("\n" + "=" * 60)
-    print("🎉 DETECTION COMPLETE!")
-    print("=" * 60)
-    print(f"Windows analyzed: {len(captured_images)}")
-    print(f"Hands detected: {total_hands}")
-    print(f"📄 Results saved to: {output_path}")
+    # # Write results to file
+    # print(f"\n💾 Writing results to {output_filename}...")
+    # try:
+    #     write_simplified_results(results, output_path)
+    #     print(f"✅ Results saved to: {output_path}")
+    #
+    # except Exception as e:
+    #     print(f"❌ Error writing results: {str(e)}")
+    #     return
+    #
+    # # Print final summary
+    # print("\n" + "=" * 60)
+    # print("🎉 DETECTION COMPLETE!")
+    # print("=" * 60)
+    # print(f"Windows analyzed: {len(captured_images)}")
+    # print(f"Hands detected: {total_hands}")
+    # print(f"📄 Results saved to: {output_path}")
 
     # Also print results to console for immediate viewing
     print("\n🃏 DETECTED HANDS:")
@@ -229,4 +231,13 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    print("Player card reader")
+    print("------------------------------")
+
+    try:
+        while True:
+            main()
+            print("Sleep for 3 second...")
+            time.sleep(3)
+    except Exception as e:
+        print(f"An error occurred: {e}")
