@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Simplified script that captures windows and analyzes them with PlayerCardReader.
-Outputs simple format: WindowName: CardCardCard
+Outputs enhanced format: WindowName: CardCardCard with Unicode suit symbols
 """
 import ctypes
 import os
@@ -15,13 +15,54 @@ from src.capture.capture_utils import capture_windows, save_windows
 from src.cv.opencv_utils import pil_to_cv2
 from src.player_card_reader import PlayerCardReader
 
-
 # Try to enable DPI awareness
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except:
     ctypes.windll.user32.SetProcessDPIAware()
 
+
+def format_card_with_unicode(card_name: str) -> str:
+    """
+    Convert card name to include Unicode suit symbols
+
+    Args:
+        card_name: Card name like "4S", "JH", "AC", "10D"
+
+    Returns:
+        Formatted string like "4S(♤)", "JH(♡)", "AC(♧)", "10D(♢)"
+    """
+    if not card_name or len(card_name) < 2:
+        return card_name
+
+    # Unicode suit symbols mapping
+    suit_unicode = {
+        'S': '♤',  # Spades (black spade suit)
+        'H': '♡',  # Hearts (white heart suit)
+        'D': '♢',  # Diamonds (white diamond suit)
+        'C': '♧'  # Clubs (white club suit)
+    }
+
+    # Get the last character as suit
+    suit = card_name[-1].upper()
+
+    if suit in suit_unicode:
+        return f"{card_name}({suit_unicode[suit]})"
+    else:
+        return card_name
+
+
+def format_cards_with_unicode(cards: List[str]) -> str:
+    """
+    Format a list of cards with Unicode suit symbols
+
+    Args:
+        cards: List of card names like ["4S", "6D", "JH", "AC"]
+
+    Returns:
+        Formatted string like "4S(♤)6D(♢)JH(♡)AC(♧)"
+    """
+    return ''.join([format_card_with_unicode(card) for card in cards])
 
 
 def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardReader) -> List[str]:
@@ -75,39 +116,6 @@ def extract_window_name(filename: str) -> str:
     return name.strip('_')
 
 
-# def write_simplified_results(results: List[Dict[str, Any]], output_path: str) -> None:
-#     """
-#     Write simplified results to file
-#
-#     Args:
-#         results: List of analysis results
-#         output_path: Path to output file
-#     """
-#     try:
-#         with open(output_path, 'w', encoding='utf-8') as f:
-#             f.write(f"Player Hand Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-#             f.write("=" * 60 + "\n\n")
-#
-#             hands_found = 0
-#
-#             for result in results:
-#                 window_name = result['window_name']
-#                 cards = result['cards']
-#
-#                 if cards:
-#                     cards_str = ''.join(cards)
-#                     f.write(f"{window_name}: {cards_str}\n")
-#                     hands_found += 1
-#                 else:
-#                     f.write(f"{window_name}: No cards detected\n")
-#
-#             f.write(f"\nTotal windows with hands detected: {hands_found}/{len(results)}\n")
-#
-#     except Exception as e:
-#         print(f"❌ Error writing results file: {str(e)}")
-#         raise
-
-
 def main(capture_save=True):
     """
     Main function that captures windows and analyzes them for player cards
@@ -138,11 +146,6 @@ def main(capture_save=True):
     if capture_save:
         save_windows(captured_images, windows)
 
-    # Create timestamped output file
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    output_filename = f"hands_{timestamp}.txt"
-    output_path = os.path.join(output_dir, output_filename)
-
     print(f"\n🔍 Analyzing {len(captured_images)} captured images...")
 
     # Analyze each captured image
@@ -171,10 +174,10 @@ def main(capture_save=True):
             }
             results.append(result)
 
-            # Print immediate result
+            # Print immediate result with Unicode symbols
             if cards:
-                cards_str = ''.join(cards)
-                print(f"    ✅ {window_name}: {cards_str}")
+                cards_unicode = format_cards_with_unicode(cards)
+                print(f"    ✅ {window_name}: {cards_unicode}")
                 total_hands += 1
             else:
                 print(f"    ⚪ {window_name}: No cards detected")
@@ -188,32 +191,14 @@ def main(capture_save=True):
             }
             results.append(result)
 
-    # # Write results to file
-    # print(f"\n💾 Writing results to {output_filename}...")
-    # try:
-    #     write_simplified_results(results, output_path)
-    #     print(f"✅ Results saved to: {output_path}")
-    #
-    # except Exception as e:
-    #     print(f"❌ Error writing results: {str(e)}")
-    #     return
-    #
-    # # Print final summary
-    # print("\n" + "=" * 60)
-    # print("🎉 DETECTION COMPLETE!")
-    # print("=" * 60)
-    # print(f"Windows analyzed: {len(captured_images)}")
-    # print(f"Hands detected: {total_hands}")
-    # print(f"📄 Results saved to: {output_path}")
-
     # Also print results to console for immediate viewing
     print("\n🃏 DETECTED HANDS:")
     print("-" * 30)
     hands_shown = 0
     for result in results:
         if result['cards']:
-            cards_str = ''.join(result['cards'])
-            print(f"{result['window_name']}: {cards_str}")
+            cards_unicode = format_cards_with_unicode(result['cards'])
+            print(f"{result['window_name']}: {cards_unicode}")
             hands_shown += 1
 
     if hands_shown == 0:
@@ -244,9 +229,10 @@ if __name__ == "__main__":
                 main()
                 print(f"Sleep for {wait_time} second...")
                 time.sleep(wait_time)
+        except KeyboardInterrupt:
+            print("\n🛑 Stopping capture loop...")
         except Exception as e:
             print(f"An error occurred: {e}")
-
 
     except Exception as e:
         print(f"❌ Error initializing PlayerCardReader: {str(e)}")
