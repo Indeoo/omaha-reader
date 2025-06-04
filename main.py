@@ -6,11 +6,12 @@ Outputs enhanced format: WindowName: CardCardCard with Unicode suit symbols
 import ctypes
 import os
 import time
+from datetime import datetime
 
 import numpy as np
 from typing import List
 
-from src.capture.capture_utils import capture_windows, save_windows
+from src.capture.capture_utils import capture_windows, capture_and_save_windows
 from src.cv.opencv_utils import pil_to_cv2
 from src.deck.deck_utils import format_cards_with_unicode
 from src.player_card_reader import PlayerCardReader
@@ -43,6 +44,38 @@ def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardRea
         return []
 
 
+def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
+    """
+    Write detection results to detection.txt in the timestamp folder
+
+    Args:
+        detected_hands: List of detected hands with window names and cards
+        timestamp_folder: Path to the timestamp folder where detection.txt should be saved
+    """
+    detection_file_path = os.path.join(timestamp_folder, "detection.txt")
+
+    try:
+        with open(detection_file_path, 'w', encoding='utf-8') as f:
+            f.write(f"Card Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("=" * 60 + "\n\n")
+
+            if detected_hands:
+                f.write(f"🃏 DETECTED HANDS ({len(detected_hands)} total):\n")
+                f.write("-" * 30 + "\n")
+
+                for hand in detected_hands:
+                    f.write(f"{hand['window_name']}: {hand['cards_unicode']}\n")
+            else:
+                f.write("No hands detected in any window.\n")
+
+            f.write("\n" + "=" * 60 + "\n")
+
+        print(f"📄 Detection results written to: {detection_file_path}")
+
+    except Exception as e:
+        print(f"❌ Error writing detection results: {str(e)}")
+
+
 def main(capture_save=True):
     """
     Main function that captures windows and analyzes them for player cards
@@ -59,8 +92,17 @@ def main(capture_save=True):
     # Capture windows
     print("\n📸 Capturing windows...")
     try:
-        captured_images, windows = capture_windows()
-        print(f"✅ Captured {len(captured_images)} images")
+        if capture_save:
+            # Use convenience function that handles both capture and save with consistent timestamp
+            session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            timestamp_folder, captured_images, windows = capture_and_save_windows(timestamp=session_timestamp)
+            print(f"✅ Captured and saved {len(captured_images)} images")
+        else:
+            # Just capture without saving
+            session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            captured_images, windows, _ = capture_windows(timestamp=session_timestamp)
+            timestamp_folder = None
+            print(f"✅ Captured {len(captured_images)} images")
 
         if not captured_images:
             print("❌ No images captured. Exiting.")
@@ -69,9 +111,6 @@ def main(capture_save=True):
     except Exception as e:
         print(f"❌ Error capturing windows: {str(e)}")
         return
-
-    if capture_save:
-        save_windows(captured_images, windows)
 
     print(f"\n🔍 Analyzing {len(captured_images)} captured images...")
 
@@ -142,7 +181,41 @@ def main(capture_save=True):
     if hands_shown == 0:
         print("No hands detected in any window.")
 
+    # Write detection results to file if we have a timestamp folder
+    if timestamp_folder and os.path.exists(timestamp_folder):
+        write_detection_results(detected_hands, timestamp_folder)
+
     print("=" * 60)
+
+
+def extract_window_name(filename: str) -> str:
+    """
+    Extract a clean window name from the filename
+
+    Args:
+        filename: Original filename like "01_PokerStars_exe_Lobby_Window.png"
+
+    Returns:
+        Clean window name like "PokerStars_Lobby"
+    """
+    # Remove file extension
+    name = filename.replace('.png', '').replace('.jpg', '').replace('.jpeg', '')
+
+    # Remove number prefix (e.g., "01_")
+    if '_' in name:
+        parts = name.split('_')
+        if parts[0].isdigit() or parts[0].startswith('0'):
+            name = '_'.join(parts[1:])
+
+    # Simplify common patterns
+    name = name.replace('_exe_', '_')
+    name = name.replace('__', '_')
+
+    # Limit length and clean up
+    if len(name) > 30:
+        name = name[:30]
+
+    return name.strip('_')
 
 
 if __name__ == "__main__":

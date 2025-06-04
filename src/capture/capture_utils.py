@@ -1,24 +1,29 @@
 import os
 from datetime import datetime
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 from PIL import ImageGrab
 
 from src.capture.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
-def capture_windows(log_mode: str = "none", log_file_path: str = None) -> Tuple[
-    List[Dict[str, Any]], List[Dict[str, Any]]]:
+def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp: str = None) -> Tuple[
+    List[Dict[str, Any]], List[Dict[str, Any]], str]:
     """
     Capture windows with configurable logging
 
     Args:
         log_mode: Logging mode - "none", "console", or "file"
-        log_file_path: Custom path for log file. If None, uses default timestamp-based name
+        log_file_path: Custom path for log file. If None, uses timestamp-based name
+        timestamp: Custom timestamp string. If None, generates current timestamp
 
     Returns:
-        Tuple of (captured_images, windows)
+        Tuple of (captured_images, windows, timestamp_used)
     """
+
+    # Generate timestamp if not provided
+    if timestamp is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def log_message(message: str):
         """Helper function to log messages based on the mode"""
@@ -34,7 +39,6 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None) -> Tuple[
     log_file = None
     if log_mode == "file":
         if log_file_path is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             log_file_path = f"capture_log_{timestamp}.txt"
 
         try:
@@ -106,7 +110,7 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None) -> Tuple[
             else:
                 log_message(f"  ✗ Failed to capture")
 
-        return captured_images, windows
+        return captured_images, windows, timestamp
 
     finally:
         # Close log file if it was opened
@@ -115,16 +119,24 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None) -> Tuple[
 
 
 def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, Any]],
-                 log_mode: str = "none", log_file_path: str = None):
+                 timestamp: str = None, log_mode: str = "none", log_file_path: str = None) -> str:
     """
     Save captured windows with configurable logging
 
     Args:
         captured_images: List of captured image dictionaries
         windows: List of window information dictionaries
+        timestamp: Custom timestamp string. If None, generates current timestamp
         log_mode: Logging mode - "none", "console", or "file"
-        log_file_path: Custom path for log file. If None, uses default timestamp-based name
+        log_file_path: Custom path for log file. If None, uses timestamp-based name
+
+    Returns:
+        str: Path to the output folder where images were saved
     """
+
+    # Generate timestamp if not provided
+    if timestamp is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def log_message(message: str):
         """Helper function to log messages based on the mode"""
@@ -140,7 +152,6 @@ def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, 
     log_file = None
     if log_mode == "file":
         if log_file_path is None:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             log_file_path = f"save_log_{timestamp}.txt"
 
         try:
@@ -157,8 +168,7 @@ def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, 
         log_message(f"\nSaving {len(captured_images)} captured images...")
         successes = 0
 
-        # Create timestamped output folder
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # Create timestamped output folder using provided timestamp
         current_dir = os.path.dirname(os.path.abspath(__file__))
         output_folder = os.path.join(current_dir, f"Dropbox/data_screenshots/_{timestamp}")
         os.makedirs(output_folder, exist_ok=True)
@@ -184,7 +194,39 @@ def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, 
         log_message(f"Screenshots saved to: {output_folder}")
         log_message("Screenshot process completed.")
 
+        # Return the actual output folder path
+        return output_folder
+
     finally:
         # Close log file if it was opened
         if log_file:
             log_file.close()
+
+
+def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp: str = None) -> Tuple[
+    str, List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """
+    Convenience function that captures and saves windows in one call with consistent timestamp
+
+    Args:
+        log_mode: Logging mode - "none", "console", or "file"
+        log_file_path: Custom path for log file. If None, uses timestamp-based name
+        timestamp: Custom timestamp string. If None, generates current timestamp
+
+    Returns:
+        Tuple of (output_folder_path, captured_images, windows)
+    """
+
+    # Generate timestamp if not provided
+    if timestamp is None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # Capture windows with the timestamp
+    captured_images, windows, used_timestamp = capture_windows(log_mode=log_mode, log_file_path=log_file_path,
+                                                               timestamp=timestamp)
+
+    # Save windows with the same timestamp
+    output_folder = save_windows(captured_images, windows, timestamp=used_timestamp, log_mode=log_mode,
+                                 log_file_path=log_file_path)
+
+    return output_folder, captured_images, windows
