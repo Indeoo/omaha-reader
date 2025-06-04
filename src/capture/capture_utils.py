@@ -115,7 +115,7 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None) -> Tuple[
 
 
 def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, Any]],
-                 log_mode: str = "console", log_file_path: str = None):
+                 log_mode: str = "none", log_file_path: str = None):
     """
     Save captured windows with configurable logging
 
