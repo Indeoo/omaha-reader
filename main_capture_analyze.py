@@ -3,7 +3,7 @@
 Simplified script that captures windows and analyzes them with PlayerCardReader.
 Outputs simple format: WindowName: CardCardCard
 """
-
+import ctypes
 import os
 import time
 
@@ -17,6 +17,14 @@ from src.capture.capture_utils import capture_windows, save_windows
 from src.cv.opencv_utils import pil_to_cv2
 from src.player_card_reader import PlayerCardReader
 from src.readed_card import ReadedCard
+
+
+# Try to enable DPI awareness
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except:
+    ctypes.windll.user32.SetProcessDPIAware()
+
 
 
 def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardReader) -> List[str]:
