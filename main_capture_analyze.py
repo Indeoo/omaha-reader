@@ -151,12 +151,23 @@ def main(capture_save=True):
     # Also print results to console for immediate viewing
     print("\n🃏 DETECTED HANDS:")
     print("-" * 30)
-    hands_shown = 0
+
+    # First, form the data - collect all hands with cards
+    detected_hands = []
     for result in results:
         if result['cards']:
             cards_unicode = format_cards_with_unicode(result['cards'])
-            print(f"{result['window_name']}: {cards_unicode}")
-            hands_shown += 1
+            detected_hands.append({
+                'window_name': result['window_name'],
+                'cards_unicode': cards_unicode,
+                'cards_raw': result['cards']
+            })
+
+    # Then, view the data in a separate loop
+    hands_shown = 0
+    for hand in detected_hands:
+        print(f"{hand['window_name']}: {hand['cards_unicode']}")
+        hands_shown += 1
 
     if hands_shown == 0:
         print("No hands detected in any window.")
