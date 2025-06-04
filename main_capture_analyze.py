@@ -12,19 +12,9 @@ from typing import List, Dict, Any
 from PIL import Image
 
 from src.capture.capture_utils import capture_windows
+from src.cv.opencv_utils import pil_to_cv2
 from src.player_card_reader import PlayerCardReader
 from src.readed_card import ReadedCard
-
-
-def pil_to_cv2(pil_image: Image.Image) -> np.ndarray:
-    """Convert PIL Image to OpenCV format"""
-    # Convert PIL image to RGB if it's not already
-    if pil_image.mode != 'RGB':
-        pil_image = pil_image.convert('RGB')
-
-    # Convert to numpy array and then to BGR for OpenCV
-    cv2_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
-    return cv2_image
 
 
 def analyze_image_with_player_reader(image: np.ndarray, image_name: str,
