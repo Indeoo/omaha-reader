@@ -1,5 +1,5 @@
 import cv2
-from typing import List
+from typing import List, Optional, Any
 from src.readed_card import ReadedCard
 
 try:
@@ -10,164 +10,168 @@ except ImportError:
     MATPLOTLIB_AVAILABLE = False
 
 
-def process_results(readed_cards: List[ReadedCard], result_type="player", **kwargs):
+def process_results(
+        readed_cards: List[ReadedCard],
+        original_image: Optional[Any] = None,
+        result_image: Optional[Any] = None,
+        detector: Optional[Any] = None,
+        debug: bool = True,
+        save_cards: bool = True,
+        card_type: str = "cards"  # "table" or "player" or "cards" (generic)
+):
     """
     Unified function to process both table and player card results
 
     Args:
         readed_cards: List of ReadedCard objects
-        result_type: "player" or "table"
-        **kwargs: Additional arguments (image, detector for table cards, original_image, result_image for player cards)
+        original_image: Original input image (numpy array)
+        result_image: Image with detection overlays (numpy array)
+        detector: Detector instance (for table cards, can generate result_image)
+        debug: Whether to show debug output and visualizations
+        save_cards: Whether to save detected card regions to disk
+        card_type: Type of cards for logging ("table", "player", or "cards")
     """
-
-    if result_type == "table":
-        _process_table_results(readed_cards, **kwargs)
-    elif result_type == "player":
-        _process_player_results(readed_cards, **kwargs)
-
-
-def _process_table_results(readed_cards: List[ReadedCard], image=None, detector=None, debug=True):
-    """Process table card results"""
 
     if not debug:
         return
 
-    print(f"Detected {len(readed_cards)} table cards")
+    # Print detection summary
+    print(f"🎯 Detected {len(readed_cards)} {card_type}")
 
-    # Save cards
-    if readed_cards:
-        from src.utils.save_utils import save_detected_cards
-        save_detected_cards(readed_cards)
-
-    # Display if possible
-    if MATPLOTLIB_AVAILABLE and image is not None and detector is not None:
-        _display_table_results(readed_cards, image, detector)
-
-
-def _process_player_results(readed_cards: List[ReadedCard], debug=True, original_image=None, result_image=None):
-    """Process player card results with enhanced visualization"""
-
-    if not debug or not readed_cards:
+    if not readed_cards:
+        print(f"   No {card_type} found")
         return
 
-    print(f"Found {len(readed_cards)} player cards")
+    # Print individual card details
+    for i, card in enumerate(readed_cards):
+        print(f"   {card_type.capitalize()} {i + 1}: {card.get_summary()}")
 
-    # Save cards
-    if readed_cards:
-        from src.utils.save_utils import save_readed_player_cards
-        save_readed_player_cards(readed_cards)
+    # Save cards if requested
+    if save_cards:
+        _save_detected_cards(readed_cards, card_type)
 
-    # Display if possible
+    # Generate result image if we have detector but no result image
+    if result_image is None and detector is not None and original_image is not None:
+        if hasattr(detector, 'draw_detected_cards'):
+            result_image = detector.draw_detected_cards(original_image, readed_cards)
+
+    # Display visualization if matplotlib is available
     if MATPLOTLIB_AVAILABLE:
-        _display_player_results_enhanced(readed_cards, original_image, result_image)
+        _display_unified_results(
+            readed_cards,
+            original_image,
+            result_image,
+            detector,
+            card_type
+        )
 
 
-def _display_table_results(readed_cards: List[ReadedCard], image, detector):
-    """Display table card detection results"""
+def _save_detected_cards(readed_cards: List[ReadedCard], card_type: str):
+    """Save detected cards using appropriate save function"""
     try:
-        result_image = detector.draw_detected_cards(image, readed_cards)
-        processed = detector.image_preprocessor.preprocess_image(image)
+        if card_type == "player":
+            from src.utils.save_utils import save_readed_player_cards
+            save_readed_player_cards(readed_cards)
+        else:  # table or generic
+            from src.utils.save_utils import save_detected_cards
+            save_detected_cards(readed_cards)
 
-        plt.figure(figsize=(15, 10))
-
-        plt.subplot(2, 2, 1)
-        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        plt.title('Original Image')
-        plt.axis('off')
-
-        plt.subplot(2, 2, 2)
-        plt.imshow(processed, cmap='gray')
-        plt.title('Preprocessed')
-        plt.axis('off')
-
-        plt.subplot(2, 2, 3)
-        plt.imshow(cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB))
-        plt.title('Detected Cards')
-        plt.axis('off')
-
-        plt.subplot(2, 2, 4)
-        if readed_cards:
-            sample_card = readed_cards[0].card_region
-            plt.imshow(cv2.cvtColor(sample_card, cv2.COLOR_BGR2RGB))
-            plt.title('Sample Card')
-        plt.axis('off')
-
-        plt.tight_layout()
-        plt.show()
+        print(f"   💾 Saved {len(readed_cards)} {card_type} to disk")
 
     except Exception as e:
-        print(f"Display not available: {e}")
+        print(f"   ❌ Error saving {card_type}: {e}")
 
 
-def _display_player_results_enhanced(readed_cards: List[ReadedCard], original_image=None, result_image=None):
-    """Display enhanced player card detection results with original and highlighted images"""
+def _display_unified_results(
+        readed_cards: List[ReadedCard],
+        original_image: Optional[Any],
+        result_image: Optional[Any],
+        detector: Optional[Any],
+        card_type: str
+):
+    """Display unified visualization for any card type"""
     try:
-        if not readed_cards:
-            print("No cards to display")
-            return
-
-        # Calculate grid layout based on available images and cards
+        # Calculate subplot layout
         has_original = original_image is not None
         has_result = result_image is not None
-        num_cards = min(len(readed_cards), 6)  # Show max 6 individual cards
+        has_processed = (detector is not None and
+                         hasattr(detector, 'image_preprocessor') and
+                         original_image is not None)
 
-        # Calculate subplot layout
-        if has_original and has_result:
-            # 2 overview images + individual cards
-            total_plots = 2 + num_cards
-            if total_plots <= 4:
-                rows, cols = 2, 2
-            elif total_plots <= 6:
-                rows, cols = 2, 3
-            else:
-                rows, cols = 3, 3
-        elif has_original or has_result:
-            # 1 overview image + individual cards
-            total_plots = 1 + num_cards
-            if total_plots <= 4:
-                rows, cols = 2, 2
-            elif total_plots <= 6:
-                rows, cols = 2, 3
-            else:
-                rows, cols = 3, 3
+        num_cards_to_show = min(len(readed_cards), 6)  # Show max 6 individual cards
+
+        # Count available overview images
+        overview_images = sum([has_original, has_result, has_processed])
+        total_plots = overview_images + num_cards_to_show
+
+        # Determine grid layout
+        if total_plots <= 4:
+            rows, cols = 2, 2
+        elif total_plots <= 6:
+            rows, cols = 2, 3
+        elif total_plots <= 9:
+            rows, cols = 3, 3
         else:
-            # Only individual cards
-            if num_cards <= 4:
-                rows, cols = 2, 2
-            elif num_cards <= 6:
-                rows, cols = 2, 3
-            else:
-                rows, cols = 3, 3
+            rows, cols = 4, 3
 
         plt.figure(figsize=(15, 10))
-
         subplot_idx = 1
 
-        # Display original image if available
+        # Show original image
         if has_original:
             plt.subplot(rows, cols, subplot_idx)
-            plt.imshow(cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB))
+            if len(original_image.shape) == 3:  # Color image
+                plt.imshow(cv2.cvtColor(original_image, cv2.COLOR_BGR2RGB))
+            else:  # Grayscale
+                plt.imshow(original_image, cmap='gray')
             plt.title('Original Image')
             plt.axis('off')
             subplot_idx += 1
 
-        # Display result image with detections if available
-        if has_result:
+        # Show processed image (for table cards)
+        if has_processed:
+            processed = detector.image_preprocessor.preprocess_image(original_image)
             plt.subplot(rows, cols, subplot_idx)
-            plt.imshow(cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB))
-            plt.title(f'Detected Cards ({len(readed_cards)} found)')
+            plt.imshow(processed, cmap='gray')
+            plt.title('Preprocessed Image')
             plt.axis('off')
             subplot_idx += 1
 
-        # Display individual card regions
-        for i in range(num_cards):
+        # Show result image with detections
+        if has_result:
+            plt.subplot(rows, cols, subplot_idx)
+            if len(result_image.shape) == 3:  # Color image
+                plt.imshow(cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB))
+            else:  # Grayscale
+                plt.imshow(result_image, cmap='gray')
+            plt.title(f'Detected {card_type.capitalize()} ({len(readed_cards)} found)')
+            plt.axis('off')
+            subplot_idx += 1
+
+        # Show individual card regions
+        for i in range(num_cards_to_show):
             if subplot_idx > rows * cols:
                 break
 
             plt.subplot(rows, cols, subplot_idx)
             card = readed_cards[i]
-            plt.imshow(cv2.cvtColor(card.card_region, cv2.COLOR_BGR2RGB))
-            plt.title(f"{card.template_name}\n({card.match_score:.2f}, scale:{card.scale:.1f})")
+
+            if len(card.card_region.shape) == 3:  # Color image
+                plt.imshow(cv2.cvtColor(card.card_region, cv2.COLOR_BGR2RGB))
+            else:  # Grayscale
+                plt.imshow(card.card_region, cmap='gray')
+
+            # Create title with available information
+            title_parts = []
+            if card.template_name:
+                title_parts.append(card.template_name)
+            if card.match_score is not None:
+                title_parts.append(f"conf:{card.match_score:.2f}")
+            if card.scale is not None:
+                title_parts.append(f"scale:{card.scale:.1f}")
+
+            title = '\n'.join(title_parts) if title_parts else f"Card {i + 1}"
+            plt.title(title)
             plt.axis('off')
             subplot_idx += 1
 
@@ -175,28 +179,28 @@ def _display_player_results_enhanced(readed_cards: List[ReadedCard], original_im
         plt.show()
 
     except Exception as e:
-        print(f"Display not available: {e}")
+        print(f"   ⚠️  Visualization not available: {e}")
 
 
-def _display_player_results(readed_cards: List[ReadedCard]):
-    """Original display player card detection results (for backward compatibility)"""
-    try:
-        if not readed_cards:
-            return
+# Convenience functions for backward compatibility
+def process_table_results(readed_cards: List[ReadedCard], image=None, detector=None, debug=True):
+    """Backward compatible function for table cards"""
+    process_results(
+        readed_cards=readed_cards,
+        original_image=image,
+        detector=detector,
+        debug=debug,
+        card_type="table"
+    )
 
-        plt.figure(figsize=(15, 8))
 
-        # Display first few card regions as samples
-        num_cards = min(len(readed_cards), 6)
-        for i in range(num_cards):
-            plt.subplot(2, 3, i + 1)
-            card = readed_cards[i]
-            plt.imshow(cv2.cvtColor(card.card_region, cv2.COLOR_BGR2RGB))
-            plt.title(f"{card.template_name} ({card.match_score:.2f})")
-            plt.axis('off')
-
-        plt.tight_layout()
-        plt.show()
-
-    except Exception as e:
-        print(f"Display not available: {e}")
+def process_player_results(readed_cards: List[ReadedCard], debug=True,
+                           original_image=None, result_image=None):
+    """Backward compatible function for player cards"""
+    process_results(
+        readed_cards=readed_cards,
+        original_image=original_image,
+        result_image=result_image,
+        debug=debug,
+        card_type="player"
+    )

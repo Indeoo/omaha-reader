@@ -11,7 +11,7 @@ from src.utils.template_loader import load_templates
 
 
 class PlayerCardReader(CardReader):
-    DEFAULT_SEARCH_REGION = (0.25, 0.6, 0.95, 0.75)
+    DEFAULT_SEARCH_REGION = (0.2, 0.5, 0.8, 0.95)
     #                       (left, top, right, bottom)
     DEFAULT_MIN_CARD_SIZE = 20
     DEFAULT_OVERLAP_THRESHOLD = 0.3
