@@ -226,6 +226,8 @@ if __name__ == "__main__":
     print("Player card reader")
     print("------------------------------")
 
+    wait_time = 10
+
     # Initialize PlayerCardReader
     print("🎯 Initializing PlayerCardReader...")
     try:
@@ -240,8 +242,8 @@ if __name__ == "__main__":
         try:
             while True:
                 main()
-                print("Sleep for 3 second...")
-                time.sleep(3)
+                print(f"Sleep for {wait_time} second...")
+                time.sleep(wait_time)
         except Exception as e:
             print(f"An error occurred: {e}")
 
