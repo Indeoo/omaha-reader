@@ -11,11 +11,13 @@ from src.utils.template_loader import load_templates
 
 
 class PlayerCardReader(CardReader):
-    DEFAULT_SEARCH_REGION = (0.0, 0.5, 1.0, 1.0)
+    DEFAULT_SEARCH_REGION = (0.25, 0.6, 0.95, 0.75)
+    #                       (left, top, right, bottom)
     DEFAULT_MIN_CARD_SIZE = 20
     DEFAULT_OVERLAP_THRESHOLD = 0.3
     DEFAULT_MATCH_THRESHOLD = 0.6
-    DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+    #DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
+    DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
     def __init__(self, templates_dir: str = "resources/templates/player_cards/"):
         """
