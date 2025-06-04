@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 from typing import List, Tuple, Dict
+from concurrent.futures import ThreadPoolExecutor
+import multiprocessing
 
 from src.card_reader import CardReader
 from src.readed_card import ReadedCard
@@ -31,6 +33,9 @@ class PlayerCardReader(CardReader):
         self.overlap_threshold = self.DEFAULT_OVERLAP_THRESHOLD
         self.match_threshold = self.DEFAULT_MATCH_THRESHOLD
         self.scale_factors = self.DEFAULT_SCALE_FACTORS
+
+        # Parallel execution parameter
+        self.max_workers = min(4, multiprocessing.cpu_count())
 
     @benchmark
     def read(self, image: np.ndarray) -> List[ReadedCard]:
@@ -71,12 +76,23 @@ class PlayerCardReader(CardReader):
         return readed_cards
 
     def _find_all_template_matches(self, image: np.ndarray) -> List[Dict]:
-        """Find matches for all templates in the image"""
+        """Find matches for all templates in the image using parallel execution"""
         all_detections = []
 
-        for template_name, template in self.templates.items():
-            detections = self._find_single_template_matches(image, template, template_name)
-            all_detections.extend(detections)
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            # Submit all template matching tasks in parallel
+            futures = []
+            for template_name, template in self.templates.items():
+                future = executor.submit(
+                    self._find_single_template_matches,
+                    image, template, template_name
+                )
+                futures.append(future)
+
+            # Collect results
+            for future in futures:
+                detections = future.result()
+                all_detections.extend(detections)
 
         return all_detections
 
