@@ -31,19 +31,23 @@ def main():
     # Write the window list to windows.txt
     write_windows_list(windows, output_folder)
 
+    # List to store all captured images with their metadata
+    captured_images = []
+
     # First, capture the full screen
     try:
         full_screen = ImageGrab.grab()
-        full_screen_path = os.path.join(output_folder, "full_screen.png")
-        full_screen.save(full_screen_path)
-        print(f"Saved full screen to {full_screen_path}")
+        captured_images.append({
+            'image': full_screen,
+            'filename': "full_screen.png",
+            'description': "Full screen"
+        })
+        print(f"Captured full screen")
     except Exception as e:
         print(f"Error capturing full screen: {e}")
         full_screen = None
 
-    # Capture each window
-    successes = 0
-
+    # Capture each window and store in memory
     for i, window in enumerate(windows, 1):
         hwnd = window['hwnd']
         title = window['title']
@@ -61,7 +65,6 @@ def main():
         safe_title = "".join([c if c.isalnum() else "_" for c in title])[:50]
         safe_process = "".join([c if c.isalnum() else "_" for c in process])[:20]
         filename = f"{i:02d}_{safe_process}_{safe_title}.png"
-        filepath = os.path.join(output_folder, filename)
 
         # First try using PrintWindow method (ignores overlapping)
         img = careful_capture_window(hwnd, width, height)
@@ -74,17 +77,33 @@ def main():
             capture_method = "Screen region (with overlap)"
 
         if img:
-            # Save the image
-            img.save(filepath)
-            print(f"  ✓ Saved using {capture_method}")
-            successes += 1
+            captured_images.append({
+                'image': img,
+                'filename': filename,
+                'description': f"{title} ({process}) - {capture_method}"
+            })
+            print(f"  ✓ Captured using {capture_method}")
         else:
             print(f"  ✗ Failed to capture")
+
+    # Now save all captured images in a separate loop
+    print(f"\nSaving {len(captured_images)} captured images...")
+    successes = 0
+
+    for i, captured_item in enumerate(captured_images, 1):
+        try:
+            filepath = os.path.join(output_folder, captured_item['filename'])
+            captured_item['image'].save(filepath)
+            print(f"  ✓ Saved {i}/{len(captured_images)}: {captured_item['filename']}")
+            successes += 1
+        except Exception as e:
+            print(f"  ✗ Failed to save {captured_item['filename']}: {e}")
 
     # Print summary
     print("\n---- Capture Summary ----")
     print(f"Total windows found: {len(windows)}")
-    print(f"Successfully captured: {successes}")
+    print(f"Images captured in memory: {len(captured_images)}")
+    print(f"Successfully saved to disk: {successes}")
     print(f"Screenshots saved to: {output_folder}")
 
     # We won't wait for a keypress as requested
