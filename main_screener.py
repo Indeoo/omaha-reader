@@ -4,6 +4,7 @@ from datetime import datetime
 from PIL import ImageGrab
 import ctypes
 
+from src.capture.capture_utils import capture_windows
 from src.capture.windows_utils import careful_capture_window, capture_screen_region, get_window_info, write_windows_list
 from src.utils.benchmark_utils import benchmark
 
