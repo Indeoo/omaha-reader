@@ -169,8 +169,8 @@ def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, 
         successes = 0
 
         # Create timestamped output folder using provided timestamp
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        output_folder = os.path.join(current_dir, f"Dropbox/data_screenshots/_{timestamp}")
+        working_dir = os.getcwd()
+        output_folder = os.path.join(working_dir, f"Dropbox/data_screenshots/_{timestamp}")
         os.makedirs(output_folder, exist_ok=True)
         log_message(f"Screenshots will be saved to: {output_folder}")
 
