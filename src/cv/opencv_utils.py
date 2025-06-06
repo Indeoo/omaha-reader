@@ -1,3 +1,5 @@
+import os
+
 import cv2
 import numpy as np
 from PIL import Image
@@ -12,3 +14,17 @@ def pil_to_cv2(pil_image: Image.Image) -> np.ndarray:
     # Convert to numpy array and then to BGR for OpenCV
     cv2_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
     return cv2_image
+
+
+def save_opencv_image(image, folder_path, filename):
+    """
+    Save OpenCV image to specified folder
+
+    Args:
+        image: OpenCV image (numpy array)
+        folder_path: Path to the folder where image should be saved
+        filename: Name of the file (including extension)
+    """
+    os.makedirs(folder_path, exist_ok=True)
+    filepath = os.path.join(folder_path, filename)
+    cv2.imwrite(filepath, image)

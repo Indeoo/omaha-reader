@@ -12,7 +12,7 @@ import numpy as np
 from typing import List
 
 from src.capture.capture_utils import capture_windows, capture_and_save_windows
-from src.cv.opencv_utils import pil_to_cv2
+from src.cv.opencv_utils import pil_to_cv2, save_opencv_image
 from src.deck.deck_utils import format_cards
 from src.player_card_reader import PlayerCardReader
 from src.readed_card import ReadedCard
@@ -134,6 +134,9 @@ def main(capture_save=True):
             # Analyze with PlayerCardReader
             cards = analyze_image_for_cards(cv2_image, player_card_reader)
 
+            result_image = player_card_reader.draw_detected_cards(cv2_image, cards)
+            save_opencv_image(result_image, timestamp_folder, "detection_result.png")
+
             result = {
                 'window_name': window_name,
                 'cards': cards,
@@ -181,6 +184,7 @@ def main(capture_save=True):
 
     if hands_shown == 0:
         print("No hands detected in any window.")
+
 
     # Write detection results to file if we have a timestamp folder
     if timestamp_folder and os.path.exists(timestamp_folder):
