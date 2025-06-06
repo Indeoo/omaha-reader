@@ -13,8 +13,9 @@ from typing import List
 
 from src.capture.capture_utils import capture_windows, capture_and_save_windows
 from src.cv.opencv_utils import pil_to_cv2
-from src.deck.deck_utils import format_cards_with_unicode
+from src.deck.deck_utils import format_cards
 from src.player_card_reader import PlayerCardReader
+from src.readed_card import ReadedCard
 
 # Try to enable DPI awareness
 try:
@@ -23,7 +24,7 @@ except:
     ctypes.windll.user32.SetProcessDPIAware()
 
 
-def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardReader) -> List[str]:
+def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardReader) -> List[ReadedCard]:
     """
     Analyze image and return just the card names found
 
@@ -38,7 +39,7 @@ def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardRea
         readed_cards = player_card_reader.read(image)
         # Sort cards by x-position (left to right) and extract template names
         sorted_cards = sorted(readed_cards, key=lambda card: card.center[0])
-        return [card.template_name for card in sorted_cards]
+        return [card for card in sorted_cards]
     except Exception as e:
         print(f"    ❌ Error analyzing image: {str(e)}")
         return []
@@ -142,7 +143,7 @@ def main(capture_save=True):
 
             # Print immediate result with Unicode symbols
             if cards:
-                cards_unicode = format_cards_with_unicode(cards)
+                cards_unicode = format_cards(cards)
                 print(f"    ✅ {window_name}: {cards_unicode}")
                 total_hands += 1
             else:
@@ -165,7 +166,7 @@ def main(capture_save=True):
     detected_hands = []
     for result in results:
         if result['cards']:
-            cards_unicode = format_cards_with_unicode(result['cards'])
+            cards_unicode = format_cards(cards)
             detected_hands.append({
                 'window_name': result['window_name'],
                 'cards_unicode': cards_unicode,

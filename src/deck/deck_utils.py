@@ -1,44 +1,107 @@
 from typing import List
+from src.readed_card import ReadedCard
 
 
-def format_card_with_unicode(card_name: str) -> str:
+# def format_cards_with_unicode(cards: List[ReadedCard]) -> str:
+#     """
+#     Format a list of ReadedCard objects with Unicode suit symbols
+#
+#     Args:
+#         cards: List of ReadedCard objects
+#
+#     Returns:
+#         Formatted string like "4S(♤)6D(♢)JH(♡)AC(♧)"
+#     """
+#     if not cards:
+#         return ""
+#
+#     # Extract template names from ReadedCard objects
+#     card_names = [card.template_name for card in cards if card.template_name]
+#     return ''.join([format_card_with_unicode(card) for card in card_names])
+
+
+def format_cards(cards: List[ReadedCard], show_probabilities: bool = True) -> str:
     """
-    Convert card name to include Unicode suit symbols
+    Format a list of ReadedCard objects with Unicode suit symbols and optionally include probabilities
 
     Args:
-        card_name: Card name like "4S", "JH", "AC", "10D"
+        cards: List of ReadedCard objects
+        show_probabilities: Whether to include match scores/probabilities in the output
 
     Returns:
-        Formatted string like "4S(♤)", "JH(♡)", "AC(♧)", "10D(♢)"
+        Formatted string like "4S(♤)[0.85]6D(♢)[0.92]JH(♡)[0.78]AC(♧)[0.95]"
+        or just "4S(♤)6D(♢)JH(♡)AC(♧)" if show_probabilities is False
     """
-    if not card_name or len(card_name) < 2:
-        return card_name
+    if not cards:
+        return ""
 
-    # Unicode suit symbols mapping
-    suit_unicode = {
-        'S': '♤',  # Spades (black spade suit)
-        'H': '♡',  # Hearts (white heart suit)
-        'D': '♢',  # Diamonds (white diamond suit)
-        'C': '♧'  # Clubs (white club suit)
+    formatted_cards = []
+    for card in cards:
+        if card.template_name:
+            formatted_card = card.format_single_card(show_probabilities)
+            formatted_cards.append(formatted_card)
+
+    res = ""
+    for card in cards:
+        res += card.template_name
+
+    return res + ' '.join(formatted_cards)
+
+
+# def print_cards_with_probabilities(cards: List[ReadedCard], window_name: str = "Window") -> None:
+#     """
+#     Print cards with detailed probability information
+#
+#     Args:
+#         cards: List of ReadedCard objects
+#         window_name: Name of the window/source for context
+#     """
+#     if not cards:
+#         print(f"    ⚪ {window_name}: No cards detected")
+#         return
+#
+#     # Format cards with unicode symbols and probabilities
+#     cards_display = format_cards_with_unicode_and_probability(cards, show_probabilities=True)
+#
+#     # Calculate average confidence
+#     valid_scores = [card.match_score for card in cards if card.match_score is not None]
+#     avg_confidence = sum(valid_scores) / len(valid_scores) if valid_scores else 0.0
+#
+#     # Find lowest confidence card
+#     min_confidence = min(valid_scores) if valid_scores else 0.0
+#     min_card = min(cards, key=lambda c: c.match_score or 0.0) if valid_scores else None
+#
+#     print(f"    ✅ {window_name}: {cards_display}")
+#     print(
+#         f"        📊 Avg confidence: {avg_confidence:.3f}, Min: {min_confidence:.3f} ({min_card.template_name if min_card else 'N/A'})")
+
+
+def get_cards_summary(cards: List[ReadedCard]) -> dict:
+    """
+    Get summary statistics for a list of detected cards
+
+    Args:
+        cards: List of ReadedCard objects
+
+    Returns:
+        Dictionary with summary statistics
+    """
+    if not cards:
+        return {
+            'count': 0,
+            'avg_confidence': 0.0,
+            'min_confidence': 0.0,
+            'max_confidence': 0.0,
+            'card_names': []
+        }
+
+    valid_scores = [card.match_score for card in cards if card.match_score is not None]
+    card_names = [card.template_name for card in cards if card.template_name]
+
+    return {
+        'count': len(cards),
+        'avg_confidence': sum(valid_scores) / len(valid_scores) if valid_scores else 0.0,
+        'min_confidence': min(valid_scores) if valid_scores else 0.0,
+        'max_confidence': max(valid_scores) if valid_scores else 0.0,
+        'card_names': card_names
     }
-
-    # Get the last character as suit
-    suit = card_name[-1].upper()
-
-    if suit in suit_unicode:
-        return f"{card_name}({suit_unicode[suit]})"
-    else:
-        return card_name
-
-
-def format_cards_with_unicode(cards: List[str]) -> str:
-    """
-    Format a list of cards with Unicode suit symbols
-
-    Args:
-        cards: List of card names like ["4S", "6D", "JH", "AC"]
-
-    Returns:
-        Formatted string like "4S(♤)6D(♢)JH(♡)AC(♧)"
-    """
-    return ''.join([format_card_with_unicode(card) for card in cards])

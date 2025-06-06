@@ -91,6 +91,52 @@ class ReadedCard:
 
         return f"{basic_summary} - {position_info}"
 
+    def format_card_with_unicode(self, card_name: str) -> str:
+        """
+        Convert card name to include Unicode suit symbols
+
+        Args:
+            card_name: Card name like "4S", "JH", "AC", "10D"
+
+        Returns:
+            Formatted string like "4S(♤)", "JH(♡)", "AC(♧)", "10D(♢)"
+        """
+        if not card_name or len(card_name) < 2:
+            return card_name
+
+        # Unicode suit symbols mapping
+        suit_unicode = {
+            'S': '♤',  # Spades (black spade suit)
+            'H': '♡',  # Hearts (white heart suit)
+            'D': '♢',  # Diamonds (white diamond suit)
+            'C': '♧'  # Clubs (white club suit)
+        }
+
+        # Get the last character as suit
+        suit = card_name[-1].upper()
+
+        if suit in suit_unicode:
+            return f"{card_name}({suit_unicode[suit]})"
+        else:
+            return card_name
+
+    def format_single_card(self, show_probabilities: bool) -> str:
+        """
+        Format a single ReadedCard with Unicode suit symbol and optional probability
+
+        Args:
+            card: ReadedCard object to format
+            show_probabilities: Whether to include match score/probability in the output
+
+        Returns:
+            Formatted string like "4S(♤)[0.85]" or just "4S(♤)"
+        """
+        card_with_unicode = self.format_card_with_unicode(self.template_name)
+        if show_probabilities and self.match_score is not None:
+            card_with_unicode += f"[{self.match_score:.2f}]"
+
+        return card_with_unicode
+
     def __str__(self) -> str:
         """String representation using the summary"""
         return self.get_summary()
