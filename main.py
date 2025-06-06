@@ -12,6 +12,7 @@ import numpy as np
 from typing import List
 
 from src.capture.capture_utils import capture_windows, capture_and_save_windows
+from src.capture.windows_utils import extract_window_name
 from src.cv.opencv_utils import pil_to_cv2, save_opencv_image
 from src.deck.deck_utils import format_cards
 from src.player_card_reader import PlayerCardReader
@@ -191,36 +192,6 @@ def main(capture_save=True):
         write_detection_results(detected_hands, timestamp_folder)
 
     print("=" * 60)
-
-
-def extract_window_name(filename: str) -> str:
-    """
-    Extract a clean window name from the filename
-
-    Args:
-        filename: Original filename like "01_PokerStars_exe_Lobby_Window.png"
-
-    Returns:
-        Clean window name like "PokerStars_Lobby"
-    """
-    # Remove file extension
-    name = filename.replace('.png', '').replace('.jpg', '').replace('.jpeg', '')
-
-    # Remove number prefix (e.g., "01_")
-    if '_' in name:
-        parts = name.split('_')
-        if parts[0].isdigit() or parts[0].startswith('0'):
-            name = '_'.join(parts[1:])
-
-    # Simplify common patterns
-    name = name.replace('_exe_', '_')
-    name = name.replace('__', '_')
-
-    # Limit length and clean up
-    if len(name) > 30:
-        name = name[:30]
-
-    return name.strip('_')
 
 
 if __name__ == "__main__":
