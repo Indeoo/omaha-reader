@@ -101,16 +101,20 @@ class PlayerCardReader(CardReader):
     def _find_single_template_matches(self, image: np.ndarray, template: np.ndarray,
                                       template_name: str) -> List[Dict]:
         """Find all matches of a single template in the image at multiple scales"""
-        detections = []
-        search_image, offset = self._extract_search_region(image)
-        template_h, template_w = template.shape[:2]
+        try:
+            detections = []
+            search_image, offset = self._extract_search_region(image)
+            template_h, template_w = template.shape[:2]
 
-        for scale in self.scale_factors:
-            scale_detections = self._match_template_at_scale(
-                search_image, template, template_name, scale,
-                template_w, template_h, offset
-            )
-            detections.extend(scale_detections)
+            for scale in self.scale_factors:
+                scale_detections = self._match_template_at_scale(
+                    search_image, template, template_name, scale,
+                    template_w, template_h, offset
+                )
+                detections.extend(scale_detections)
+        except Exception as e:
+            print(e)
+            raise e
 
         return detections
 
