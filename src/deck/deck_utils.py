@@ -45,7 +45,7 @@ def format_cards(cards: List[ReadedCard], show_probabilities: bool = True) -> st
     for card in cards:
         res += card.template_name
 
-    return res + ' '.join(formatted_cards)
+    return res + " " + ' '.join(formatted_cards)
 
 
 # def print_cards_with_probabilities(cards: List[ReadedCard], window_name: str = "Window") -> None:
