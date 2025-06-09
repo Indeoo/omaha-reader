@@ -136,7 +136,7 @@ def main(capture_save=True):
             cards = analyze_image_for_cards(cv2_image, player_card_reader)
 
             result_image = player_card_reader.draw_detected_cards(cv2_image, cards)
-            save_opencv_image(result_image, timestamp_folder, "detection_result.png")
+            save_opencv_image(result_image, timestamp_folder, f"{window_name}_result.png")
 
             result = {
                 'window_name': window_name,
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     print("Player card reader")
     print("------------------------------")
 
-    wait_time = 10
+    wait_time = 20
 
     # Initialize PlayerCardReader
     print("🎯 Initializing PlayerCardReader...")
