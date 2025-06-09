@@ -113,7 +113,7 @@ class PlayerCardReader(CardReader):
                 )
                 detections.extend(scale_detections)
         except Exception as e:
-            print(e)
+            print(f"{e} template name: {template_name}")
             raise e
 
         return detections
