@@ -78,7 +78,7 @@ def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
         print(f"❌ Error writing detection results: {str(e)}")
 
 
-def main(capture_save=True):
+def main(player_card_reader, capture_save=True):
     """
     Main function that captures windows and analyzes them for player cards
     """
@@ -213,7 +213,7 @@ if __name__ == "__main__":
 
         try:
             while True:
-                main()
+                main(player_card_reader)
                 print(f"Sleep for {wait_time} second...")
                 time.sleep(wait_time)
         except KeyboardInterrupt:
