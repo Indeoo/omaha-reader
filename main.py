@@ -12,7 +12,7 @@ import numpy as np
 from typing import List
 
 from src.capture.capture_utils import capture_windows, capture_and_save_windows
-from src.capture.windows_utils import extract_window_name
+#from src.capture.windows_utils import extract_window_name
 from src.cv.opencv_utils import pil_to_cv2, save_opencv_image
 from src.deck.deck_utils import format_cards
 from src.player_card_reader import PlayerCardReader
@@ -124,8 +124,10 @@ def detect_cards(templates, capture_save=True):
     for i, captured_item in enumerate(captured_images, 1):
         filename = captured_item['filename']
         pil_image = captured_item['image']
+        window_name = captured_item['window_name']
 
-        window_name = extract_window_name(filename)
+        filename.replace('.png', '_result.png')
+        #window_name = extract_window_name(filename)
 
         print(f"🔍 Analyzing {i}/{len(captured_images)}: {window_name}")
 

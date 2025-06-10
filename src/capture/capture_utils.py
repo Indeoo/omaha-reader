@@ -99,7 +99,8 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp
                 captured_images.append({
                     'image': img,
                     'filename': filename,
-                    'description': f"{title} ({process}) - {capture_method}"
+                    'description': f"{title} ({process}) - {capture_method}",
+                    'window_name': title
                 })
                 log_message(f"  ✓ Captured using {capture_method}")
             else:
