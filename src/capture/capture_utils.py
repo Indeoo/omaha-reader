@@ -59,7 +59,8 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp
             captured_images.append({
                 'image': full_screen,
                 'filename': "full_screen.png",
-                'description': "Full screen"
+                'description': "Full screen",
+                'window_name': 'full_screen'
             })
             log_message(f"Captured full screen")
         except Exception as e:
