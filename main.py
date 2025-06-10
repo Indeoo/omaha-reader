@@ -17,6 +17,7 @@ from src.cv.opencv_utils import pil_to_cv2, save_opencv_image
 from src.deck.deck_utils import format_cards
 from src.player_card_reader import PlayerCardReader
 from src.readed_card import ReadedCard
+from src.utils.template_loader import load_templates
 
 # Try to enable DPI awareness
 try:
@@ -78,31 +79,31 @@ def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
         print(f"❌ Error writing detection results: {str(e)}")
 
 
-def main(player_card_reader, capture_save=True):
+def detect_cards(templates, capture_save=True):
     """
     Main function that captures windows and analyzes them for player cards
     """
     print("🚀 Starting Simplified Window Capture & Card Detection")
     print("=" * 60)
 
-    # Configuration
-    output_dir = "resources/simple_results"
+    player_card_reader = PlayerCardReader(templates)
+    session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-    # Create output directory
-    os.makedirs(output_dir, exist_ok=True)
+    # Create timestamped output folder using provided timestamp
+    working_dir = os.getcwd()
+    timestamp_folder = os.path.join(working_dir, f"Dropbox/data_screenshots/_{session_timestamp}")
+    os.makedirs(timestamp_folder, exist_ok=True)
 
     # Capture windows
     print("\n📸 Capturing windows...")
     try:
         if capture_save:
             # Use convenience function that handles both capture and save with consistent timestamp
-            session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            timestamp_folder, captured_images, windows = capture_and_save_windows(timestamp=session_timestamp)
+            captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
             print(f"✅ Captured and saved {len(captured_images)} images")
         else:
             # Just capture without saving
-            session_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            captured_images, windows, _ = capture_windows(timestamp=session_timestamp)
+            captured_images, windows, _ = capture_windows(timestamp_folder=session_timestamp)
             timestamp_folder = None
             print(f"✅ Captured {len(captured_images)} images")
 
@@ -170,7 +171,7 @@ def main(player_card_reader, capture_save=True):
     detected_hands = []
     for result in results:
         if result['cards']:
-            cards_unicode = format_cards(cards)
+            cards_unicode = format_cards(result['cards'])  # Fixed: use result['cards'] instead of cards
             detected_hands.append({
                 'window_name': result['window_name'],
                 'cards_unicode': cards_unicode,
@@ -204,16 +205,16 @@ if __name__ == "__main__":
     print("🎯 Initializing PlayerCardReader...")
     try:
         templates_dir = "resources/templates/player_cards/"
-        player_card_reader = PlayerCardReader(templates_dir=templates_dir)
+        templates = load_templates(templates_dir)
 
-        if not player_card_reader.templates:
+        if not templates:
             raise Exception("❌ No templates loaded! Please check the templates directory.")
 
-        print(f"✅ Loaded {len(player_card_reader.templates)} templates")
+        print(f"✅ Loaded {len(templates)} templates")
 
         try:
             while True:
-                main(player_card_reader)
+                detect_cards(templates)
                 print(f"Sleep for {wait_time} second...")
                 time.sleep(wait_time)
         except KeyboardInterrupt:

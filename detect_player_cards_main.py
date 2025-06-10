@@ -12,6 +12,7 @@ from datetime import datetime
 
 from src.player_card_reader import PlayerCardReader
 from src.readed_card import ReadedCard
+from src.utils.template_loader import load_templates
 
 
 def process_single_image(image_path: str, image_name: str, player_card_reader: PlayerCardReader) -> Dict[str, Any]:
@@ -218,13 +219,15 @@ def main():
     screenshots_dir = "resources/data_screenshots"
     output_dir = "resources/player_results"
     templates_dir = "resources/templates/player_cards/"
+    templates = load_templates(templates_dir)
+
 
     # Create base output directory
     os.makedirs(output_dir, exist_ok=True)
 
     # Initialize player card reader
     print("🚀 Initializing PlayerCardReader...")
-    player_card_reader = PlayerCardReader(templates_dir=templates_dir)
+    player_card_reader = PlayerCardReader(templates)
 
     if not player_card_reader.templates:
         print("❌ No templates loaded! Please check the templates directory.")

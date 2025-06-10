@@ -3,13 +3,17 @@ import cv2
 from src.player_card_reader import PlayerCardReader
 from src.readed_card import write_summary
 from src.utils.result_processor import process_results
+from src.utils.template_loader import load_templates
 
 if __name__ == "__main__":
     # Player card reading
     imagePath = "resources/screenshots/img.png"
     templates_dir = "resources/templates/player_cards/"
     image = cv2.imread(imagePath)
-    player_card_reader = PlayerCardReader(templates_dir=templates_dir)
+
+    templates = load_templates(templates_dir)
+
+    player_card_reader = PlayerCardReader(templates)
     readed_cards = player_card_reader.read(image)
 
     # Write summary

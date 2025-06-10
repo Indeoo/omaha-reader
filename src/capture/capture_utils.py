@@ -7,7 +7,7 @@ from PIL import ImageGrab
 from src.capture.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
-def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp: str = None) -> Tuple[
+def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[
     List[Dict[str, Any]], List[Dict[str, Any]], str]:
     """
     Capture windows with configurable logging
@@ -15,15 +15,10 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp
     Args:
         log_mode: Logging mode - "none", "console", or "file"
         log_file_path: Custom path for log file. If None, uses timestamp-based name
-        timestamp: Custom timestamp string. If None, generates current timestamp
 
     Returns:
         Tuple of (captured_images, windows, timestamp_used)
     """
-
-    # Generate timestamp if not provided
-    if timestamp is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def log_message(message: str):
         """Helper function to log messages based on the mode"""
@@ -39,7 +34,7 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp
     log_file = None
     if log_mode == "file":
         if log_file_path is None:
-            log_file_path = f"capture_log_{timestamp}.txt"
+            log_file_path = f"capture_log_{timestamp_folder}.txt"
 
         try:
             log_file = open(log_file_path, 'w', encoding='utf-8')
@@ -110,7 +105,7 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp
             else:
                 log_message(f"  ✗ Failed to capture")
 
-        return captured_images, windows, timestamp
+        return captured_images, windows, timestamp_folder
 
     finally:
         # Close log file if it was opened
@@ -119,24 +114,19 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp
 
 
 def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, Any]],
-                 timestamp: str = None, log_mode: str = "none", log_file_path: str = None) -> str:
+                 timestamp_folder: str = None, log_mode: str = "none", log_file_path: str = None) -> str:
     """
     Save captured windows with configurable logging
 
     Args:
         captured_images: List of captured image dictionaries
         windows: List of window information dictionaries
-        timestamp: Custom timestamp string. If None, generates current timestamp
         log_mode: Logging mode - "none", "console", or "file"
         log_file_path: Custom path for log file. If None, uses timestamp-based name
 
     Returns:
         str: Path to the output folder where images were saved
     """
-
-    # Generate timestamp if not provided
-    if timestamp is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def log_message(message: str):
         """Helper function to log messages based on the mode"""
@@ -152,7 +142,7 @@ def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, 
     log_file = None
     if log_mode == "file":
         if log_file_path is None:
-            log_file_path = f"save_log_{timestamp}.txt"
+            log_file_path = f"save_log_{timestamp_folder}.txt"
 
         try:
             log_file = open(log_file_path, 'w', encoding='utf-8')
@@ -168,18 +158,14 @@ def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, 
         log_message(f"\nSaving {len(captured_images)} captured images...")
         successes = 0
 
-        # Create timestamped output folder using provided timestamp
-        working_dir = os.getcwd()
-        output_folder = os.path.join(working_dir, f"Dropbox/data_screenshots/_{timestamp}")
-        os.makedirs(output_folder, exist_ok=True)
-        log_message(f"Screenshots will be saved to: {output_folder}")
+        log_message(f"Screenshots will be saved to: {timestamp_folder}")
 
         # Write the window list to windows.txt
-        write_windows_list(windows, output_folder)
+        write_windows_list(windows, timestamp_folder)
 
         for i, captured_item in enumerate(captured_images, 1):
             try:
-                filepath = os.path.join(output_folder, captured_item['filename'])
+                filepath = os.path.join(timestamp_folder, captured_item['filename'])
                 captured_item['image'].save(filepath)
                 log_message(f"  ✓ Saved {i}/{len(captured_images)}: {captured_item['filename']}")
                 successes += 1
@@ -191,11 +177,8 @@ def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, 
         log_message(f"Total windows found: {len(windows)}")
         log_message(f"Images captured in memory: {len(captured_images)}")
         log_message(f"Successfully saved to disk: {successes}")
-        log_message(f"Screenshots saved to: {output_folder}")
+        log_message(f"Screenshots saved to: {timestamp_folder}")
         log_message("Screenshot process completed.")
-
-        # Return the actual output folder path
-        return output_folder
 
     finally:
         # Close log file if it was opened
@@ -203,30 +186,24 @@ def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, 
             log_file.close()
 
 
-def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp: str = None) -> Tuple[
-    str, List[Dict[str, Any]], List[Dict[str, Any]]]:
+def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Convenience function that captures and saves windows in one call with consistent timestamp
 
     Args:
         log_mode: Logging mode - "none", "console", or "file"
         log_file_path: Custom path for log file. If None, uses timestamp-based name
-        timestamp: Custom timestamp string. If None, generates current timestamp
 
     Returns:
         Tuple of (output_folder_path, captured_images, windows)
     """
 
-    # Generate timestamp if not provided
-    if timestamp is None:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
     # Capture windows with the timestamp
     captured_images, windows, used_timestamp = capture_windows(log_mode=log_mode, log_file_path=log_file_path,
-                                                               timestamp=timestamp)
+                                                               timestamp_folder=timestamp_folder)
 
     # Save windows with the same timestamp
-    output_folder = save_windows(captured_images, windows, timestamp=used_timestamp, log_mode=log_mode,
+    save_windows(captured_images, windows, timestamp_folder=timestamp_folder, log_mode=log_mode,
                                  log_file_path=log_file_path)
 
-    return output_folder, captured_images, windows
+    return captured_images, windows

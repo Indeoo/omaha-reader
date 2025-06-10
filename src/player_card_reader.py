@@ -7,7 +7,6 @@ import multiprocessing
 from src.card_reader import CardReader
 from src.readed_card import ReadedCard
 from src.utils.benchmark_utils import benchmark
-from src.utils.template_loader import load_templates
 
 
 class PlayerCardReader(CardReader):
@@ -19,7 +18,7 @@ class PlayerCardReader(CardReader):
     #DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
     DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-    def __init__(self, templates_dir: str = "resources/templates/player_cards/"):
+    def __init__(self, templates):
         """
         Template-first detector that scans the entire image directly with templates
         No preprocessing, no assumptions about colors or regions
@@ -29,7 +28,7 @@ class PlayerCardReader(CardReader):
         """
         self.search_region = self.DEFAULT_SEARCH_REGION
         self.min_card_size = self.DEFAULT_MIN_CARD_SIZE
-        self.templates = load_templates(templates_dir)
+        self.templates = templates
 
         # Template matching parameters
         self.overlap_threshold = self.DEFAULT_OVERLAP_THRESHOLD
