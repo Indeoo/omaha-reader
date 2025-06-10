@@ -136,7 +136,7 @@ def main(player_card_reader, capture_save=True):
             cards = analyze_image_for_cards(cv2_image, player_card_reader)
 
             result_image = player_card_reader.draw_detected_cards(cv2_image, cards)
-            save_opencv_image(result_image, timestamp_folder, f"{window_name}_result.png")
+            save_opencv_image(result_image, timestamp_folder, f"{i}_{window_name}_result.png")
 
             result = {
                 'window_name': window_name,
