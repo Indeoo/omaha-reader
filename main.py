@@ -12,11 +12,9 @@ import numpy as np
 from typing import List
 
 from src.capture.capture_utils import capture_windows, capture_and_save_windows
-#from src.capture.windows_utils import extract_window_name
 from src.cv.opencv_utils import pil_to_cv2, save_opencv_image
 from src.deck.deck_utils import format_cards
 from src.player_card_reader import PlayerCardReader
-from src.readed_card import ReadedCard
 from src.utils.template_loader import load_templates
 
 # Try to enable DPI awareness
@@ -24,26 +22,6 @@ try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except:
     ctypes.windll.user32.SetProcessDPIAware()
-
-# def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardReader) -> List[ReadedCard]:
-#     """
-#     Analyze image and return just the card names found
-#
-#     Args:
-#         image: OpenCV image (BGR format)
-#         player_card_reader: PlayerCardReader instance
-#
-#     Returns:
-#         List of card names (e.g., ['9H', '8D', '5S', '4C'])
-#     """
-#     try:
-#         readed_cards = player_card_reader.read(image)
-#         # Sort cards by x-position (left to right) and extract template names
-#         sorted_cards = sorted(readed_cards, key=lambda card: card.center[0])
-#         return [card for card in sorted_cards]
-#     except Exception as e:
-#         print(f"    ❌ Error analyzing image: {str(e)}")
-#         return []
 
 
 def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
