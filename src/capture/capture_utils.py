@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple
 
 from PIL import ImageGrab
 
@@ -113,8 +113,12 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp
             log_file.close()
 
 
-def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, Any]],
-                 timestamp_folder: str = None, log_mode: str = "none", log_file_path: str = None) -> str:
+def _save_windows(
+        captured_images: List[Dict[str, Any]],
+        windows: List[Dict[str, Any]],
+        timestamp_folder: str = None,
+        log_mode: str = "none", log_file_path: str = None
+):
     """
     Save captured windows with configurable logging
 
@@ -186,7 +190,8 @@ def save_windows(captured_images: List[Dict[str, Any]], windows: List[Dict[str, 
             log_file.close()
 
 
-def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[
+    List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Convenience function that captures and saves windows in one call with consistent timestamp
 
@@ -203,7 +208,7 @@ def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, 
                                                                timestamp_folder=timestamp_folder)
 
     # Save windows with the same timestamp
-    save_windows(captured_images, windows, timestamp_folder=timestamp_folder, log_mode=log_mode,
-                                 log_file_path=log_file_path)
+    _save_windows(captured_images, windows, timestamp_folder=timestamp_folder, log_mode=log_mode,
+                  log_file_path=log_file_path)
 
     return captured_images, windows
