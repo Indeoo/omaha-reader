@@ -87,7 +87,7 @@ def detect_cards(templates, capture_save=True):
     print("=" * 60)
 
     player_card_reader = PlayerCardReader(templates)
-    session_timestamp = datetime.now().strftime("%Y_%m_%d_%H:%M:%S")
+    session_timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
 
     # Create timestamped output folder using provided timestamp
     working_dir = os.getcwd()
