@@ -25,26 +25,25 @@ try:
 except:
     ctypes.windll.user32.SetProcessDPIAware()
 
-
-def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardReader) -> List[ReadedCard]:
-    """
-    Analyze image and return just the card names found
-
-    Args:
-        image: OpenCV image (BGR format)
-        player_card_reader: PlayerCardReader instance
-
-    Returns:
-        List of card names (e.g., ['9H', '8D', '5S', '4C'])
-    """
-    try:
-        readed_cards = player_card_reader.read(image)
-        # Sort cards by x-position (left to right) and extract template names
-        sorted_cards = sorted(readed_cards, key=lambda card: card.center[0])
-        return [card for card in sorted_cards]
-    except Exception as e:
-        print(f"    ❌ Error analyzing image: {str(e)}")
-        return []
+# def analyze_image_for_cards(image: np.ndarray, player_card_reader: PlayerCardReader) -> List[ReadedCard]:
+#     """
+#     Analyze image and return just the card names found
+#
+#     Args:
+#         image: OpenCV image (BGR format)
+#         player_card_reader: PlayerCardReader instance
+#
+#     Returns:
+#         List of card names (e.g., ['9H', '8D', '5S', '4C'])
+#     """
+#     try:
+#         readed_cards = player_card_reader.read(image)
+#         # Sort cards by x-position (left to right) and extract template names
+#         sorted_cards = sorted(readed_cards, key=lambda card: card.center[0])
+#         return [card for card in sorted_cards]
+#     except Exception as e:
+#         print(f"    ❌ Error analyzing image: {str(e)}")
+#         return []
 
 
 def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
@@ -136,7 +135,9 @@ def detect_cards(templates, capture_save=True):
             cv2_image = pil_to_cv2(pil_image)
 
             # Analyze with PlayerCardReader
-            cards = analyze_image_for_cards(cv2_image, player_card_reader)
+            cards = player_card_reader.read(cv2_image)
+
+            #cards = analyze_image_for_cards(cv2_image, player_card_reader)
 
             result_image = player_card_reader.draw_detected_cards(cv2_image, cards)
             save_opencv_image(result_image, timestamp_folder, result_image_name)

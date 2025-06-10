@@ -74,7 +74,8 @@ class PlayerCardReader(CardReader):
             )
             readed_cards.append(readed_card)
 
-        return readed_cards
+        sorted_cards = sorted(readed_cards, key=lambda card: card.center[0])
+        return [card for card in sorted_cards]
 
     def _find_all_template_matches(self, image: np.ndarray) -> List[Dict]:
         """Find matches for all templates in the image using parallel execution"""
@@ -96,6 +97,7 @@ class PlayerCardReader(CardReader):
                 all_detections.extend(detections)
 
         return all_detections
+
 
     def _find_single_template_matches(self, image: np.ndarray, template: np.ndarray,
                                       template_name: str) -> List[Dict]:
