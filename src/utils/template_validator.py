@@ -60,8 +60,13 @@ def extract_card(image: np.ndarray, card_info: Dict, force_vertical: bool = True
     warped = cv2.warpPerspective(image, M, (target_width, target_height))
 
     return warped
+
+
 def match_card_to_templates(card_region, templates, threshold=0.6):
-    """Match extracted card region to templates"""
+    """
+    Match extracted card region to templates - always finds the BEST match
+    instead of the first match above threshold
+    """
     if not templates:
         return None, 0.0, False
 
@@ -70,6 +75,7 @@ def match_card_to_templates(card_region, templates, threshold=0.6):
 
     best_match = None
     best_score = 0.0
+    all_scores = []  # Track all scores for analysis
 
     for template_name, template in templates.items():
         # Resize template to match card
@@ -80,11 +86,32 @@ def match_card_to_templates(card_region, templates, threshold=0.6):
         result = cv2.matchTemplate(card_gray, template_resized, cv2.TM_CCOEFF_NORMED)
         _, max_val, _, _ = cv2.minMaxLoc(result)
 
+        # Store this score
+        all_scores.append((template_name, max_val))
+
+        # Update best match regardless of threshold
         if max_val > best_score:
             best_score = max_val
             best_match = template_name
 
-    is_valid = best_score >= threshold
+    # Sort all scores to find second best for confidence analysis
+    all_scores.sort(key=lambda x: x[1], reverse=True)
+    second_best_score = all_scores[1][1] if len(all_scores) > 1 else 0.0
+
+    # Enhanced validation: consider confidence gap
+    confidence_gap = best_score - second_best_score
+
+    # Original threshold check + confidence gap analysis
+    if best_score >= threshold:
+        if confidence_gap >= 0.1:  # High confidence - big gap between best and second
+            is_valid = True
+        elif confidence_gap >= 0.05:  # Medium confidence - require slightly higher score
+            is_valid = best_score >= threshold + 0.05
+        else:  # Low confidence - very close scores, require higher threshold
+            is_valid = best_score >= threshold + 0.15
+    else:
+        is_valid = False
+
     return best_match, best_score, is_valid
 
 
