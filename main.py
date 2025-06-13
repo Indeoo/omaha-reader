@@ -11,7 +11,7 @@ from datetime import datetime
 import numpy as np
 from typing import List
 
-from src.capture.capture_utils import capture_windows, capture_and_save_windows
+from src.capture.capture_utils import capture_and_save_windows
 from src.cv.opencv_utils import pil_to_cv2, save_opencv_image
 from src.deck.deck_utils import format_cards
 from src.player_card_reader import PlayerCardReader
@@ -80,8 +80,7 @@ def detect_cards(templates, capture_save=True):
             print(f"✅ Captured and saved {len(captured_images)} images")
         else:
             # Just capture without saving
-            captured_images, windows, _ = capture_windows(timestamp_folder=session_timestamp)
-            timestamp_folder = None
+            captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
             print(f"✅ Captured {len(captured_images)} images")
 
         if not captured_images:

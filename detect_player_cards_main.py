@@ -11,7 +11,6 @@ from typing import List, Dict, Any
 from datetime import datetime
 
 from src.player_card_reader import PlayerCardReader
-from src.readed_card import ReadedCard
 from src.utils.template_loader import load_templates
 
 
