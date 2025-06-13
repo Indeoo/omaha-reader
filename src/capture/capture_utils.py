@@ -7,8 +7,8 @@ from PIL import ImageGrab
 from src.capture.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
-def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[
-    List[Dict[str, Any]], List[Dict[str, Any]], str]:
+def _capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[
+    List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Capture windows with configurable logging
 
@@ -78,7 +78,10 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp
 
             log_message(f"Capturing window {i}/{len(windows)}: {title} ({process})")
 
-            if "Lobby" not in title and "TableCover" not in title and "Pot Limit Omaha" not in title:
+            # if "Lobby" not in title and "TableCover" not in title and "Pot Limit Omaha" not in title:
+            #     continue
+
+            if "Lobby" not in title and "Pot Limit Omaha" not in title:
                 continue
 
             # Create filename
@@ -107,7 +110,7 @@ def capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp
             else:
                 log_message(f"  ✗ Failed to capture")
 
-        return captured_images, windows, timestamp_folder
+        return captured_images, windows
 
     finally:
         # Close log file if it was opened
@@ -192,7 +195,8 @@ def _save_windows(
             log_file.close()
 
 
-def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[
+def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None,
+                             save_windows=True) -> Tuple[
     List[Dict[str, Any]], List[Dict[str, Any]]]:
     """
     Convenience function that captures and saves windows in one call with consistent timestamp
@@ -206,11 +210,16 @@ def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, 
     """
 
     # Capture windows with the timestamp
-    captured_images, windows, used_timestamp = capture_windows(log_mode=log_mode, log_file_path=log_file_path,
-                                                               timestamp_folder=timestamp_folder)
+    captured_images, windows = _capture_windows(log_mode=log_mode, log_file_path=log_file_path,
+                                                timestamp_folder=timestamp_folder)
 
     # Save windows with the same timestamp
-    _save_windows(captured_images, windows, timestamp_folder=timestamp_folder, log_mode=log_mode,
-                  log_file_path=log_file_path)
+    if save_windows:
+        _save_windows(
+            captured_images, windows,
+            timestamp_folder=timestamp_folder,
+            log_mode=log_mode,
+            log_file_path=log_file_path
+        )
 
     return captured_images, windows
