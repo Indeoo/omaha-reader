@@ -49,7 +49,7 @@ def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
 
             f.write("\n" + "=" * 60 + "\n")
 
-        print(f"📄 Detection results written to: {detection_file_path}")
+        #print(f"📄 Detection results written to: {detection_file_path}")
 
     except Exception as e:
         print(f"❌ Error writing detection results: {str(e)}")
@@ -90,7 +90,7 @@ def detect_cards(templates, capture_save=True):
         print(f"❌ Error capturing windows: {str(e)}")
         return
 
-    print(f"\n🔍 Analyzing {len(captured_images)} captured images...")
+    #print(f"\n🔍 Analyzing {len(captured_images)} captured images...")
 
     # Analyze each captured image
     results = []
@@ -104,7 +104,7 @@ def detect_cards(templates, capture_save=True):
 
         #window_name = extract_window_name(filename)
 
-        print(f"🔍 Analyzing {i}/{len(captured_images)}: {window_name}")
+        #print(f"🔍 Analyzing {i}/{len(captured_images)}: {window_name}")
 
         try:
             # Convert PIL image to OpenCV format
@@ -143,7 +143,7 @@ def detect_cards(templates, capture_save=True):
             results.append(result)
 
     # Also print results to console for immediate viewing
-    print("\n🃏 DETECTED HANDS:")
+    #print("\n🃏 DETECTED HANDS:")
     print("-" * 30)
 
     # First, form the data - collect all hands with cards
