@@ -8,7 +8,6 @@ import os
 import time
 from datetime import datetime
 
-import numpy as np
 from typing import List
 
 from src.capture.capture_utils import capture_and_save_windows
