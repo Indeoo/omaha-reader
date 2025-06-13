@@ -38,7 +38,7 @@ class PlayerCardReader(CardReader):
         # Parallel execution parameter
         self.max_workers = min(4, multiprocessing.cpu_count())
 
-    @benchmark
+    #@benchmark
     def read(self, image: np.ndarray) -> List[ReadedCard]:
         """
         Detect hand cards by directly scanning the entire image with each template
