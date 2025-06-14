@@ -59,7 +59,7 @@ def detect_cards(templates, capture_save=True):
     """
     Main function that captures windows and analyzes them for player cards
     """
-    print("🚀 Starting Simplified Window Capture & Card Detection")
+    print("🚀 Starting Card Detection")
     print("=" * 60)
 
     player_card_reader = PlayerCardReader(templates)
