@@ -47,7 +47,8 @@ def _capture_windows(log_mode: str = "none", log_file_path: str = None, timestam
 
     try:
         # Get all window info
-        windows = get_window_info()
+        windows = [w for w in get_window_info() if "Pot Limit Omaha" in w['title']]
+        
         log_message(f"Found {len(windows)} windows to capture")
 
         # List to store all captured images with their metadata
@@ -81,8 +82,8 @@ def _capture_windows(log_mode: str = "none", log_file_path: str = None, timestam
             # if "Lobby" not in title and "TableCover" not in title and "Pot Limit Omaha" not in title:
             #     continue
 
-            if "Pot Limit Omaha" not in title:
-                continue
+            # if "Pot Limit Omaha" not in title:
+            #     continue
 
             # Create filename
             safe_title = "".join([c if c.isalnum() else "_" for c in title])[:50]
