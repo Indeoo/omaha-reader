@@ -81,7 +81,7 @@ def _capture_windows(log_mode: str = "none", log_file_path: str = None, timestam
             # if "Lobby" not in title and "TableCover" not in title and "Pot Limit Omaha" not in title:
             #     continue
 
-            if "Lobby" not in title and "Pot Limit Omaha" not in title:
+            if "Pot Limit Omaha" not in title:
                 continue
 
             # Create filename
