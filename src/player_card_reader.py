@@ -14,7 +14,7 @@ class PlayerCardReader(CardReader):
     #                       (left, top, right, bottom)
     DEFAULT_MIN_CARD_SIZE = 20
     DEFAULT_OVERLAP_THRESHOLD = 0.3
-    DEFAULT_MATCH_THRESHOLD = 0.6
+    DEFAULT_MATCH_THRESHOLD = 0.85
     #DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     DEFAULT_SCALE_FACTORS = [1.0]
 
