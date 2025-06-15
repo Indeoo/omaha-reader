@@ -180,27 +180,3 @@ def _display_unified_results(
 
     except Exception as e:
         print(f"   ⚠️  Visualization not available: {e}")
-
-
-# Convenience functions for backward compatibility
-def process_table_results(readed_cards: List[ReadedCard], image=None, detector=None, debug=True):
-    """Backward compatible function for table cards"""
-    process_results(
-        readed_cards=readed_cards,
-        original_image=image,
-        detector=detector,
-        debug=debug,
-        card_type="table"
-    )
-
-
-def process_player_results(readed_cards: List[ReadedCard], debug=True,
-                           original_image=None, result_image=None):
-    """Backward compatible function for player cards"""
-    process_results(
-        readed_cards=readed_cards,
-        original_image=original_image,
-        result_image=result_image,
-        debug=debug,
-        card_type="player"
-    )

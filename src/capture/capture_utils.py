@@ -206,22 +206,13 @@ def _save_windows(
 
 
 def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None,
-                             save_windows=True) -> Tuple[
-    List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """
-    Convenience function that captures and saves windows in one call with consistent timestamp
-
-    Args:
-        log_mode: Logging mode - "none", "console", or "file"
-        log_file_path: Custom path for log file. If None, uses timestamp-based name
-
-    Returns:
-        Tuple of (output_folder_path, captured_images, windows)
-    """
-
+                             save_windows=True) -> List[Dict[str, Any]]:
     # Capture windows with the timestamp
     captured_images, windows = _capture_windows(log_mode=log_mode, log_file_path=log_file_path,
                                                 timestamp_folder=timestamp_folder)
+
+    if not captured_images:
+        raise Exception("❌ No images captured. Exiting.")
 
     # Save windows with the same timestamp
     if save_windows:
@@ -232,4 +223,9 @@ def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, 
             log_file_path=log_file_path
         )
 
-    return captured_images, windows
+    if save_windows:
+        print(f"✅ Captured and saved {len(captured_images)} images")
+    else:
+        print(f"✅ Captured {len(captured_images)} images")
+
+    return captured_images
