@@ -6,12 +6,11 @@ all images, writing results to resources/player_results/{timestamp}/{image_name}
 """
 
 import os
-import cv2
-from typing import List, Dict, Any
+from typing import Dict, Any
 from datetime import datetime
 
 from src.player_card_reader import OmahaCardReader
-from src.utils.template_loader import load_templates
+from src.utils.opencv_utils import load_templates, read_cv2_image
 
 
 def process_single_image(image_path: str, image_name: str, player_card_reader: OmahaCardReader) -> Dict[str, Any]:
@@ -35,7 +34,7 @@ def process_single_image(image_path: str, image_name: str, player_card_reader: O
 
     try:
         # Load image
-        image = cv2.imread(image_path)
+        image = read_cv2_image(image_path)
         if image is None:
             result['error'] = f"Could not load image: {image_name}"
             return result

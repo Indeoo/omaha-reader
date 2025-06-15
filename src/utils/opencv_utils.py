@@ -1,3 +1,4 @@
+import glob
 import os
 
 import cv2
@@ -34,7 +35,29 @@ def save_opencv_image(image, folder_path, filename):
     cv2.imwrite(filepath, image)
 
 
-def matchCV2Template(scaled_h, scaled_w, search_image, template):
+def match_cv2_template(scaled_h, scaled_w, search_image, template):
     scaled_template = cv2.resize(template, (scaled_w, scaled_h))
     result = cv2.matchTemplate(search_image, scaled_template, cv2.TM_CCORR_NORMED)
     return result
+
+
+def load_templates(template_dir):
+    """Load all PNG templates as grayscale."""
+    print(f"📁 Loading templates from: {template_dir}")
+
+    templates = {}
+    for tpl_path in glob.glob(os.path.join(template_dir, '*.png')):
+        name = os.path.basename(tpl_path).split('.')[0]  # e.g. "AS", "10H"
+        tpl  = read_cv2_image(tpl_path)
+        templates[name] = tpl
+
+    if not templates:
+        raise Exception("❌ No player templates loaded! Please check the templates directory.")
+    else:
+        print(f"✅ Loaded {len(templates)} templates: {list(templates.keys())}")
+
+    return templates
+
+
+def read_cv2_image(tpl_path):
+    return cv2.imread(tpl_path, cv2.IMREAD_COLOR)
