@@ -13,7 +13,7 @@ from typing import List
 from src.capture.capture_utils import capture_and_save_windows
 from src.cv.opencv_utils import pil_to_cv2, save_opencv_image
 from src.deck.deck_utils import format_cards
-from src.player_card_reader import PlayerCardReader
+from src.player_card_reader import OmahaCardReader
 from src.utils.template_loader import load_templates
 
 # Try to enable DPI awareness
@@ -174,8 +174,8 @@ def print_detection_results(detected_hands: List[dict], detected_table: List[dic
         print(f"❌ Error printing detection results: {str(e)}")
 
 
-def detect_cards(timestamp_folder, captured_images, templates, search_region = PlayerCardReader.DEFAULT_SEARCH_REGION):
-    player_card_reader = PlayerCardReader(templates, search_region)
+def detect_cards(timestamp_folder, captured_images, templates, search_region = OmahaCardReader.DEFAULT_SEARCH_REGION):
+    player_card_reader = OmahaCardReader(templates, search_region)
 
     results = []
     total_hands = 0
