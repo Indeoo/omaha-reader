@@ -139,7 +139,6 @@ def detect_cards(timestamp_folder, captured_images, templates):
     if hands_shown == 0:
         print("No hands detected in any window.")
 
-
     return detected_hands
     # # Write detection results to file if we have a timestamp folder
     # if timestamp_folder and os.path.exists(timestamp_folder):
@@ -170,19 +169,21 @@ def capture_images(timestamp_folder, capture_save=True):
 
 
 if __name__ == "__main__":
-    print("Player card reader")
+    print("Omaha Card Reader")
     print("------------------------------")
 
-    wait_time = 20
+    WAIT_TIME = 20
 
     # Initialize PlayerCardReader
-    print("🎯 Initializing PlayerCardReader...")
+    print("🎯 Initializing Card Reader...")
     try:
         player_templates = load_templates("resources/templates/player_cards/")
         table_templates = load_templates("resources/templates/table_cards/")
 
         if not player_templates:
-            raise Exception("❌ No templates loaded! Please check the templates directory.")
+            raise Exception("❌ No player templates loaded! Please check the templates directory.")
+        if not table_templates:
+            raise Exception("❌ No table templates loaded! Please check the templates directory.")
 
         print(f"✅ Loaded {len(player_templates)} player card templates")
         print(f"✅ Loaded {len(table_templates)} table card templates")
@@ -197,17 +198,15 @@ if __name__ == "__main__":
                 captured_images = capture_images(timestamp_folder)
 
                 detected_hands = detect_cards(timestamp_folder, captured_images, player_templates)
-                detected_table = detect_cards(timestamp_folder, captured_images, table_templates)
-
-                # Write detection results to file if we have a timestamp folder
                 if timestamp_folder and os.path.exists(timestamp_folder):
                     write_detection_results(detected_hands, timestamp_folder)
 
+                detected_table = detect_cards(timestamp_folder, captured_images, table_templates)
                 if timestamp_folder and os.path.exists(timestamp_folder):
                     write_detection_results(detected_table, timestamp_folder)
 
-                print(f"Sleep for {wait_time} second...")
-                time.sleep(wait_time)
+                print(f"Sleep for {WAIT_TIME} second...")
+                time.sleep(WAIT_TIME)
         except KeyboardInterrupt:
             print("\n🛑 Stopping capture loop...")
         except Exception as e:
