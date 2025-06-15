@@ -17,10 +17,10 @@ from src.player_card_reader import OmahaCardReader
 from src.utils.template_loader import load_templates
 
 # Try to enable DPI awareness
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)
-except:
-    ctypes.windll.user32.SetProcessDPIAware()
+# try:
+#     ctypes.windll.shcore.SetProcessDpiAwareness(1)
+# except:
+#     ctypes.windll.user32.SetProcessDPIAware()
 
 
 def write_detection_results(detected_hands: List[dict], timestamp_folder: str):

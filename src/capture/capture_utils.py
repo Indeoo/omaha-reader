@@ -1,10 +1,18 @@
 import os
 from datetime import datetime
 from typing import List, Dict, Any, Tuple
+import ctypes
 
 from PIL import ImageGrab
 
 from src.capture.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
+
+
+# Try to enable DPI awareness
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except:
+    ctypes.windll.user32.SetProcessDPIAware()
 
 
 def _capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[
