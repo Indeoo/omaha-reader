@@ -55,7 +55,7 @@ def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
         print(f"❌ Error writing detection results: {str(e)}")
 
 
-def detect_cards(templates, capture_save=True):
+def detect_cards(timestamp_folder, captured_images, templates):
     """
     Main function that captures windows and analyzes them for player cards
     """
@@ -63,32 +63,6 @@ def detect_cards(templates, capture_save=True):
     print("=" * 60)
 
     player_card_reader = PlayerCardReader(templates)
-    session_timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
-
-    # Create timestamped output folder using provided timestamp
-    working_dir = os.getcwd()
-    timestamp_folder = os.path.join(working_dir, f"Dropbox/data_screenshots/{session_timestamp}")
-    os.makedirs(timestamp_folder, exist_ok=True)
-
-    # Capture windows
-    print("\n📸 Capturing windows...")
-    try:
-        if capture_save:
-            # Use convenience function that handles both capture and save with consistent timestamp
-            captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
-            print(f"✅ Captured and saved {len(captured_images)} images")
-        else:
-            # Just capture without saving
-            captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
-            print(f"✅ Captured {len(captured_images)} images")
-
-        if not captured_images:
-            print("❌ No images captured. Exiting.")
-            return
-
-    except Exception as e:
-        print(f"❌ Error capturing windows: {str(e)}")
-        return
 
     #print(f"\n🔍 Analyzing {len(captured_images)} captured images...")
 
@@ -101,7 +75,6 @@ def detect_cards(templates, capture_save=True):
         pil_image = captured_item['image']
         window_name = captured_item['window_name']
         result_image_name =  filename.replace('.png', '_result.png')
-
         #window_name = extract_window_name(filename)
 
         #print(f"🔍 Analyzing {i}/{len(captured_images)}: {window_name}")
@@ -167,11 +140,33 @@ def detect_cards(templates, capture_save=True):
         print("No hands detected in any window.")
 
 
-    # Write detection results to file if we have a timestamp folder
-    if timestamp_folder and os.path.exists(timestamp_folder):
-        write_detection_results(detected_hands, timestamp_folder)
+    return detected_hands
+    # # Write detection results to file if we have a timestamp folder
+    # if timestamp_folder and os.path.exists(timestamp_folder):
+    #     write_detection_results(detected_hands, timestamp_folder)
+    #
+    # print("=" * 60)
 
-    print("=" * 60)
+
+def capture_images(timestamp_folder, capture_save=True):
+    # Capture windows
+    print("\n📸 Capturing windows...")
+    try:
+        if capture_save:
+            # Use convenience function that handles both capture and save with consistent timestamp
+            captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
+            print(f"✅ Captured and saved {len(captured_images)} images")
+        else:
+            # Just capture without saving
+            captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
+            print(f"✅ Captured {len(captured_images)} images")
+
+        if not captured_images:
+            raise Exception("❌ No images captured. Exiting.")
+
+    except Exception as e:
+        raise Exception(f"❌ Error capturing windows: {str(e)}")
+    return captured_images
 
 
 if __name__ == "__main__":
@@ -183,17 +178,34 @@ if __name__ == "__main__":
     # Initialize PlayerCardReader
     print("🎯 Initializing PlayerCardReader...")
     try:
-        templates_dir = "resources/templates/player_cards/"
-        templates = load_templates(templates_dir)
+        player_templates = load_templates("resources/templates/player_cards/")
+        table_templates = load_templates("resources/templates/table_cards/")
 
-        if not templates:
+        if not player_templates:
             raise Exception("❌ No templates loaded! Please check the templates directory.")
 
-        print(f"✅ Loaded {len(templates)} templates")
+        print(f"✅ Loaded {len(player_templates)} player card templates")
+        print(f"✅ Loaded {len(table_templates)} table card templates")
 
         try:
             while True:
-                detect_cards(templates)
+                session_timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
+                # Create timestamped output folder using provided timestamp
+                working_dir = os.getcwd()
+                timestamp_folder = os.path.join(working_dir, f"Dropbox/data_screenshots/{session_timestamp}")
+                os.makedirs(timestamp_folder, exist_ok=True)
+                captured_images = capture_images(timestamp_folder)
+
+                detected_hands = detect_cards(timestamp_folder, captured_images, player_templates)
+                detected_table = detect_cards(timestamp_folder, captured_images, table_templates)
+
+                # Write detection results to file if we have a timestamp folder
+                if timestamp_folder and os.path.exists(timestamp_folder):
+                    write_detection_results(detected_hands, timestamp_folder)
+
+                if timestamp_folder and os.path.exists(timestamp_folder):
+                    write_detection_results(detected_table, timestamp_folder)
+
                 print(f"Sleep for {wait_time} second...")
                 time.sleep(wait_time)
         except KeyboardInterrupt:
