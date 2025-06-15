@@ -4,8 +4,8 @@ from typing import List, Tuple, Dict
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 
-from src.card_reader import CardReader
-from src.readed_card import ReadedCard
+from src.domain.card_reader import CardReader
+from src.domain.readed_card import ReadedCard
 from src.utils.benchmark_utils import benchmark
 
 

@@ -2,7 +2,7 @@ from typing import List
 
 import numpy as np
 
-from src.readed_card import ReadedCard
+from src.domain.readed_card import ReadedCard
 
 
 class CardReader:

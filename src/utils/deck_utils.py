@@ -1,5 +1,5 @@
 from typing import List
-from src.readed_card import ReadedCard
+from src.domain.readed_card import ReadedCard
 
 
 def format_cards(cards: List[ReadedCard], show_probabilities: bool = True) -> str:
