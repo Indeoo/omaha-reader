@@ -149,8 +149,8 @@ def detect_cards(timestamp_folder, captured_images, templates, search_region = P
     """
     Main function that captures windows and analyzes them for player cards
     """
-    print("🚀 Starting Card Detection")
-    print("=" * 60)
+    # print("🚀 Starting Card Detection")
+    # print("=" * 60)
 
     player_card_reader = PlayerCardReader(templates, search_region)
 
