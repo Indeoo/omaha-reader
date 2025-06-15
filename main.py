@@ -198,25 +198,6 @@ def detect_cards(timestamp_folder, captured_images, player_templates, table_temp
     return detected_hands
 
 
-def capture_images(timestamp_folder, capture_save=True):
-    # Capture windows
-    print("\n📸 Capturing windows...")
-    try:
-        captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
-
-        if not captured_images:
-            raise Exception("❌ No images captured. Exiting.")
-
-        if capture_save:
-            print(f"✅ Captured and saved {len(captured_images)} images")
-        else:
-            print(f"✅ Captured {len(captured_images)} images")
-
-    except Exception as e:
-        raise Exception(f"❌ Error capturing windows: {str(e)}")
-    return captured_images
-
-
 if __name__ == "__main__":
     print("Omaha Card Reader")
     print("------------------------------")
@@ -236,7 +217,7 @@ if __name__ == "__main__":
                 working_dir = os.getcwd()
                 timestamp_folder = os.path.join(working_dir, f"Dropbox/data_screenshots/{session_timestamp}")
                 os.makedirs(timestamp_folder, exist_ok=True)
-                captured_images = capture_images(timestamp_folder)
+                captured_images = capture_and_save_windows(timestamp_folder=timestamp_folder, save_windows=True)
 
                 # Single unified call to detect_cards with both template sets
                 detected_hands = detect_cards(timestamp_folder, captured_images, player_templates, table_templates)
