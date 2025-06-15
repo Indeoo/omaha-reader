@@ -181,12 +181,11 @@ if __name__ == "__main__":
     try:
         player_templates = load_templates("resources/templates/player_cards/")
         table_templates = load_templates("resources/templates/table_cards/")
+        working_dir = os.getcwd()
 
         try:
             while True:
                 session_timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
-                # Create timestamped output folder using provided timestamp
-                working_dir = os.getcwd()
                 timestamp_folder = os.path.join(working_dir, f"Dropbox/data_screenshots/{session_timestamp}")
                 os.makedirs(timestamp_folder, exist_ok=True)
                 captured_images = capture_and_save_windows(timestamp_folder=timestamp_folder, save_windows=True)
