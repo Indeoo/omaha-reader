@@ -175,17 +175,8 @@ def print_detection_results(detected_hands: List[dict], detected_table: List[dic
 
 
 def detect_cards(timestamp_folder, captured_images, templates, search_region = PlayerCardReader.DEFAULT_SEARCH_REGION):
-    """
-    Main function that captures windows and analyzes them for player cards
-    """
-    # print("🚀 Starting Card Detection")
-    # print("=" * 60)
-
     player_card_reader = PlayerCardReader(templates, search_region)
 
-    #print(f"\n🔍 Analyzing {len(captured_images)} captured images...")
-
-    # Analyze each captured image
     results = []
     total_hands = 0
 
@@ -194,18 +185,9 @@ def detect_cards(timestamp_folder, captured_images, templates, search_region = P
         pil_image = captured_item['image']
         window_name = captured_item['window_name']
         result_image_name =  filename.replace('.png', '_result.png')
-        #window_name = extract_window_name(filename)
-
-        #print(f"🔍 Analyzing {i}/{len(captured_images)}: {window_name}")
-
         try:
-            # Convert PIL image to OpenCV format
             cv2_image = pil_to_cv2(pil_image)
-
-            # Analyze with PlayerCardReader
             cards = player_card_reader.read(cv2_image)
-
-            #cards = analyze_image_for_cards(cv2_image, player_card_reader)
 
             result_image = player_card_reader.draw_detected_cards(cv2_image, cards)
             save_opencv_image(result_image, timestamp_folder, result_image_name)
@@ -213,17 +195,13 @@ def detect_cards(timestamp_folder, captured_images, templates, search_region = P
             result = {
                 'window_name': window_name,
                 'cards': cards,
-                'original_filename': filename
+                'original_filename': filename,
+                'original_image': cv2_image,
+                'result_image_name': result_image_name,
             }
             results.append(result)
-
-            # Print immediate result with Unicode symbols
             if cards:
-                #cards_unicode = format_cards(cards)
-                #print(f"    ✅ {window_name}: {cards_unicode}")
                 total_hands += 1
-            #else:
-                #print(f"    ⚪ {window_name}: No cards detected")
 
         except Exception as e:
             print(f"    ❌ Error processing {window_name}: {str(e)}")
@@ -233,10 +211,6 @@ def detect_cards(timestamp_folder, captured_images, templates, search_region = P
                 'original_filename': filename
             }
             results.append(result)
-
-    # Also print results to console for immediate viewing
-    #print("\n🃏 DETECTED HANDS:")
-    print("-" * 30)
 
     # First, form the data - collect all hands with cards
     detected_hands = []
@@ -249,21 +223,7 @@ def detect_cards(timestamp_folder, captured_images, templates, search_region = P
                 'cards_raw': result['cards']
             })
 
-    # Then, view the data in a separate loop
-    # hands_shown = 0
-    # for hand in detected_hands:
-    #     print(f"{hand['window_name']}: {hand['cards_unicode']}")
-    #     hands_shown += 1
-    #
-    # if hands_shown == 0:
-    #     print("No hands detected in any window.")
-
     return detected_hands
-    # # Write detection results to file if we have a timestamp folder
-    # if timestamp_folder and os.path.exists(timestamp_folder):
-    #     write_detection_results(detected_hands, timestamp_folder)
-    #
-    # print("=" * 60)
 
 
 def capture_images(timestamp_folder, capture_save=True):
