@@ -14,7 +14,7 @@ class OmahaCardReader(CardReader):
     #                       (left, top, right, bottom)
     DEFAULT_MIN_CARD_SIZE = 20
     DEFAULT_OVERLAP_THRESHOLD = 0.3
-    DEFAULT_MATCH_THRESHOLD = 0.85
+    DEFAULT_MATCH_THRESHOLD = 0.955
     #DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     DEFAULT_SCALE_FACTORS = [1.0]
 
@@ -158,7 +158,7 @@ class OmahaCardReader(CardReader):
             return []
 
         scaled_template = cv2.resize(template, (scaled_w, scaled_h))
-        result = cv2.matchTemplate(search_image, scaled_template, cv2.TM_CCOEFF_NORMED)
+        result = cv2.matchTemplate(search_image, scaled_template, cv2.TM_CCORR_NORMED)
 
         # Find all locations where match is above threshold
         locations = np.where(result >= self.match_threshold)
