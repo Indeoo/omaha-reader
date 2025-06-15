@@ -99,35 +99,27 @@ def print_detection_results(detected_hands: List[dict], detected_table: List[dic
         if not cards_string:
             return cards_string
 
-        # ANSI color codes
+        # ANSI color codes - using brighter colors for better visibility on Windows
         colors = {
-            'D': '\033[34m',  # Blue for Diamonds
-            'H': '\033[31m',  # Red for Hearts
-            'C': '\033[32m',  # Dark Green for Clubs
-            'S': '\033[30m',  # Black for Spades
+            'D': '\033[94m',  # Bright Blue for Diamonds
+            'H': '\033[91m',  # Bright Red for Hearts
+            'C': '\033[92m',  # Bright Green for Clubs
+            'S': '\033[90m',  # Bright Black (Dark Gray) for Spades
         }
         reset = '\033[0m'
 
-        result = ""
-        i = 0
-        while i < len(cards_string):
-            char = cards_string[i]
-            # Check if this character is a suit (last character of a card)
-            if char in colors and (i == len(cards_string) - 1 or not cards_string[i + 1].isalnum()):
-                # Find the start of this card (look backwards for the card value)
-                card_start = i
-                while card_start > 0 and cards_string[card_start - 1].isalnum():
-                    card_start -= 1
+        import re
+        # Find all card patterns (1-2 digits/letters followed by a suit)
+        card_pattern = r'([A-K0-9]{1,2}[DHCS])'
 
-                # Add the card with color
-                card = cards_string[card_start:i + 1]
-                result += colors[char] + card + reset
-            elif not any(cards_string[j:j + 1] in colors for j in range(i, min(i + 3, len(cards_string)))):
-                # Only add character if it's not part of a card that will be colored later
-                result += char
-            i += 1
+        def replace_card(match):
+            card = match.group(1)
+            suit = card[-1]  # Last character is the suit
+            if suit in colors:
+                return colors[suit] + card + reset
+            return card
 
-        return result
+        return re.sub(card_pattern, replace_card, cards_string)
 
     try:
         print(f"Card Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -180,7 +172,6 @@ def print_detection_results(detected_hands: List[dict], detected_table: List[dic
 
     except Exception as e:
         print(f"❌ Error printing detection results: {str(e)}")
-
 def detect_cards(timestamp_folder, captured_images, templates, search_region = PlayerCardReader.DEFAULT_SEARCH_REGION):
     """
     Main function that captures windows and analyzes them for player cards
