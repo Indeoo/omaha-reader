@@ -53,29 +53,29 @@ class PlayerCardReader(CardReader):
 
         all_detections = self._find_all_template_matches(image)
 
-        # # Print all detections with probability > 0
-        # print(f"\n🔍 ALL DETECTIONS (probability > 0):")
-        # print("-" * 60)
-        # detections_above_zero = [d for d in all_detections if d['match_score'] > 0]
-        #
-        # if detections_above_zero:
-        #     # Sort by match score (highest first) for better readability
-        #     detections_above_zero.sort(key=lambda x: x['match_score'], reverse=True)
-        #
-        #     for i, detection in enumerate(detections_above_zero, 1):
-        #         print(f"{i:3d}. {detection['template_name']:>6s} | "
-        #               f"Score: {detection['match_score']:.4f} | "
-        #               f"Scale: {detection['scale']:.1f} | "
-        #               f"Center: ({detection['center'][0]:3d}, {detection['center'][1]:3d}) | "
-        #               f"Size: {detection['scaled_size'][0]:3d}x{detection['scaled_size'][1]:3d}")
-        #
-        #     print(f"\nTotal detections above 0: {len(detections_above_zero)}")
-        #     print(
-        #         f"Detections above threshold ({self.match_threshold}): {len([d for d in detections_above_zero if d['match_score'] >= self.match_threshold])}")
-        # else:
-        #     print("No detections with probability > 0 found")
-        #
-        # print("-" * 60)
+        # Print all detections with probability > 0
+        print(f"\n🔍 ALL DETECTIONS (probability > 0):")
+        print("-" * 60)
+        detections_above_zero = [d for d in all_detections if d['match_score'] > 0]
+
+        if detections_above_zero:
+            # Sort by match score (highest first) for better readability
+            detections_above_zero.sort(key=lambda x: x['match_score'], reverse=True)
+
+            for i, detection in enumerate(detections_above_zero, 1):
+                print(f"{i:3d}. {detection['template_name']:>6s} | "
+                      f"Score: {detection['match_score']:.4f} | "
+                      f"Scale: {detection['scale']:.1f} | "
+                      f"Center: ({detection['center'][0]:3d}, {detection['center'][1]:3d}) | "
+                      f"Size: {detection['scaled_size'][0]:3d}x{detection['scaled_size'][1]:3d}")
+
+            print(f"\nTotal detections above 0: {len(detections_above_zero)}")
+            print(
+                f"Detections above threshold ({self.match_threshold}): {len([d for d in detections_above_zero if d['match_score'] >= self.match_threshold])}")
+        else:
+            print("No detections with probability > 0 found")
+
+        print("-" * 60)
 
 
         filtered_detections = self._filter_overlapping_detections(all_detections)
