@@ -10,11 +10,11 @@ import cv2
 from typing import List, Dict, Any
 from datetime import datetime
 
-from src.player_card_reader import PlayerCardReader
+from src.player_card_reader import OmahaCardReader
 from src.utils.template_loader import load_templates
 
 
-def process_single_image(image_path: str, image_name: str, player_card_reader: PlayerCardReader) -> Dict[str, Any]:
+def process_single_image(image_path: str, image_name: str, player_card_reader: OmahaCardReader) -> Dict[str, Any]:
     """
     Process a single image and return results
 
@@ -149,7 +149,7 @@ def write_image_results_to_file(image_result: Dict[str, Any], output_path: str, 
         raise
 
 
-def process_timestamp_folder(folder_path: str, timestamp: str, player_card_reader: PlayerCardReader,
+def process_timestamp_folder(folder_path: str, timestamp: str, player_card_reader: OmahaCardReader,
                              output_base_dir: str) -> Dict[str, Any]:
     """
     Process all images in a timestamp folder and create individual result files
@@ -226,7 +226,7 @@ def main():
 
     # Initialize player card reader
     print("🚀 Initializing PlayerCardReader...")
-    player_card_reader = PlayerCardReader(templates)
+    player_card_reader = OmahaCardReader(templates)
 
     if not player_card_reader.templates:
         print("❌ No templates loaded! Please check the templates directory.")

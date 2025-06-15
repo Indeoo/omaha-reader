@@ -9,7 +9,7 @@ from src.readed_card import ReadedCard
 from src.utils.benchmark_utils import benchmark
 
 
-class PlayerCardReader(CardReader):
+class OmahaCardReader(CardReader):
     DEFAULT_SEARCH_REGION = (0.2, 0.5, 0.8, 0.95)
     #                       (left, top, right, bottom)
     DEFAULT_MIN_CARD_SIZE = 20
