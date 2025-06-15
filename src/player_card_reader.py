@@ -15,10 +15,9 @@ class PlayerCardReader(CardReader):
     DEFAULT_MIN_CARD_SIZE = 20
     DEFAULT_OVERLAP_THRESHOLD = 0.3
     DEFAULT_MATCH_THRESHOLD = 0.6
-    #DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]
     DEFAULT_SCALE_FACTORS = [0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
-    def __init__(self, templates):
+    def __init__(self, templates, search_region = DEFAULT_SEARCH_REGION):
         """
         Template-first detector that scans the entire image directly with templates
         No preprocessing, no assumptions about colors or regions
@@ -26,7 +25,7 @@ class PlayerCardReader(CardReader):
         Args:
             templates_dir: Directory containing hand card templates
         """
-        self.search_region = self.DEFAULT_SEARCH_REGION
+        self.search_region = search_region
         self.min_card_size = self.DEFAULT_MIN_CARD_SIZE
         self.templates = templates
 
