@@ -5,7 +5,7 @@ import ctypes
 
 from PIL import ImageGrab
 
-from src.capture.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
+from src.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
 # Try to enable DPI awareness
