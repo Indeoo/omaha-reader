@@ -13,14 +13,12 @@ from src.utils.opencv_utils import load_templates
 from src.utils.result_utils import write_detection_results, print_detection_results
 
 
+WAIT_TIME = 20
+
 if __name__ == "__main__":
-    print("Omaha Card Reader")
+    print("🎯 Initializing Omaha Card Reader")
     print("------------------------------")
 
-    WAIT_TIME = 20
-
-    # Initialize PlayerCardReader
-    print("🎯 Initializing Card Reader...")
     try:
         player_templates = load_templates("resources/templates/player_cards/")
         table_templates = load_templates("resources/templates/table_cards/")
