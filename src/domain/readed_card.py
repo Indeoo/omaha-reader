@@ -1,4 +1,4 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 import numpy as np
 
@@ -125,7 +125,6 @@ class ReadedCard:
         Format a single ReadedCard with Unicode suit symbol and optional probability
 
         Args:
-            card: ReadedCard object to format
             show_probabilities: Whether to include match score/probability in the output
 
         Returns:
@@ -136,6 +135,24 @@ class ReadedCard:
             card_with_unicode += f"[{self.match_score:.2f}]"
 
         return card_with_unicode
+
+    @staticmethod
+    def format_cards(cards: List['ReadedCard'], show_probabilities: bool = True) -> str:
+        """
+        Format a list of ReadedCard objects with Unicode suit symbols and optionally include probabilities
+
+        Args:
+            cards: List of ReadedCard objects
+            show_probabilities: Whether to include match scores/probabilities in the output
+
+        Returns:
+            Formatted string like "4S6DJH" (just template names concatenated)
+        """
+        if not cards:
+            return ""
+
+        res = ''.join(card.template_name for card in cards if card.template_name)
+        return res
 
     def __str__(self) -> str:
         """String representation using the summary"""
