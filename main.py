@@ -3,7 +3,6 @@
 Simplified script that captures windows and analyzes them with PlayerCardReader.
 Outputs enhanced format: WindowName: CardCardCard with Unicode suit symbols
 """
-import ctypes
 import os
 import time
 from datetime import datetime
@@ -15,12 +14,6 @@ from src.cv.opencv_utils import pil_to_cv2, save_opencv_image
 from src.deck.deck_utils import format_cards
 from src.player_card_reader import OmahaCardReader
 from src.utils.template_loader import load_templates
-
-# Try to enable DPI awareness
-# try:
-#     ctypes.windll.shcore.SetProcessDpiAwareness(1)
-# except:
-#     ctypes.windll.user32.SetProcessDPIAware()
 
 
 def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
@@ -209,17 +202,15 @@ def capture_images(timestamp_folder, capture_save=True):
     # Capture windows
     print("\n📸 Capturing windows...")
     try:
-        if capture_save:
-            # Use convenience function that handles both capture and save with consistent timestamp
-            captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
-            print(f"✅ Captured and saved {len(captured_images)} images")
-        else:
-            # Just capture without saving
-            captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
-            print(f"✅ Captured {len(captured_images)} images")
+        captured_images, windows = capture_and_save_windows(timestamp_folder=timestamp_folder)
 
         if not captured_images:
             raise Exception("❌ No images captured. Exiting.")
+
+        if capture_save:
+            print(f"✅ Captured and saved {len(captured_images)} images")
+        else:
+            print(f"✅ Captured {len(captured_images)} images")
 
     except Exception as e:
         raise Exception(f"❌ Error capturing windows: {str(e)}")
