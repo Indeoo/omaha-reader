@@ -55,7 +55,8 @@ def _capture_windows(log_mode: str = "none", log_file_path: str = None, timestam
 
     try:
         # Get all window info
-        windows = [w for w in get_window_info() if "Pot Limit Omaha" in w['title']]
+        original_windows_info = get_window_info()
+        windows = [w for w in original_windows_info if "Pot Limit Omaha" in w['title']]
         
         log_message(f"Found {len(windows)} windows to capture")
 
