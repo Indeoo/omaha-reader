@@ -1,4 +1,4 @@
-from typing import Tuple, Optional, List, Dict
+from typing import Tuple, Optional
 
 import numpy as np
 
@@ -144,47 +144,3 @@ class ReadedCard:
     def __repr__(self) -> str:
         """Detailed representation for debugging"""
         return f"ReadedCard(index={self.card_index}, {self.get_detailed_summary()})"
-
-
-def get_detection_summary(readed_cards: List[ReadedCard]) -> Dict:
-    """
-    Get summary information about detections
-    """
-    if not readed_cards:
-        return {
-            "total": 0,
-            "cards": {},
-            "average_confidence": 0.0,
-            "scales_used": []
-        }
-
-    summary = {
-        "total": len(readed_cards),
-        "cards": {},
-        "average_confidence": sum(card.match_score for card in readed_cards) / len(readed_cards),
-        "scales_used": sorted(list(set(card.scale for card in readed_cards)))
-    }
-
-    # Count each card type
-    for card in readed_cards:
-        card_name = card.template_name
-        if card_name not in summary["cards"]:
-            summary["cards"][card_name] = 0
-        summary["cards"][card_name] += 1
-
-    return summary
-
-
-def write_summary(readed_cards):
-    # Get summary from player card reader
-    summary = get_detection_summary(readed_cards)
-    print(f"\nDetection Summary:")
-    print(f"Total detections: {summary['total']}")
-    print(f"Average confidence: {summary['average_confidence']:.3f}")
-    print(f"Scales used: {summary['scales_used']}")
-    print(f"Cards found: {summary['cards']}")
-
-    # Print detailed results using ReadedCard's get_detailed_summary method
-    print(f"\nDetailed Results:")
-    for i, card in enumerate(readed_cards):
-        print(f"  Detection {i + 1}: {card.get_detailed_summary()}")

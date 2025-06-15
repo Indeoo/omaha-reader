@@ -32,3 +32,9 @@ def save_opencv_image(image, folder_path, filename):
     os.makedirs(folder_path, exist_ok=True)
     filepath = os.path.join(folder_path, filename)
     cv2.imwrite(filepath, image)
+
+
+def matchCV2Template(scaled_h, scaled_w, search_image, template):
+    scaled_template = cv2.resize(template, (scaled_w, scaled_h))
+    result = cv2.matchTemplate(search_image, scaled_template, cv2.TM_CCORR_NORMED)
+    return result
