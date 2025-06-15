@@ -7,6 +7,7 @@ import multiprocessing
 from src.domain.card_reader import CardReader
 from src.domain.readed_card import ReadedCard
 from src.utils.benchmark_utils import benchmark
+from src.utils.opencv_utils import matchCV2Template
 
 
 class OmahaCardReader(CardReader):
@@ -157,8 +158,7 @@ class OmahaCardReader(CardReader):
                 scaled_w > search_image.shape[1] or scaled_h > search_image.shape[0]):
             return []
 
-        scaled_template = cv2.resize(template, (scaled_w, scaled_h))
-        result = cv2.matchTemplate(search_image, scaled_template, cv2.TM_CCORR_NORMED)
+        result = matchCV2Template(scaled_h, scaled_w, search_image, template)
 
         # Find all locations where match is above threshold
         locations = np.where(result >= self.match_threshold)
