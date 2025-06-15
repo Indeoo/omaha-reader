@@ -84,6 +84,67 @@ def write_detection_results(detected_hands: List[dict], timestamp_folder: str, d
     except Exception as e:
         print(f"❌ Error writing detection results: {str(e)}")
 
+
+def print_detection_results(detected_hands: List[dict], detected_table: List[dict] = None):
+    """
+    Print detection results to console
+
+    Args:
+        detected_hands: List of detected hands with window names and cards
+        detected_table: Optional list of detected table cards with window names and cards
+    """
+    try:
+        print(f"Card Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print("=" * 60)
+        print()
+
+        # Combine both player and table cards by window name
+        all_windows = {}
+
+        # Add player cards
+        for hand in detected_hands:
+            window_name = hand['window_name']
+            if window_name not in all_windows:
+                all_windows[window_name] = {'player': '', 'table': ''}
+            all_windows[window_name]['player'] = hand['cards_unicode']
+
+        # Add table cards if provided
+        if detected_table:
+            for table in detected_table:
+                window_name = table['window_name']
+                if window_name not in all_windows:
+                    all_windows[window_name] = {'player': '', 'table': ''}
+                all_windows[window_name]['table'] = table['cards_unicode']
+
+        if all_windows:
+            print(f"🃏 DETECTED CARDS ({len(all_windows)} windows):")
+            print("-" * 30)
+
+            for window_name, cards in all_windows.items():
+                # Combine player and table cards in one line
+                combined_cards = ""
+                if cards['player']:
+                    combined_cards += f"Player:{cards['player']}"
+                if cards['table']:
+                    if combined_cards:
+                        combined_cards += f" Table:{cards['table']}"
+                    else:
+                        combined_cards += f"Table:{cards['table']}"
+
+                if combined_cards:
+                    print(f"{window_name}: {combined_cards}")
+                else:
+                    print(f"{window_name}: No cards detected")
+        else:
+            print("No cards detected in any window.")
+
+        print()
+        print("=" * 60)
+
+    except Exception as e:
+        print(f"❌ Error printing detection results: {str(e)}")
+
+
 def detect_cards(timestamp_folder, captured_images, templates, search_region = PlayerCardReader.DEFAULT_SEARCH_REGION):
     """
     Main function that captures windows and analyzes them for player cards
@@ -129,11 +190,11 @@ def detect_cards(timestamp_folder, captured_images, templates, search_region = P
 
             # Print immediate result with Unicode symbols
             if cards:
-                cards_unicode = format_cards(cards)
-                print(f"    ✅ {window_name}: {cards_unicode}")
+                #cards_unicode = format_cards(cards)
+                #print(f"    ✅ {window_name}: {cards_unicode}")
                 total_hands += 1
-            else:
-                print(f"    ⚪ {window_name}: No cards detected")
+            #else:
+                #print(f"    ⚪ {window_name}: No cards detected")
 
         except Exception as e:
             print(f"    ❌ Error processing {window_name}: {str(e)}")
@@ -160,13 +221,13 @@ def detect_cards(timestamp_folder, captured_images, templates, search_region = P
             })
 
     # Then, view the data in a separate loop
-    hands_shown = 0
-    for hand in detected_hands:
-        print(f"{hand['window_name']}: {hand['cards_unicode']}")
-        hands_shown += 1
-
-    if hands_shown == 0:
-        print("No hands detected in any window.")
+    # hands_shown = 0
+    # for hand in detected_hands:
+    #     print(f"{hand['window_name']}: {hand['cards_unicode']}")
+    #     hands_shown += 1
+    #
+    # if hands_shown == 0:
+    #     print("No hands detected in any window.")
 
     return detected_hands
     # # Write detection results to file if we have a timestamp folder
@@ -222,6 +283,7 @@ if __name__ == "__main__":
                 detected_table = detect_cards(timestamp_folder, captured_images, table_templates, None)
 
                 write_detection_results(detected_hands, timestamp_folder, detected_table)
+                print_detection_results(detected_hands, detected_table)
 
                 print(f"Sleep for {WAIT_TIME} second...")
                 time.sleep(WAIT_TIME)
