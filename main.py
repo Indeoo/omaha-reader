@@ -136,65 +136,38 @@ def detect_cards(timestamp_folder, captured_images, player_templates, table_temp
     player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
     table_card_reader = OmahaCardReader(table_templates, None)  # No search region for table cards
 
-    results = []
-    total_hands = 0
+    detected_cards = []
 
-    for i, captured_item in enumerate(captured_images, 1):
-        filename = captured_item['filename']
-        pil_image = captured_item['image']
+    for captured_item in captured_images:
         window_name = captured_item['window_name']
-        result_image_name = filename.replace('.png', '_result.png')
+        filename = captured_item['filename']
 
         try:
-            cv2_image = pil_to_cv2(pil_image)
+            cv2_image = pil_to_cv2(captured_item['image'])
 
-            # Read both player and table cards
+            # Read cards
             player_cards = player_card_reader.read(cv2_image)
             table_cards = table_card_reader.read(cv2_image)
 
-            # Draw both types of cards on the result image
-            result_image = cv2_image.copy()
-            result_image = player_card_reader.draw_detected_cards(result_image, player_cards)
+            # Save result image with detected cards
+            result_image = player_card_reader.draw_detected_cards(cv2_image.copy(), player_cards)
             result_image = table_card_reader.draw_detected_cards(result_image, table_cards)
-            save_opencv_image(result_image, timestamp_folder, result_image_name)
+            save_opencv_image(result_image, timestamp_folder, filename.replace('.png', '_result.png'))
 
-            result = {
-                'window_name': window_name,
-                'player_cards': player_cards,  # Changed from 'cards' to 'player_cards'
-                'table_cards': table_cards,  # Added table_cards
-                'original_filename': filename,
-                'original_image': cv2_image,
-                'result_image_name': result_image_name,
-            }
-            results.append(result)
-
+            # Add to results if any cards detected
             if player_cards or table_cards:
-                total_hands += 1
+                detected_cards.append({
+                    'window_name': window_name,
+                    'player_cards_unicode': format_cards(player_cards),
+                    'table_cards_unicode': format_cards(table_cards),
+                    'player_cards_raw': player_cards,
+                    'table_cards_raw': table_cards
+                })
 
         except Exception as e:
             print(f"    ❌ Error processing {window_name}: {str(e)}")
-            result = {
-                'window_name': window_name,
-                'player_cards': [],
-                'table_cards': [],
-                'original_filename': filename
-            }
-            results.append(result)
 
-    # Form the unified detected_hands data
-    detected_hands = []
-    for result in results:
-        if result['player_cards'] or result['table_cards']:
-            detected_hand = {
-                'window_name': result['window_name'],
-                'player_cards_unicode': format_cards(result['player_cards']) if result['player_cards'] else '',
-                'table_cards_unicode': format_cards(result['table_cards']) if result['table_cards'] else '',
-                'player_cards_raw': result['player_cards'],
-                'table_cards_raw': result['table_cards']
-            }
-            detected_hands.append(detected_hand)
-
-    return detected_hands
+    return detected_cards
 
 
 if __name__ == "__main__":
