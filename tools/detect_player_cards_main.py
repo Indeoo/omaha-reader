@@ -215,9 +215,9 @@ def main():
     Main function to process all timestamp folders
     """
     # Configuration
-    screenshots_dir = "resources/data_screenshots"
+    screenshots_dir = "../resources/data_screenshots"
     output_dir = "resources/player_results"
-    templates_dir = "resources/templates/player_cards/"
+    templates_dir = "../resources/templates/player_cards/"
     templates = load_templates(templates_dir)
 
 
