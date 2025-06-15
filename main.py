@@ -23,14 +23,13 @@ except:
     ctypes.windll.user32.SetProcessDPIAware()
 
 
-def write_detection_results(detected_hands: List[dict], timestamp_folder: str, detected_table: List[dict] = None):
+def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
     """
     Write detection results to detection.txt in the timestamp folder
 
     Args:
-        detected_hands: List of detected hands with window names and cards
+        detected_hands: List of detected hands with window names and both player/table cards
         timestamp_folder: Path to the timestamp folder where detection.txt should be saved
-        detected_table: Optional list of detected table cards with window names and cards
     """
     detection_file_path = os.path.join(timestamp_folder, "detection.txt")
 
@@ -39,38 +38,22 @@ def write_detection_results(detected_hands: List[dict], timestamp_folder: str, d
             f.write(f"Card Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write("=" * 60 + "\n\n")
 
-            # Combine both player and table cards by window name
-            all_windows = {}
-
-            # Add player cards
-            for hand in detected_hands:
-                window_name = hand['window_name']
-                if window_name not in all_windows:
-                    all_windows[window_name] = {'player': '', 'table': ''}
-                all_windows[window_name]['player'] = hand['cards_unicode']
-
-            # Add table cards if provided
-            if detected_table:
-                for table in detected_table:
-                    window_name = table['window_name']
-                    if window_name not in all_windows:
-                        all_windows[window_name] = {'player': '', 'table': ''}
-                    all_windows[window_name]['table'] = table['cards_unicode']
-
-            if all_windows:
-                f.write(f"🃏 DETECTED CARDS ({len(all_windows)} windows):\n")
+            if detected_hands:
+                f.write(f"🃏 DETECTED CARDS ({len(detected_hands)} windows):\n")
                 f.write("-" * 30 + "\n")
 
-                for window_name, cards in all_windows.items():
+                for hand in detected_hands:
+                    window_name = hand['window_name']
+
                     # Combine player and table cards in one line
                     combined_cards = ""
-                    if cards['player']:
-                        combined_cards += f"Player:{cards['player']}"
-                    if cards['table']:
+                    if hand['player_cards_unicode']:
+                        combined_cards += f"Player:{hand['player_cards_unicode']}"
+                    if hand['table_cards_unicode']:
                         if combined_cards:
-                            combined_cards += f" Table:{cards['table']}"
+                            combined_cards += f" Table:{hand['table_cards_unicode']}"
                         else:
-                            combined_cards += f"Table:{cards['table']}"
+                            combined_cards += f"Table:{hand['table_cards_unicode']}"
 
                     if combined_cards:
                         f.write(f"{window_name}: {combined_cards}\n")
@@ -85,13 +68,12 @@ def write_detection_results(detected_hands: List[dict], timestamp_folder: str, d
         print(f"❌ Error writing detection results: {str(e)}")
 
 
-def print_detection_results(detected_hands: List[dict], detected_table: List[dict] = None):
+def print_detection_results(detected_hands: List[dict]):
     """
     Print detection results to console with colored cards based on suit
 
     Args:
-        detected_hands: List of detected hands with window names and cards
-        detected_table: Optional list of detected table cards with window names and cards
+        detected_hands: List of detected hands with window names and both player/table cards
     """
 
     def colorize_cards(cards_string):
@@ -126,38 +108,22 @@ def print_detection_results(detected_hands: List[dict], detected_table: List[dic
         print("=" * 60)
         print()
 
-        # Combine both player and table cards by window name
-        all_windows = {}
-
-        # Add player cards
-        for hand in detected_hands:
-            window_name = hand['window_name']
-            if window_name not in all_windows:
-                all_windows[window_name] = {'player': '', 'table': ''}
-            all_windows[window_name]['player'] = hand['cards_unicode']
-
-        # Add table cards if provided
-        if detected_table:
-            for table in detected_table:
-                window_name = table['window_name']
-                if window_name not in all_windows:
-                    all_windows[window_name] = {'player': '', 'table': ''}
-                all_windows[window_name]['table'] = table['cards_unicode']
-
-        if all_windows:
-            print(f"🃏 DETECTED CARDS ({len(all_windows)} windows):")
+        if detected_hands:
+            print(f"🃏 DETECTED CARDS ({len(detected_hands)} windows):")
             print("-" * 30)
 
-            for window_name, cards in all_windows.items():
+            for hand in detected_hands:
+                window_name = hand['window_name']
+
                 # Combine player and table cards in one line
                 combined_cards = ""
-                if cards['player']:
-                    combined_cards += f"Player:{cards['player']}"
-                if cards['table']:
+                if hand['player_cards_unicode']:
+                    combined_cards += f"Player:{hand['player_cards_unicode']}"
+                if hand['table_cards_unicode']:
                     if combined_cards:
-                        combined_cards += f" Table:{cards['table']}"
+                        combined_cards += f" Table:{hand['table_cards_unicode']}"
                     else:
-                        combined_cards += f"Table:{cards['table']}"
+                        combined_cards += f"Table:{hand['table_cards_unicode']}"
 
                 if combined_cards:
                     colored_cards = colorize_cards(combined_cards)
@@ -174,8 +140,9 @@ def print_detection_results(detected_hands: List[dict], detected_table: List[dic
         print(f"❌ Error printing detection results: {str(e)}")
 
 
-def detect_cards(timestamp_folder, captured_images, templates, search_region = OmahaCardReader.DEFAULT_SEARCH_REGION):
-    player_card_reader = OmahaCardReader(templates, search_region)
+def detect_cards(timestamp_folder, captured_images, player_templates, table_templates):
+    player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
+    table_card_reader = OmahaCardReader(table_templates, None)  # No search region for table cards
 
     results = []
     total_hands = 0
@@ -184,44 +151,56 @@ def detect_cards(timestamp_folder, captured_images, templates, search_region = O
         filename = captured_item['filename']
         pil_image = captured_item['image']
         window_name = captured_item['window_name']
-        result_image_name =  filename.replace('.png', '_result.png')
+        result_image_name = filename.replace('.png', '_result.png')
+
         try:
             cv2_image = pil_to_cv2(pil_image)
-            cards = player_card_reader.read(cv2_image)
 
-            result_image = player_card_reader.draw_detected_cards(cv2_image, cards)
+            # Read both player and table cards
+            player_cards = player_card_reader.read(cv2_image)
+            table_cards = table_card_reader.read(cv2_image)
+
+            # Draw both types of cards on the result image
+            result_image = cv2_image.copy()
+            result_image = player_card_reader.draw_detected_cards(result_image, player_cards)
+            result_image = table_card_reader.draw_detected_cards(result_image, table_cards)
             save_opencv_image(result_image, timestamp_folder, result_image_name)
 
             result = {
                 'window_name': window_name,
-                'cards': cards,
+                'player_cards': player_cards,  # Changed from 'cards' to 'player_cards'
+                'table_cards': table_cards,  # Added table_cards
                 'original_filename': filename,
                 'original_image': cv2_image,
                 'result_image_name': result_image_name,
             }
             results.append(result)
-            if cards:
+
+            if player_cards or table_cards:
                 total_hands += 1
 
         except Exception as e:
             print(f"    ❌ Error processing {window_name}: {str(e)}")
             result = {
                 'window_name': window_name,
-                'cards': [],
+                'player_cards': [],
+                'table_cards': [],
                 'original_filename': filename
             }
             results.append(result)
 
-    # First, form the data - collect all hands with cards
+    # Form the unified detected_hands data
     detected_hands = []
     for result in results:
-        if result['cards']:
-            cards_unicode = format_cards(result['cards'])  # Fixed: use result['cards'] instead of cards
-            detected_hands.append({
+        if result['player_cards'] or result['table_cards']:
+            detected_hand = {
                 'window_name': result['window_name'],
-                'cards_unicode': cards_unicode,
-                'cards_raw': result['cards']
-            })
+                'player_cards_unicode': format_cards(result['player_cards']) if result['player_cards'] else '',
+                'table_cards_unicode': format_cards(result['table_cards']) if result['table_cards'] else '',
+                'player_cards_raw': result['player_cards'],
+                'table_cards_raw': result['table_cards']
+            }
+            detected_hands.append(detected_hand)
 
     return detected_hands
 
@@ -268,11 +247,12 @@ if __name__ == "__main__":
                 os.makedirs(timestamp_folder, exist_ok=True)
                 captured_images = capture_images(timestamp_folder)
 
-                detected_table = detect_cards(timestamp_folder, captured_images, table_templates, None)
-                detected_hands = detect_cards(timestamp_folder, captured_images, player_templates)
+                # Single unified call to detect_cards with both template sets
+                detected_hands = detect_cards(timestamp_folder, captured_images, player_templates, table_templates)
 
-                write_detection_results(detected_hands, timestamp_folder, detected_table)
-                print_detection_results(detected_hands, detected_table)
+                # Write and print results using the unified detected_hands
+                write_detection_results(detected_hands, timestamp_folder)
+                print_detection_results(detected_hands)
 
                 print(f"Sleep for {WAIT_TIME} second...")
                 time.sleep(WAIT_TIME)
