@@ -180,14 +180,6 @@ if __name__ == "__main__":
         player_templates = load_templates("resources/templates/player_cards/")
         table_templates = load_templates("resources/templates/table_cards/")
 
-        if not player_templates:
-            raise Exception("❌ No player templates loaded! Please check the templates directory.")
-        if not table_templates:
-            raise Exception("❌ No table templates loaded! Please check the templates directory.")
-
-        print(f"✅ Loaded {len(player_templates)} player card templates")
-        print(f"✅ Loaded {len(table_templates)} table card templates")
-
         try:
             while True:
                 session_timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
@@ -198,12 +190,10 @@ if __name__ == "__main__":
                 captured_images = capture_images(timestamp_folder)
 
                 detected_hands = detect_cards(timestamp_folder, captured_images, player_templates)
-                if timestamp_folder and os.path.exists(timestamp_folder):
-                    write_detection_results(detected_hands, timestamp_folder)
+                write_detection_results(detected_hands, timestamp_folder)
 
                 detected_table = detect_cards(timestamp_folder, captured_images, table_templates)
-                if timestamp_folder and os.path.exists(timestamp_folder):
-                    write_detection_results(detected_table, timestamp_folder)
+                write_detection_results(detected_table, timestamp_folder)
 
                 print(f"Sleep for {WAIT_TIME} second...")
                 time.sleep(WAIT_TIME)
