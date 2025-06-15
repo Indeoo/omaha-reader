@@ -87,12 +87,48 @@ def write_detection_results(detected_hands: List[dict], timestamp_folder: str, d
 
 def print_detection_results(detected_hands: List[dict], detected_table: List[dict] = None):
     """
-    Print detection results to console
+    Print detection results to console with colored cards based on suit
 
     Args:
         detected_hands: List of detected hands with window names and cards
         detected_table: Optional list of detected table cards with window names and cards
     """
+
+    def colorize_cards(cards_string):
+        """Apply color to cards based on suit"""
+        if not cards_string:
+            return cards_string
+
+        # ANSI color codes
+        colors = {
+            'D': '\033[34m',  # Blue for Diamonds
+            'H': '\033[31m',  # Red for Hearts
+            'C': '\033[32m',  # Dark Green for Clubs
+            'S': '\033[30m',  # Black for Spades
+        }
+        reset = '\033[0m'
+
+        result = ""
+        i = 0
+        while i < len(cards_string):
+            char = cards_string[i]
+            # Check if this character is a suit (last character of a card)
+            if char in colors and (i == len(cards_string) - 1 or not cards_string[i + 1].isalnum()):
+                # Find the start of this card (look backwards for the card value)
+                card_start = i
+                while card_start > 0 and cards_string[card_start - 1].isalnum():
+                    card_start -= 1
+
+                # Add the card with color
+                card = cards_string[card_start:i + 1]
+                result += colors[char] + card + reset
+            elif not any(cards_string[j:j + 1] in colors for j in range(i, min(i + 3, len(cards_string)))):
+                # Only add character if it's not part of a card that will be colored later
+                result += char
+            i += 1
+
+        return result
+
     try:
         print(f"Card Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print("=" * 60)
@@ -132,7 +168,8 @@ def print_detection_results(detected_hands: List[dict], detected_table: List[dic
                         combined_cards += f"Table:{cards['table']}"
 
                 if combined_cards:
-                    print(f"{window_name}: {combined_cards}")
+                    colored_cards = colorize_cards(combined_cards)
+                    print(f"{window_name}: {colored_cards}")
                 else:
                     print(f"{window_name}: No cards detected")
         else:
@@ -143,7 +180,6 @@ def print_detection_results(detected_hands: List[dict], detected_table: List[dic
 
     except Exception as e:
         print(f"❌ Error printing detection results: {str(e)}")
-
 
 def detect_cards(timestamp_folder, captured_images, templates, search_region = PlayerCardReader.DEFAULT_SEARCH_REGION):
     """
