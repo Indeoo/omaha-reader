@@ -172,6 +172,8 @@ def print_detection_results(detected_hands: List[dict], detected_table: List[dic
 
     except Exception as e:
         print(f"❌ Error printing detection results: {str(e)}")
+
+
 def detect_cards(timestamp_folder, captured_images, templates, search_region = PlayerCardReader.DEFAULT_SEARCH_REGION):
     """
     Main function that captures windows and analyzes them for player cards
@@ -306,8 +308,8 @@ if __name__ == "__main__":
                 os.makedirs(timestamp_folder, exist_ok=True)
                 captured_images = capture_images(timestamp_folder)
 
-                detected_hands = detect_cards(timestamp_folder, captured_images, player_templates)
                 detected_table = detect_cards(timestamp_folder, captured_images, table_templates, None)
+                detected_hands = detect_cards(timestamp_folder, captured_images, player_templates)
 
                 write_detection_results(detected_hands, timestamp_folder, detected_table)
                 print_detection_results(detected_hands, detected_table)
