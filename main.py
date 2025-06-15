@@ -23,13 +23,14 @@ except:
     ctypes.windll.user32.SetProcessDPIAware()
 
 
-def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
+def write_detection_results(detected_hands: List[dict], timestamp_folder: str, detected_table: List[dict] = None):
     """
     Write detection results to detection.txt in the timestamp folder
 
     Args:
         detected_hands: List of detected hands with window names and cards
         timestamp_folder: Path to the timestamp folder where detection.txt should be saved
+        detected_table: Optional list of detected table cards with window names and cards
     """
     detection_file_path = os.path.join(timestamp_folder, "detection.txt")
 
@@ -38,22 +39,50 @@ def write_detection_results(detected_hands: List[dict], timestamp_folder: str):
             f.write(f"Card Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write("=" * 60 + "\n\n")
 
-            if detected_hands:
-                f.write(f"🃏 DETECTED HANDS ({len(detected_hands)} total):\n")
+            # Combine both player and table cards by window name
+            all_windows = {}
+
+            # Add player cards
+            for hand in detected_hands:
+                window_name = hand['window_name']
+                if window_name not in all_windows:
+                    all_windows[window_name] = {'player': '', 'table': ''}
+                all_windows[window_name]['player'] = hand['cards_unicode']
+
+            # Add table cards if provided
+            if detected_table:
+                for table in detected_table:
+                    window_name = table['window_name']
+                    if window_name not in all_windows:
+                        all_windows[window_name] = {'player': '', 'table': ''}
+                    all_windows[window_name]['table'] = table['cards_unicode']
+
+            if all_windows:
+                f.write(f"🃏 DETECTED CARDS ({len(all_windows)} windows):\n")
                 f.write("-" * 30 + "\n")
 
-                for hand in detected_hands:
-                    f.write(f"{hand['window_name']}: {hand['cards_unicode']}\n")
+                for window_name, cards in all_windows.items():
+                    # Combine player and table cards in one line
+                    combined_cards = ""
+                    if cards['player']:
+                        combined_cards += f"Player:{cards['player']}"
+                    if cards['table']:
+                        if combined_cards:
+                            combined_cards += f" Table:{cards['table']}"
+                        else:
+                            combined_cards += f"Table:{cards['table']}"
+
+                    if combined_cards:
+                        f.write(f"{window_name}: {combined_cards}\n")
+                    else:
+                        f.write(f"{window_name}: No cards detected\n")
             else:
-                f.write("No hands detected in any window.\n")
+                f.write("No cards detected in any window.\n")
 
             f.write("\n" + "=" * 60 + "\n")
 
-        #print(f"📄 Detection results written to: {detection_file_path}")
-
     except Exception as e:
         print(f"❌ Error writing detection results: {str(e)}")
-
 
 def detect_cards(timestamp_folder, captured_images, templates):
     """
@@ -190,10 +219,12 @@ if __name__ == "__main__":
                 captured_images = capture_images(timestamp_folder)
 
                 detected_hands = detect_cards(timestamp_folder, captured_images, player_templates)
-                write_detection_results(detected_hands, timestamp_folder)
+                #write_detection_results(detected_hands, timestamp_folder)
 
                 detected_table = detect_cards(timestamp_folder, captured_images, table_templates)
-                write_detection_results(detected_table, timestamp_folder)
+                #write_detection_results(detected_table, timestamp_folder)
+
+                write_detection_results(detected_hands, timestamp_folder, detected_table)
 
                 print(f"Sleep for {WAIT_TIME} second...")
                 time.sleep(WAIT_TIME)
