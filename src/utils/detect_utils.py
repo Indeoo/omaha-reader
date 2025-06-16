@@ -1,5 +1,11 @@
+from typing import List
+
+import numpy as np
+
+from src.domain.readed_card import ReadedCard
 from src.omaha_card_reader import OmahaCardReader
 from src.utils.opencv_utils import pil_to_cv2, save_opencv_image
+from src.utils.template_matching_utils import draw_detected_cards
 
 
 def detect_cards(timestamp_folder, captured_images, player_templates, table_templates):
@@ -20,8 +26,8 @@ def detect_cards(timestamp_folder, captured_images, player_templates, table_temp
             table_cards = table_card_reader.read(cv2_image)
 
             # Save result image with detected cards
-            result_image = player_card_reader.draw_detected_cards(cv2_image.copy(), player_cards)
-            result_image = table_card_reader.draw_detected_cards(result_image, table_cards)
+            result_image = draw_cards(cv2_image.copy(), player_cards)
+            result_image = draw_cards(result_image, table_cards)
             save_opencv_image(result_image, timestamp_folder, filename.replace('.png', '_result.png'))
 
             # Add to results if any cards detected
@@ -119,3 +125,37 @@ def draw_detected_positions(image, positions):
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
 
     return result
+
+
+def draw_cards(image: np.ndarray, readed_cards: List[ReadedCard]) -> np.ndarray:
+        """
+        Draw detected cards on the image
+
+        Args:
+            image: Input image
+            readed_cards: List of ReadedCard objects
+
+        Returns:
+            Image with drawn detections
+        """
+        # Convert ReadedCard objects back to detection dictionaries
+        detections = []
+        for card in readed_cards:
+            detection = {
+                'template_name': card.template_name,
+                'match_score': card.match_score,
+                'bounding_rect': card.bounding_rect,
+                'center': card.center,
+                'scale': card.scale
+            }
+            detections.append(detection)
+
+        # Use the extracted drawing function
+        return draw_detected_cards(
+            image=image,
+            detections=detections,
+            color=(0, 255, 0),
+            thickness=2,
+            font_scale=0.6,
+            show_scale=True
+        )

@@ -115,36 +115,3 @@ class OmahaCardReader(CardReader):
             readed_cards.append(readed_card)
 
         return readed_cards
-
-    def draw_detected_cards(self, image: np.ndarray, readed_cards: List[ReadedCard]) -> np.ndarray:
-        """
-        Draw detected cards on the image
-
-        Args:
-            image: Input image
-            readed_cards: List of ReadedCard objects
-
-        Returns:
-            Image with drawn detections
-        """
-        # Convert ReadedCard objects back to detection dictionaries
-        detections = []
-        for card in readed_cards:
-            detection = {
-                'template_name': card.template_name,
-                'match_score': card.match_score,
-                'bounding_rect': card.bounding_rect,
-                'center': card.center,
-                'scale': card.scale
-            }
-            detections.append(detection)
-
-        # Use the extracted drawing function
-        return draw_detections(
-            image=image,
-            detections=detections,
-            color=(0, 255, 0),
-            thickness=2,
-            font_scale=0.6,
-            show_scale=True
-        )
