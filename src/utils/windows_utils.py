@@ -112,6 +112,8 @@ def capture_screen_region(rect):
 
 
 def get_window_info():
+    import win32gui
+
     """Get info about all visible, non-minimized windows"""
     window_info = []
 
