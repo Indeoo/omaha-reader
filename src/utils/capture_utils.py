@@ -3,16 +3,9 @@ from datetime import datetime
 from typing import List, Dict, Any, Tuple
 import ctypes
 
-from PIL import ImageGrab
+from PIL import ImageGrab, Image
 
 from src.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
-
-
-# Try to enable DPI awareness
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(1)
-except:
-    ctypes.windll.user32.SetProcessDPIAware()
 
 
 def _capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[
@@ -57,7 +50,7 @@ def _capture_windows(log_mode: str = "none", log_file_path: str = None, timestam
         # Get all window info
         original_windows_info = get_window_info()
         windows = [w for w in original_windows_info if "Pot Limit Omaha" in w['title']]
-        
+
         log_message(f"Found {len(windows)} windows to capture")
 
         # List to store all captured images with their metadata
@@ -205,9 +198,86 @@ def _save_windows(
             log_file.close()
 
 
+def _load_images_from_folder(timestamp_folder: str) -> List[Dict[str, Any]]:
+    """
+    Load all images from a timestamp folder
+
+    Args:
+        timestamp_folder: Path to the folder containing images
+
+    Returns:
+        List of captured image dictionaries
+    """
+    captured_images = []
+
+    if not os.path.exists(timestamp_folder):
+        print(f"❌ Debug folder not found: {timestamp_folder}")
+        return captured_images
+
+    # Get all image files in the folder
+    image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.tiff')
+    image_files = [f for f in os.listdir(timestamp_folder)
+                   if f.lower().endswith(image_extensions)]
+
+    print(f"🔍 Loading {len(image_files)} images from debug folder: {timestamp_folder}")
+
+    for filename in sorted(image_files):
+        try:
+            filepath = os.path.join(timestamp_folder, filename)
+            image = Image.open(filepath)
+
+            # Extract window name from filename (remove extension and number prefix)
+            window_name = filename
+            if '_' in filename:
+                parts = filename.split('_', 2)
+                if len(parts) >= 3:
+                    window_name = parts[2].replace('.png', '').replace('_', ' ')
+
+            captured_images.append({
+                'image': image,
+                'filename': filename,
+                'description': f"Loaded from debug folder",
+                'window_name': window_name
+            })
+            print(f"  ✓ Loaded: {filename}")
+
+        except Exception as e:
+            print(f"  ❌ Failed to load {filename}: {str(e)}")
+
+    return captured_images
+
+
 def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None,
-                             save_windows=True) -> List[Dict[str, Any]]:
-    # Capture windows with the timestamp
+                             save_windows=True, debug=False) -> List[Dict[str, Any]]:
+    """
+    Capture and save windows, or load images from folder in debug mode
+
+    Args:
+        log_mode: Logging mode - "none", "console", or "file"
+        log_file_path: Custom path for log file
+        timestamp_folder: Path to timestamp folder
+        save_windows: Whether to save captured windows to disk
+        debug: If True, load images from timestamp_folder instead of capturing
+
+    Returns:
+        List of captured/loaded image dictionaries
+    """
+    if debug:
+        # Debug mode: load images from existing folder
+        captured_images = _load_images_from_folder(timestamp_folder)
+        if captured_images:
+            print(f"✅ Loaded {len(captured_images)} images from debug folder")
+        else:
+            print("❌ No images loaded from debug folder")
+        return captured_images
+
+    # Try to enable DPI awareness
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    except:
+        ctypes.windll.user32.SetProcessDPIAware()
+
+    # Normal mode: capture windows
     captured_images, windows = _capture_windows(log_mode=log_mode, log_file_path=log_file_path,
                                                 timestamp_folder=timestamp_folder)
 
@@ -223,9 +293,9 @@ def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, 
             log_file_path=log_file_path
         )
 
-    if save_windows:
-        print(f"✅ Captured and saved {len(captured_images)} images")
-    else:
-        print(f"✅ Captured {len(captured_images)} images")
+    # if save_windows:
+    #     print(f"✅ Captured and saved {len(captured_images)} images")
+    # else:
+    #     print(f"✅ Captured {len(captured_images)} images")
 
     return captured_images
