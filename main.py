@@ -10,8 +10,8 @@ from datetime import datetime
 from src.utils.capture_utils import capture_and_save_windows
 from src.utils.detect_utils import detect_cards_single, detect_positions_single, save_detection_result_image
 from src.utils.opencv_utils import load_templates
-from src.utils.result_utils import write_detection_results, print_detection_results, write_position_results, \
-    print_position_results
+from src.utils.result_utils import write_detection_result, print_detection_result, write_position_result, \
+    print_position_result
 
 WAIT_TIME = 20
 
@@ -35,41 +35,54 @@ if __name__ == "__main__":
                 captured_images = capture_and_save_windows(timestamp_folder=timestamp_folder, save_windows=False,
                                                            debug=True)
 
-                # Process each captured image individually
-                detected_hands = []
-                position_results = []
+                print(f"\n🔄 Processing {len(captured_images)} captured images...")
+                print("=" * 60)
 
+                # Process each captured image individually
                 for i, captured_item in enumerate(captured_images):
+                    window_name = captured_item['window_name']
+                    filename = captured_item['filename']
+
+                    print(f"\n📷 Processing image {i + 1}/{len(captured_images)}: {window_name}")
+                    print("-" * 40)
+
                     # Detect cards for single image
                     card_result = detect_cards_single(captured_item, i, player_templates, table_templates)
-                    if card_result:  # Only add if cards were detected
-                        detected_hands.append(card_result)
 
                     # Detect positions for single image (skip full screen)
-                    if captured_item['window_name'] != 'full_screen':
+                    position_result = None
+                    if window_name != 'full_screen':
                         position_result = detect_positions_single(captured_item, i, position_templates)
-                        position_results.append(position_result)
+
+                    # Generate timestamp for this specific image
+                    image_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # Include milliseconds
+
+                    # Write and print detection results for this image
+                    if card_result:
+                        detection_filename = f"detection_{image_timestamp}.txt"
+                        write_detection_result(card_result, timestamp_folder, detection_filename)
+                        print_detection_result(card_result)
+                    else:
+                        print(f"  🃏 No cards detected")
+
+                    # Write and print position results for this image
+                    if position_result:
+                        position_filename = f"positions_{image_timestamp}.txt"
+                        write_position_result(position_result, timestamp_folder, position_filename)
+                        print_position_result(position_result)
+                    elif window_name != 'full_screen':
+                        print(f"  🎯 No positions detected")
 
                     # Save result image with both cards and positions drawn
-                    # Find matching results for this specific image
-                    matching_card_result = next((h for h in detected_hands if h['image_index'] == i), None)
-                    matching_position_result = next((p for p in position_results if p['image_index'] == i), None)
-
                     save_detection_result_image(
                         timestamp_folder,
                         captured_item,
-                        matching_card_result,
-                        matching_position_result
+                        card_result,
+                        position_result
                     )
 
-                # Write and print card results
-                write_detection_results(detected_hands, timestamp_folder)
-                print_detection_results(detected_hands)
-
-                # Write and print position results
-                write_position_results(position_results, timestamp_folder)
-                print_position_results(position_results)
-
+                print("\n" + "=" * 60)
+                print(f"✅ Processing complete. Results saved to: {timestamp_folder}")
                 print(f"\nSleep for {WAIT_TIME} seconds...")
                 time.sleep(WAIT_TIME)
         except KeyboardInterrupt:
