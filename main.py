@@ -24,8 +24,6 @@ def process_captured_image():
     card_result = detect_cards_single(captured_item, i, player_templates, table_templates)
     # Detect positions for single image (skip full screen)
 
-    position_filename = f"detection{filename}.txt"
-
     position_result = None
     if window_name != 'full_screen':
         position_result = detect_positions_single(captured_item, i, position_templates)
@@ -40,7 +38,8 @@ def process_captured_image():
     elif window_name != 'full_screen':
         print(f"  🎯 No positions detected")
 
-    write_combined_result(card_result, position_result, timestamp_folder, position_filename)
+    filename = f"detection_{filename}.txt"
+    write_combined_result(card_result, position_result, timestamp_folder, filename)
 
     # Save result image with both cards and positions drawn
     save_detection_result_image(
