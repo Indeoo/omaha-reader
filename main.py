@@ -54,12 +54,9 @@ if __name__ == "__main__":
                     if window_name != 'full_screen':
                         position_result = detect_positions_single(captured_item, i, position_templates)
 
-                    # Generate timestamp for this specific image
-                    image_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]  # Include milliseconds
-
                     # Write and print detection results for this image
                     if card_result:
-                        detection_filename = f"detection_{image_timestamp}.txt"
+                        detection_filename = f"detection_{filename}.txt"
                         write_detection_result(card_result, timestamp_folder, detection_filename)
                         print_detection_result(card_result)
                     else:
@@ -67,7 +64,7 @@ if __name__ == "__main__":
 
                     # Write and print position results for this image
                     if position_result:
-                        position_filename = f"positions_{image_timestamp}.txt"
+                        position_filename = f"positions_{filename}.txt"
                         write_position_result(position_result, timestamp_folder, position_filename)
                         print_position_result(position_result)
                     elif window_name != 'full_screen':
