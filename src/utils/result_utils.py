@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-from typing import List
+from typing import List, Dict
 
 from src.domain.readed_card import ReadedCard
 
@@ -116,3 +116,73 @@ def print_detection_results(detected_hands: List[dict]):
 
     except Exception as e:
         print(f"❌ Error printing detection results: {str(e)}")
+
+
+def write_position_results(position_results: List[Dict], timestamp_folder: str):
+    """
+    Write position detection results to positions.txt in the timestamp folder
+
+    Args:
+        position_results: List of dicts with window names and detected positions
+        timestamp_folder: Path to the timestamp folder where positions.txt should be saved
+    """
+    positions_file_path = os.path.join(timestamp_folder, "positions.txt")
+
+    try:
+        with open(positions_file_path, 'w', encoding='utf-8') as f:
+            f.write(f"Position Detection Results - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("=" * 60 + "\n\n")
+
+            if position_results:
+                f.write(f"🎯 DETECTED POSITIONS ({len(position_results)} windows):\n")
+                f.write("-" * 30 + "\n")
+
+                for result in position_results:
+                    window_name = result['window_name']
+                    positions = result['positions']
+
+                    if positions:
+                        position_names = ", ".join([p.position_name for p in positions])
+                        f.write(f"{window_name}: {position_names}\n")
+
+                        # Write detailed info
+                        f.write("  Details:\n")
+                        for pos in positions:
+                            f.write(f"    - {pos.position_name}: center={pos.center}, score={pos.match_score:.3f}\n")
+                    else:
+                        f.write(f"{window_name}: No positions detected\n")
+
+                    f.write("\n")
+            else:
+                f.write("No positions detected in any window.\n")
+
+            f.write("\n" + "=" * 60 + "\n")
+
+    except Exception as e:
+        print(f"❌ Error writing position results: {str(e)}")
+
+
+def print_position_results(position_results: List[Dict]):
+    """
+    Print position detection results to console
+
+    Args:
+        position_results: List of dicts with window names and detected positions
+    """
+    print("\n🎯 PLAYER POSITIONS:")
+    print("-" * 30)
+
+    if position_results:
+        for result in position_results:
+            window_name = result['window_name']
+            positions = result['positions']
+
+            if positions:
+                position_names = ", ".join([p.position_name for p in positions])
+                print(f"{window_name}: {position_names}")
+            else:
+                print(f"{window_name}: No positions detected")
+    else:
+        print("No positions detected in any window.")
+
+    print("-" * 30)
