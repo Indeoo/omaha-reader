@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Optional
 
 import numpy as np
 import cv2
@@ -8,161 +8,170 @@ from src.omaha_card_reader import OmahaCardReader
 from src.utils.opencv_utils import pil_to_cv2, save_opencv_image
 from src.utils.template_matching_utils import draw_detected_cards
 
+# Initialize readers as module-level variables to avoid recreating them
+_player_card_reader = None
+_table_card_reader = None
+_position_reader = None
 
-def detect_cards(captured_images, player_templates, table_templates):
+
+def _get_card_readers(player_templates, table_templates):
+    """Get or create card readers (singleton pattern)"""
+    global _player_card_reader, _table_card_reader
+
+    if _player_card_reader is None:
+        _player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
+    if _table_card_reader is None:
+        _table_card_reader = OmahaCardReader(table_templates, None)  # No search region for table cards
+
+    return _player_card_reader, _table_card_reader
+
+
+def _get_position_reader(position_templates):
+    """Get or create position reader (singleton pattern)"""
+    global _position_reader
+
+    if _position_reader is None:
+        from src.player_position_reader import PlayerPositionReader
+        _position_reader = PlayerPositionReader(position_templates)
+
+    return _position_reader
+
+
+def detect_cards_single(captured_item: Dict, image_index: int, player_templates: Dict, table_templates: Dict) -> \
+Optional[Dict]:
     """
-    Detect cards in captured images and return results only
+    Detect cards in a single captured image
 
     Args:
-        captured_images: List of captured image dictionaries
+        captured_item: Single captured image dictionary
+        image_index: Index of the image in the capture sequence
         player_templates: Dictionary of player card templates
         table_templates: Dictionary of table card templates
 
     Returns:
-        List of detected card results
+        Dictionary with detected card results, or None if no cards detected
     """
-    player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
-    table_card_reader = OmahaCardReader(table_templates, None)  # No search region for table cards
+    player_card_reader, table_card_reader = _get_card_readers(player_templates, table_templates)
 
-    detected_cards = []
+    window_name = captured_item['window_name']
+    filename = captured_item['filename']
 
-    for i, captured_item in enumerate(captured_images):
-        window_name = captured_item['window_name']
-        filename = captured_item['filename']
+    try:
+        cv2_image = pil_to_cv2(captured_item['image'])
 
-        try:
-            cv2_image = pil_to_cv2(captured_item['image'])
+        # Read cards
+        player_cards = player_card_reader.read(cv2_image)
+        table_cards = table_card_reader.read(cv2_image)
 
-            # Read cards
-            player_cards = player_card_reader.read(cv2_image)
-            table_cards = table_card_reader.read(cv2_image)
+        # Return results if any cards detected
+        if player_cards or table_cards:
+            return {
+                'window_name': window_name,
+                'filename': filename,
+                'image_index': image_index,
+                'player_cards_raw': player_cards,
+                'table_cards_raw': table_cards
+            }
+        return None
 
-            # Add to results if any cards detected - use index and filename for unique identification
-            if player_cards or table_cards:
-                detected_cards.append({
-                    'window_name': window_name,
-                    'filename': filename,  # Add filename for unique matching
-                    'image_index': i,  # Add index for unique matching
-                    'player_cards_raw': player_cards,
-                    'table_cards_raw': table_cards
-                })
-
-        except Exception as e:
-            print(f"    ❌ Error processing {window_name}: {str(e)}")
-
-    return detected_cards
+    except Exception as e:
+        print(f"    ❌ Error processing {window_name}: {str(e)}")
+        return None
 
 
-def detect_positions(captured_images, position_templates):
+def detect_positions_single(captured_item: Dict, image_index: int, position_templates: Dict) -> Dict:
     """
-    Detect player positions in captured images and return results only
+    Detect player positions in a single captured image
 
     Args:
-        captured_images: List of captured image dictionaries
+        captured_item: Single captured image dictionary
+        image_index: Index of the image in the capture sequence
         position_templates: Dictionary of position templates
 
     Returns:
-        List of position results
+        Dictionary with position results
     """
-    from src.player_position_reader import PlayerPositionReader
+    position_reader = _get_position_reader(position_templates)
 
-    position_reader = PlayerPositionReader(position_templates)
-    position_results = []
+    window_name = captured_item['window_name']
+    filename = captured_item['filename']
 
-    for i, captured_item in enumerate(captured_images):
-        window_name = captured_item['window_name']
-        filename = captured_item['filename']
+    try:
+        cv2_image = pil_to_cv2(captured_item['image'])
 
-        # Skip full screen capture for position detection
-        if window_name == 'full_screen':
-            continue
+        # Detect positions
+        detected_positions = position_reader.read(cv2_image)
 
-        try:
-            cv2_image = pil_to_cv2(captured_item['image'])
+        return {
+            'window_name': window_name,
+            'filename': filename,
+            'image_index': image_index,
+            'positions': detected_positions
+        }
 
-            # Detect positions
-            detected_positions = position_reader.read(cv2_image)
-
-            position_results.append({
-                'window_name': window_name,
-                'filename': filename,  # Add filename for unique matching
-                'image_index': i,  # Add index for unique matching
-                'positions': detected_positions
-            })
-
-        except Exception as e:
-            print(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
-            position_results.append({
-                'window_name': window_name,
-                'filename': filename,
-                'image_index': i,
-                'positions': []
-            })
-
-    return position_results
+    except Exception as e:
+        print(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
+        return {
+            'window_name': window_name,
+            'filename': filename,
+            'image_index': image_index,
+            'positions': []
+        }
 
 
-def save_detection_results_images(timestamp_folder, captured_images, detected_cards, position_results):
+def save_detection_result_image(timestamp_folder: str, captured_item: Dict,
+                                card_result: Optional[Dict], position_result: Optional[Dict]):
     """
-    Draw and save result images with both detected cards and positions
+    Draw and save result image for a single captured image with detected cards and positions
 
     Args:
         timestamp_folder: Folder to save result images
-        captured_images: List of captured image dictionaries
-        detected_cards: List of detected card results
-        position_results: List of position results
+        captured_item: Single captured image dictionary
+        card_result: Detected card results for this image (can be None)
+        position_result: Position results for this image (can be None)
     """
-    # Create lookup dictionaries using filename for unique identification
-    cards_lookup = {item['filename']: item for item in detected_cards}
-    positions_lookup = {item['filename']: item for item in position_results}
+    window_name = captured_item['window_name']
+    filename = captured_item['filename']
 
-    for captured_item in captured_images:
-        window_name = captured_item['window_name']
-        filename = captured_item['filename']
+    try:
+        cv2_image = pil_to_cv2(captured_item['image'])
+        result_image = cv2_image.copy()
 
-        try:
-            cv2_image = pil_to_cv2(captured_item['image'])
-            result_image = cv2_image.copy()
+        # Track what we're drawing for debugging
+        drawn_items = []
 
-            # Track what we're drawing for debugging
-            drawn_items = []
+        # Draw cards if any detected
+        if card_result:
+            player_cards = card_result.get('player_cards_raw', [])
+            table_cards = card_result.get('table_cards_raw', [])
 
-            # Draw cards if any detected for this specific file
-            if filename in cards_lookup:
-                card_data = cards_lookup[filename]
-                player_cards = card_data.get('player_cards_raw', [])
-                table_cards = card_data.get('table_cards_raw', [])
+            if player_cards:
+                result_image = draw_cards(result_image, player_cards, color=(0, 255, 0))  # Green for player cards
+                drawn_items.append(f"{len(player_cards)} player cards")
 
-                if player_cards:
-                    result_image = draw_cards(result_image, player_cards, color=(0, 255, 0))  # Green for player cards
-                    drawn_items.append(f"{len(player_cards)} player cards")
+            if table_cards:
+                result_image = draw_cards(result_image, table_cards,
+                                          color=(0, 0, 255))  # Red for table cards (BGR format)
+                drawn_items.append(f"{len(table_cards)} table cards")
 
-                if table_cards:
-                    result_image = draw_cards(result_image, table_cards,
-                                              color=(0, 0, 255))  # Red for table cards (BGR format)
-                    drawn_items.append(f"{len(table_cards)} table cards")
+        # Draw positions if any detected
+        if position_result and position_result.get('positions'):
+            positions = position_result['positions']
+            result_image = draw_detected_positions(result_image, positions)
+            drawn_items.append(f"{len(positions)} positions")
 
-            # Draw positions if any detected for this specific file
-            if filename in positions_lookup:
-                position_data = positions_lookup[filename]
-                positions = position_data.get('positions', [])
+        # Save result image
+        result_filename = filename.replace('.png', '_result.png')
+        save_opencv_image(result_image, timestamp_folder, result_filename)
 
-                if positions:
-                    result_image = draw_detected_positions(result_image, positions)
-                    drawn_items.append(f"{len(positions)} positions")
+        # Debug output
+        if drawn_items:
+            print(f"    📷 Saved {result_filename} with: {', '.join(drawn_items)}")
+        else:
+            print(f"    📷 Saved {result_filename} (no detections)")
 
-            # Save result image
-            result_filename = filename.replace('.png', '_result.png')
-            save_opencv_image(result_image, timestamp_folder, result_filename)
-
-            # Debug output
-            if drawn_items:
-                print(f"    📷 Saved {result_filename} with: {', '.join(drawn_items)}")
-            else:
-                print(f"    📷 Saved {result_filename} (no detections)")
-
-        except Exception as e:
-            print(f"    ❌ Error saving result image for {window_name}: {str(e)}")
+    except Exception as e:
+        print(f"    ❌ Error saving result image for {window_name}: {str(e)}")
 
 
 def draw_detected_positions(image, positions):
