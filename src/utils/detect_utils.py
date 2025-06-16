@@ -1,6 +1,7 @@
 from typing import List
 
 import numpy as np
+import cv2
 
 from src.domain.readed_card import ReadedCard
 from src.omaha_card_reader import OmahaCardReader
@@ -8,7 +9,18 @@ from src.utils.opencv_utils import pil_to_cv2, save_opencv_image
 from src.utils.template_matching_utils import draw_detected_cards
 
 
-def detect_cards(timestamp_folder, captured_images, player_templates, table_templates):
+def detect_cards(captured_images, player_templates, table_templates):
+    """
+    Detect cards in captured images and return results only
+
+    Args:
+        captured_images: List of captured image dictionaries
+        player_templates: Dictionary of player card templates
+        table_templates: Dictionary of table card templates
+
+    Returns:
+        List of detected card results
+    """
     player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
     table_card_reader = OmahaCardReader(table_templates, None)  # No search region for table cards
 
@@ -16,7 +28,6 @@ def detect_cards(timestamp_folder, captured_images, player_templates, table_temp
 
     for captured_item in captured_images:
         window_name = captured_item['window_name']
-        filename = captured_item['filename']
 
         try:
             cv2_image = pil_to_cv2(captured_item['image'])
@@ -24,11 +35,6 @@ def detect_cards(timestamp_folder, captured_images, player_templates, table_temp
             # Read cards
             player_cards = player_card_reader.read(cv2_image)
             table_cards = table_card_reader.read(cv2_image)
-
-            # Save result image with detected cards
-            result_image = draw_cards(cv2_image.copy(), player_cards)
-            result_image = draw_cards(result_image, table_cards)
-            save_opencv_image(result_image, timestamp_folder, filename.replace('.png', '_result.png'))
 
             # Add to results if any cards detected
             if player_cards or table_cards:
@@ -44,12 +50,11 @@ def detect_cards(timestamp_folder, captured_images, player_templates, table_temp
     return detected_cards
 
 
-def detect_positions(timestamp_folder, captured_images, position_templates):
+def detect_positions(captured_images, position_templates):
     """
-    Detect player positions in captured images
+    Detect player positions in captured images and return results only
 
     Args:
-        timestamp_folder: Folder to save results
         captured_images: List of captured image dictionaries
         position_templates: Dictionary of position templates
 
@@ -79,12 +84,6 @@ def detect_positions(timestamp_folder, captured_images, position_templates):
                 'positions': detected_positions
             })
 
-            # Optional: Save result image with detected positions
-            if detected_positions and timestamp_folder:
-                result_image = draw_detected_positions(cv2_image.copy(), detected_positions)
-                filename = captured_item['filename'].replace('.png', '_positions.png')
-                save_opencv_image(result_image, timestamp_folder, filename)
-
         except Exception as e:
             print(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
             position_results.append({
@@ -93,6 +92,55 @@ def detect_positions(timestamp_folder, captured_images, position_templates):
             })
 
     return position_results
+
+
+def save_detection_results_images(timestamp_folder, captured_images, detected_cards, position_results):
+    """
+    Draw and save result images with both detected cards and positions
+
+    Args:
+        timestamp_folder: Folder to save result images
+        captured_images: List of captured image dictionaries
+        detected_cards: List of detected card results
+        position_results: List of position results
+    """
+    # Create lookup dictionaries for quick access
+    cards_lookup = {item['window_name']: item for item in detected_cards}
+    positions_lookup = {item['window_name']: item for item in position_results}
+
+    for captured_item in captured_images:
+        window_name = captured_item['window_name']
+        filename = captured_item['filename']
+
+        try:
+            cv2_image = pil_to_cv2(captured_item['image'])
+            result_image = cv2_image.copy()
+
+            # Draw cards if any detected for this window
+            if window_name in cards_lookup:
+                card_data = cards_lookup[window_name]
+                player_cards = card_data.get('player_cards_raw', [])
+                table_cards = card_data.get('table_cards_raw', [])
+
+                if player_cards:
+                    result_image = draw_cards(result_image, player_cards, color=(0, 255, 0))  # Green for player cards
+                if table_cards:
+                    result_image = draw_cards(result_image, table_cards, color=(255, 0, 0))  # Blue for table cards
+
+            # Draw positions if any detected for this window
+            if window_name in positions_lookup:
+                position_data = positions_lookup[window_name]
+                positions = position_data.get('positions', [])
+
+                if positions:
+                    result_image = draw_detected_positions(result_image, positions)
+
+            # Save result image
+            result_filename = filename.replace('.png', '_result.png')
+            save_opencv_image(result_image, timestamp_folder, result_filename)
+
+        except Exception as e:
+            print(f"    ❌ Error saving result image for {window_name}: {str(e)}")
 
 
 def draw_detected_positions(image, positions):
@@ -106,8 +154,6 @@ def draw_detected_positions(image, positions):
     Returns:
         Image with drawn positions
     """
-    import cv2
-
     result = image.copy()
 
     for pos in positions:
@@ -127,35 +173,36 @@ def draw_detected_positions(image, positions):
     return result
 
 
-def draw_cards(image: np.ndarray, readed_cards: List[ReadedCard]) -> np.ndarray:
-        """
-        Draw detected cards on the image
+def draw_cards(image: np.ndarray, readed_cards: List[ReadedCard], color=(0, 255, 0)) -> np.ndarray:
+    """
+    Draw detected cards on the image
 
-        Args:
-            image: Input image
-            readed_cards: List of ReadedCard objects
+    Args:
+        image: Input image
+        readed_cards: List of ReadedCard objects
+        color: BGR color tuple for drawing cards
 
-        Returns:
-            Image with drawn detections
-        """
-        # Convert ReadedCard objects back to detection dictionaries
-        detections = []
-        for card in readed_cards:
-            detection = {
-                'template_name': card.template_name,
-                'match_score': card.match_score,
-                'bounding_rect': card.bounding_rect,
-                'center': card.center,
-                'scale': card.scale
-            }
-            detections.append(detection)
+    Returns:
+        Image with drawn detections
+    """
+    # Convert ReadedCard objects back to detection dictionaries
+    detections = []
+    for card in readed_cards:
+        detection = {
+            'template_name': card.template_name,
+            'match_score': card.match_score,
+            'bounding_rect': card.bounding_rect,
+            'center': card.center,
+            'scale': card.scale
+        }
+        detections.append(detection)
 
-        # Use the extracted drawing function
-        return draw_detected_cards(
-            image=image,
-            detections=detections,
-            color=(0, 255, 0),
-            thickness=2,
-            font_scale=0.6,
-            show_scale=True
-        )
+    # Use the extracted drawing function
+    return draw_detected_cards(
+        image=image,
+        detections=detections,
+        color=color,
+        thickness=2,
+        font_scale=0.6,
+        show_scale=True
+    )

@@ -33,7 +33,7 @@ if __name__ == "__main__":
                 captured_images = capture_and_save_windows(timestamp_folder=timestamp_folder, save_windows=False, debug=True)
 
                 # Single unified call to detect_cards with both template sets
-                detected_hands = detect_cards(timestamp_folder, captured_images, player_templates, table_templates)
+                detected_hands = detect_cards(captured_images, player_templates, table_templates)
 
                 # Write and print results using the unified detected_hands
                 #write_detection_results(detected_hands, timestamp_folder)
