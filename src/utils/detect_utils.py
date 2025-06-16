@@ -14,7 +14,6 @@ def detect_cards(captured_images, player_templates, table_templates):
     Detect cards in captured images and return results only
 
     Args:
-        timestamp_folder: Folder path (not used in this function anymore)
         captured_images: List of captured image dictionaries
         player_templates: Dictionary of player card templates
         table_templates: Dictionary of table card templates
@@ -59,7 +58,6 @@ def detect_positions(captured_images, position_templates):
     Detect player positions in captured images and return results only
 
     Args:
-        timestamp_folder: Folder path (not used in this function anymore)
         captured_images: List of captured image dictionaries
         position_templates: Dictionary of position templates
 
