@@ -2,15 +2,15 @@ import ctypes
 from datetime import datetime
 import os
 
-import win32gui
-import win32process
-import win32con
-import win32ui
-
 from PIL import Image, ImageGrab
 
 
 def careful_capture_window(hwnd, width, height):
+    import win32gui
+    import win32process
+    import win32con
+    import win32ui
+
     """Carefully capture a window using PrintWindow API with proper resource handling"""
     try:
         # Make sure dimensions are valid
@@ -179,7 +179,7 @@ def write_windows_list(windows, output_folder):
 
             f.write(f"\nTotal windows: {len(windows)}\n")
 
-        print(f"Window list written to: {windows_file_path}")
+        #print(f"Window list written to: {windows_file_path}")
 
     except Exception as e:
         print(f"Error writing windows list: {e}")
