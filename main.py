@@ -10,8 +10,7 @@ from datetime import datetime
 from src.utils.capture_utils import capture_and_save_windows
 from src.utils.detect_utils import detect_cards_single, detect_positions_single, save_detection_result_image
 from src.utils.opencv_utils import load_templates
-from src.utils.result_utils import write_detection_result, print_detection_result, write_position_result, \
-    print_position_result
+from src.utils.result_utils import print_detection_result, print_position_result, write_combined_result
 
 WAIT_TIME = 20
 
@@ -24,23 +23,25 @@ def process_captured_image():
     # Detect cards for single image
     card_result = detect_cards_single(captured_item, i, player_templates, table_templates)
     # Detect positions for single image (skip full screen)
+
+    position_filename = f"detection{filename}.txt"
+
     position_result = None
     if window_name != 'full_screen':
         position_result = detect_positions_single(captured_item, i, position_templates)
     # Write and print detection results for this image
     if card_result:
-        detection_filename = f"detection_{filename}.txt"
-        write_detection_result(card_result, timestamp_folder, detection_filename)
         print_detection_result(card_result)
     else:
         print(f"  🃏 No cards detected")
     # Write and print position results for this image
     if position_result:
-        position_filename = f"positions_{filename}.txt"
-        write_position_result(position_result, timestamp_folder, position_filename)
         print_position_result(position_result)
     elif window_name != 'full_screen':
         print(f"  🎯 No positions detected")
+
+    write_combined_result(card_result, position_result, timestamp_folder, position_filename)
+
     # Save result image with both cards and positions drawn
     save_detection_result_image(
         timestamp_folder,
