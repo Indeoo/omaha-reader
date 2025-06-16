@@ -1,4 +1,4 @@
-from src.player_card_reader import OmahaCardReader
+from src.omaha_card_reader import OmahaCardReader
 from src.utils.opencv_utils import pil_to_cv2, save_opencv_image
 
 
