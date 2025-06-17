@@ -29,7 +29,7 @@ latest_results = {
 
 # Configuration
 WAIT_TIME = 20
-DEBUG_MODE = False  # Set to False for live capture
+DEBUG_MODE = True  # Set to False for live capture
 
 # Templates (loaded once)
 player_templates = None
@@ -232,45 +232,47 @@ def create_templates_folder():
             align-items: center;
         }
 
+        .cards-block {
+            display: flex;
+            gap: 3px;
+            background-color: #3a3a3a;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .cards-block:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            background-color: #4a4a4a;
+        }
+
         .card {
             background-color: #f0f0f0;
             color: #000;
             padding: 15px 20px;
-            border-radius: 8px;
+            border-radius: 6px;
             font-size: 24px;
             font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
             position: relative;
-        }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            background-color: #fff;
         }
 
         .card.red {
             color: #d32f2f;
         }
 
+        .card.blue {
+            color: #1976d2;
+        }
+
+        .card.green {
+            color: #1b5e20;
+        }
+
         .card.black {
             color: #000;
-        }
-
-        .copy-string {
-            font-size: 14px;
-            color: #666;
-            cursor: pointer;
-            padding: 5px 10px;
-            background-color: #3a3a3a;
-            border-radius: 4px;
-            transition: background-color 0.2s ease;
-        }
-
-        .copy-string:hover {
-            background-color: #4a4a4a;
         }
 
         .no-cards {
@@ -356,7 +358,10 @@ def create_templates_folder():
 
         function getSuitColor(card) {
             const suit = card.slice(-1);
-            return (suit === '♥' || suit === '♦') ? 'red' : 'black';
+            if (suit === '♥') return 'red';
+            if (suit === '♦') return 'blue';
+            if (suit === '♣') return 'green';
+            return 'black'; // spades
         }
 
         function renderCards(detections) {
@@ -379,11 +384,12 @@ def create_templates_folder():
                 `;
 
                 if (detection.player_cards && detection.player_cards.length > 0) {
+                    html += `<div class="cards-block" onclick="copyToClipboard('${detection.player_cards_string}')">`;
                     detection.player_cards.forEach(card => {
                         const colorClass = getSuitColor(card.display);
-                        html += `<div class="card ${colorClass}" onclick="copyToClipboard('${card.name}')">${card.display}</div>`;
+                        html += `<div class="card ${colorClass}">${card.display}</div>`;
                     });
-                    html += `<div class="copy-string" onclick="copyToClipboard('${detection.player_cards_string}')">[${detection.player_cards_string}]</div>`;
+                    html += `</div>`;
                 } else {
                     html += '<div class="no-cards">No cards detected</div>';
                 }
@@ -398,11 +404,12 @@ def create_templates_folder():
                 `;
 
                 if (detection.table_cards && detection.table_cards.length > 0) {
+                    html += `<div class="cards-block" onclick="copyToClipboard('${detection.table_cards_string}')">`;
                     detection.table_cards.forEach(card => {
                         const colorClass = getSuitColor(card.display);
-                        html += `<div class="card ${colorClass}" onclick="copyToClipboard('${card.name}')">${card.display}</div>`;
+                        html += `<div class="card ${colorClass}">${card.display}</div>`;
                     });
-                    html += `<div class="copy-string" onclick="copyToClipboard('${detection.table_cards_string}')">[${detection.table_cards_string}]</div>`;
+                    html += `</div>`;
                 } else {
                     html += '<div class="no-cards">No cards detected</div>';
                 }
@@ -481,7 +488,7 @@ if __name__ == "__main__":
         worker_thread.start()
 
         print(f"\n✅ Web server starting...")
-        print(f"📍 Open http://localhost:5000 in your browser")
+        print(f"📍 Open http://localhost:5001 in your browser")
         print(f"🔄 Auto-refresh every {WAIT_TIME} seconds")
         print(f"📋 Click any card to copy to clipboard")
         print(f"🐛 Debug mode: {'ON' if DEBUG_MODE else 'OFF'}")
