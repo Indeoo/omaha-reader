@@ -5,7 +5,6 @@ Shows detected cards on a web page with auto-refresh every 20 seconds.
 Cards can be copied to clipboard by clicking.
 """
 import os
-import json
 import threading
 import time
 from datetime import datetime
@@ -13,7 +12,7 @@ from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 
 from src.utils.capture_utils import capture_and_save_windows
-from src.utils.detect_utils import detect_cards_single, detect_positions_single
+from src.utils.detect_utils import detect_cards_single
 from src.utils.opencv_utils import load_templates
 from src.domain.readed_card import ReadedCard
 
@@ -331,11 +330,11 @@ def create_templates_folder():
         </div>
     </div>
 
-    <div class="refresh-timer" id="refreshTimer">Next update in: <span id="countdown">20</span>s</div>
+    <div class="refresh-timer" id="refreshTimer">Next update in: <span id="countdown">10</span>s</div>
     <div class="toast" id="toast">Copied to clipboard!</div>
 
     <script>
-        let countdown = 20;
+        let countdown = 10;
         let countdownInterval;
 
         function copyToClipboard(text) {

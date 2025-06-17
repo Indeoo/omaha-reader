@@ -215,7 +215,7 @@ def _load_images_from_folder(timestamp_folder: str) -> List[Dict[str, Any]]:
         return captured_images
 
     # Get all image files in the folder
-    image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.tiff')
+    image_extensions = ('.png')
     image_files = [f for f in os.listdir(timestamp_folder)
                    if f.lower().endswith(image_extensions)]
 
