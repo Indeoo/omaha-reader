@@ -26,7 +26,7 @@ latest_results = {
 }
 
 # Configuration
-WAIT_TIME = 10
+WAIT_TIME = 5
 DEBUG_MODE = False  # Set to False for live capture
 
 # Templates (loaded once)
@@ -49,7 +49,7 @@ def detection_worker():
             else:
                 # Live mode - create new folder
                 timestamp_folder = os.path.join(os.getcwd(), f"Dropbox/data_screenshots/{session_timestamp}")
-                os.makedirs(timestamp_folder, exist_ok=True)
+                #os.makedirs(timestamp_folder, exist_ok=True)
 
             # Capture windows
             captured_images = capture_and_save_windows(
@@ -58,27 +58,30 @@ def detection_worker():
                 debug=DEBUG_MODE
             )
 
-            # Process all captured images using shared function
-            processed_results = process_captured_images(
-                captured_images=captured_images,
-                player_templates=player_templates,
-                table_templates=table_templates,
-                position_templates=None,  # Web version doesn't need positions
-                detect_positions=False,
-                timestamp_folder=timestamp_folder
-            )
+            if len(captured_images) > 1:
+                # Process all captured images using shared function
+                processed_results = process_captured_images(
+                    captured_images=captured_images,
+                    player_templates=player_templates,
+                    table_templates=table_templates,
+                    position_templates=None,  # Web version doesn't need positions
+                    detect_positions=False,
+                    timestamp_folder=timestamp_folder
+                )
 
-            # Format results for web display
-            detections = format_results_for_web(processed_results)
+                # Format results for web display
+                detections = format_results_for_web(processed_results)
 
-            # Update global results
-            latest_results = {
-                'timestamp': session_timestamp,
-                'detections': detections,
-                'last_update': datetime.now().isoformat()
-            }
+                # Update global results
+                latest_results = {
+                    'timestamp': session_timestamp,
+                    'detections': detections,
+                    'last_update': datetime.now().isoformat()
+                }
 
-            print(f"Updated results at {latest_results['last_update']}")
+                print(f"Updated results at {latest_results['last_update']}")
+            else:
+                print("No poker board detected, skip this timestmap")
 
         except Exception as e:
             print(f"Error in detection worker: {str(e)}")

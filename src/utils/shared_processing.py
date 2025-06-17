@@ -2,12 +2,15 @@
 """
 Shared image processing functions for both main.py and main_web3.py
 """
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Callable
+
+from src.utils.benchmark_utils import benchmark
 from src.utils.detect_utils import detect_cards_single, detect_positions_single, save_detection_result_image
 from src.domain.readed_card import ReadedCard
 from src.utils.result_utils import print_detection_result, print_position_result, write_combined_result
 
 
+@benchmark
 def process_captured_images(
         captured_images: List[Dict],
         player_templates: Dict,
