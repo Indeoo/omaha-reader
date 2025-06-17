@@ -142,14 +142,20 @@
             opacity: 1;
         }
 
-        .refresh-timer {
+        .timer-info {
             position: fixed;
             top: 20px;
             right: 20px;
             background-color: #2a2a2a;
             padding: 10px 15px;
             border-radius: 4px;
-            font-size: 14px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .timer-info .countdown {
+            color: #4CAF50;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -162,12 +168,19 @@
         </div>
     </div>
 
-    <div class="refresh-timer" id="refreshTimer">Next update in: <span id="countdown">20</span>s</div>
+    <div class="timer-info" id="timerInfo">
+        <div>Frontend: <span class="countdown" id="frontendCountdown">-</span>s</div>
+        <div>Backend: <span id="backendInfo">-</span>s</div>
+    </div>
     <div class="toast" id="toast">Copied to clipboard!</div>
 
     <script>
-        let countdown = 20;
-        let countdownInterval;
+        let config = {
+            frontend_refresh_interval: 5,
+            backend_capture_interval: 5
+        };
+        let frontendCountdown = 0;
+        let frontendInterval;
 
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
@@ -259,21 +272,39 @@
             const status = document.getElementById('status');
             if (lastUpdate) {
                 const date = new Date(lastUpdate);
-                status.textContent = `Last updated: ${date.toLocaleTimeString()}`;
+                status.textContent = `Last capture: ${date.toLocaleTimeString()}`;
             }
         }
 
-        function startCountdown() {
-            countdown = 10;
-            clearInterval(countdownInterval);
-            countdownInterval = setInterval(() => {
-                countdown--;
-                document.getElementById('countdown').textContent = countdown;
-                if (countdown <= 0) {
-                    clearInterval(countdownInterval);
+        function updateTimerDisplay() {
+            document.getElementById('frontendCountdown').textContent = frontendCountdown;
+            document.getElementById('backendInfo').textContent = `every ${config.backend_capture_interval}`;
+        }
+
+        function startFrontendTimer() {
+            frontendCountdown = config.frontend_refresh_interval;
+            clearInterval(frontendInterval);
+
+            frontendInterval = setInterval(() => {
+                frontendCountdown--;
+                updateTimerDisplay();
+
+                if (frontendCountdown <= 0) {
                     fetchCards();
+                    frontendCountdown = config.frontend_refresh_interval;
                 }
             }, 1000);
+        }
+
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const data = await response.json();
+                config = data;
+                updateTimerDisplay();
+            } catch (error) {
+                console.error('Error loading config:', error);
+            }
         }
 
         async function fetchCards() {
@@ -283,16 +314,20 @@
 
                 updateStatus(data.last_update);
                 renderCards(data.detections);
-                startCountdown();
             } catch (error) {
                 console.error('Error fetching cards:', error);
                 document.getElementById('content').innerHTML = '<div class="error">Error loading data</div>';
-                startCountdown();
             }
         }
 
-        // Initial load
-        fetchCards();
+        // Initial setup
+        async function initialize() {
+            await loadConfig();
+            await fetchCards();
+            startFrontendTimer();
+        }
+
+        initialize();
     </script>
 </body>
 </html>
