@@ -49,7 +49,6 @@ def detection_worker():
             else:
                 # Live mode - create new folder
                 timestamp_folder = os.path.join(os.getcwd(), f"Dropbox/data_screenshots/{session_timestamp}")
-                os.makedirs(timestamp_folder, exist_ok=True)
 
             # Capture windows
             captured_images = capture_and_save_windows(

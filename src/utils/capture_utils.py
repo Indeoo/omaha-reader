@@ -1,6 +1,5 @@
 import os
-from datetime import datetime
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any
 import ctypes
 
 from PIL import ImageGrab, Image
@@ -8,206 +7,91 @@ from PIL import ImageGrab, Image
 from src.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
-def _capture_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None) -> Tuple[
-    List[Dict[str, Any]], List[Dict[str, Any]]]:
-    """
-    Capture windows with configurable logging
+def _capture_windows(windows) -> List[Dict[str, Any]]:
+    print(f"Found {len(windows)} windows to capture")
 
-    Args:
-        log_mode: Logging mode - "none", "console", or "file"
-        log_file_path: Custom path for log file. If None, uses timestamp-based name
+    # List to store all captured images with their metadata
+    captured_images = []
 
-    Returns:
-        Tuple of (captured_images, windows, timestamp_used)
-    """
+    # Capture each window and store in memory
+    for i, window in enumerate(windows, 1):
+        hwnd = window['hwnd']
+        title = window['title']
+        process = window['process']
+        rect = window['rect']
+        width = window['width']
+        height = window['height']
 
-    def log_message(message: str):
-        """Helper function to log messages based on the mode"""
-        if log_mode == "none":
-            return
-        elif log_mode == "file" and log_file:
-            log_file.write(message + '\n')
-            log_file.flush()  # Ensure immediate write
-        elif log_mode == "console":
-            print(message)
+        print(f"Capturing window {i}/{len(windows)}: {title} ({process})")
 
-    # Setup logging file if needed
-    log_file = None
-    if log_mode == "file":
-        if log_file_path is None:
-            log_file_path = f"capture_log_{timestamp_folder}.txt"
+        # Create filename
+        safe_title = "".join([c if c.isalnum() else "_" for c in title])[:50]
+        safe_process = "".join([c if c.isalnum() else "_" for c in process])[:20]
+        filename = f"{i:02d}_{safe_process}_{safe_title}.png"
 
-        try:
-            log_file = open(log_file_path, 'w', encoding='utf-8')
-            log_file.write(f"Window Capture Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            log_file.write("=" * 60 + "\n\n")
-        except Exception as e:
-            print(f"Error opening log file {log_file_path}: {e}")
-            print("Falling back to console logging")
-            log_mode = "console"
+        # First try using PrintWindow method (ignores overlapping)
+        img = careful_capture_window(hwnd, width, height)
+        capture_method = "PrintWindow (no overlap)"
 
-    try:
-        # Get all window info
-        original_windows_info = get_window_info()
-        windows = [w for w in original_windows_info if "Pot Limit Omaha" in w['title']]
+        # If that fails, fall back to screen region capture
+        if img is None:
+            print("  Using fallback method: screen region capture")
+            img = capture_screen_region(rect)
+            capture_method = "Screen region (with overlap)"
 
-        log_message(f"Found {len(windows)} windows to capture")
-
-        # List to store all captured images with their metadata
-        captured_images = []
-
-        # First, capture the full screen
-        try:
-            full_screen = ImageGrab.grab()
+        if img:
             captured_images.append({
-                'image': full_screen,
-                'filename': "full_screen.png",
-                'description': "Full screen",
-                'window_name': 'full_screen'
+                'image': img,
+                'filename': filename,
+                'description': f"{title} ({process}) - {capture_method}",
+                'window_name': title
             })
-            log_message(f"Captured full screen")
-        except Exception as e:
-            log_message(f"Error capturing full screen: {e}")
-            full_screen = None
+            print(f"  ✓ Captured using {capture_method}")
+        else:
+            print(f"  ✗ Failed to capture")
 
-        # Capture each window and store in memory
-        for i, window in enumerate(windows, 1):
-            hwnd = window['hwnd']
-            title = window['title']
-            process = window['process']
-            rect = window['rect']
-            width = window['width']
-            height = window['height']
+    return captured_images
 
-            log_message(f"Capturing window {i}/{len(windows)}: {title} ({process})")
 
-            # if "Lobby" not in title and "TableCover" not in title and "Pot Limit Omaha" not in title:
-            #     continue
-
-            # if "Pot Limit Omaha" not in title:
-            #     continue
-
-            # Create filename
-            safe_title = "".join([c if c.isalnum() else "_" for c in title])[:50]
-            safe_process = "".join([c if c.isalnum() else "_" for c in process])[:20]
-            filename = f"{i:02d}_{safe_process}_{safe_title}.png"
-
-            # First try using PrintWindow method (ignores overlapping)
-            img = careful_capture_window(hwnd, width, height)
-            capture_method = "PrintWindow (no overlap)"
-
-            # If that fails, fall back to screen region capture
-            if img is None and full_screen is not None:
-                log_message("  Using fallback method: screen region capture")
-                img = capture_screen_region(rect)
-                capture_method = "Screen region (with overlap)"
-
-            if img:
-                captured_images.append({
-                    'image': img,
-                    'filename': filename,
-                    'description': f"{title} ({process}) - {capture_method}",
-                    'window_name': title
-                })
-                log_message(f"  ✓ Captured using {capture_method}")
-            else:
-                log_message(f"  ✗ Failed to capture")
-
-        return captured_images, windows
-
-    finally:
-        # Close log file if it was opened
-        if log_file:
-            log_file.close()
+def get_poker_window_info(poker_window_name):
+    original_windows_info = get_window_info()
+    windows = [w for w in original_windows_info if poker_window_name in w['title']]
+    return windows
 
 
 def _save_windows(
         captured_images: List[Dict[str, Any]],
         windows: List[Dict[str, Any]],
-        timestamp_folder: str = None,
-        log_mode: str = "none", log_file_path: str = None
+        timestamp_folder: str = None
 ):
-    """
-    Save captured windows with configurable logging
+    # Now save all captured images in a separate loop
+    print(f"\nSaving {len(captured_images)} captured images...")
+    successes = 0
 
-    Args:
-        captured_images: List of captured image dictionaries
-        windows: List of window information dictionaries
-        log_mode: Logging mode - "none", "console", or "file"
-        log_file_path: Custom path for log file. If None, uses timestamp-based name
+    print(f"Screenshots will be saved to: {timestamp_folder}")
 
-    Returns:
-        str: Path to the output folder where images were saved
-    """
+    # Write the window list to windows.txt
+    write_windows_list(windows, timestamp_folder)
 
-    def log_message(message: str):
-        """Helper function to log messages based on the mode"""
-        if log_mode == "none":
-            return
-        elif log_mode == "file" and log_file:
-            log_file.write(message + '\n')
-            log_file.flush()  # Ensure immediate write
-        elif log_mode == "console":
-            print(message)
-
-    # Setup logging file if needed
-    log_file = None
-    if log_mode == "file":
-        if log_file_path is None:
-            log_file_path = f"save_log_{timestamp_folder}.txt"
-
+    for i, captured_item in enumerate(captured_images, 1):
         try:
-            log_file = open(log_file_path, 'w', encoding='utf-8')
-            log_file.write(f"Window Save Log - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            log_file.write("=" * 60 + "\n\n")
+            filepath = os.path.join(timestamp_folder, captured_item['filename'])
+            captured_item['image'].save(filepath)
+            print(f"  ✓ Saved {i}/{len(captured_images)}: {captured_item['filename']}")
+            successes += 1
         except Exception as e:
-            print(f"Error opening log file {log_file_path}: {e}")
-            print("Falling back to console logging")
-            log_mode = "console"
+            print(f"  ✗ Failed to save {captured_item['filename']}: {e}")
 
-    try:
-        # Now save all captured images in a separate loop
-        log_message(f"\nSaving {len(captured_images)} captured images...")
-        successes = 0
-
-        log_message(f"Screenshots will be saved to: {timestamp_folder}")
-
-        # Write the window list to windows.txt
-        write_windows_list(windows, timestamp_folder)
-
-        for i, captured_item in enumerate(captured_images, 1):
-            try:
-                filepath = os.path.join(timestamp_folder, captured_item['filename'])
-                captured_item['image'].save(filepath)
-                log_message(f"  ✓ Saved {i}/{len(captured_images)}: {captured_item['filename']}")
-                successes += 1
-            except Exception as e:
-                log_message(f"  ✗ Failed to save {captured_item['filename']}: {e}")
-
-        # Print summary
-        log_message("\n---- Capture Summary ----")
-        log_message(f"Total windows found: {len(windows)}")
-        log_message(f"Images captured in memory: {len(captured_images)}")
-        log_message(f"Successfully saved to disk: {successes}")
-        log_message(f"Screenshots saved to: {timestamp_folder}")
-        log_message("Screenshot process completed.")
-
-    finally:
-        # Close log file if it was opened
-        if log_file:
-            log_file.close()
+    # Print summary
+    print("\n---- Capture Summary ----")
+    print(f"Total windows found: {len(windows)}")
+    print(f"Images captured in memory: {len(captured_images)}")
+    print(f"Successfully saved to disk: {successes}")
+    print(f"Screenshots saved to: {timestamp_folder}")
+    print("Screenshot process completed.")
 
 
 def _load_images_from_folder(timestamp_folder: str) -> List[Dict[str, Any]]:
-    """
-    Load all images from a timestamp folder
-
-    Args:
-        timestamp_folder: Path to the folder containing images
-
-    Returns:
-        List of captured image dictionaries
-    """
     captured_images = []
 
     if not os.path.exists(timestamp_folder):
@@ -247,21 +131,7 @@ def _load_images_from_folder(timestamp_folder: str) -> List[Dict[str, Any]]:
     return captured_images
 
 
-def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, timestamp_folder: str = None,
-                             save_windows=True, debug=False) -> List[Dict[str, Any]]:
-    """
-    Capture and save windows, or load images from folder in debug mode
-
-    Args:
-        log_mode: Logging mode - "none", "console", or "file"
-        log_file_path: Custom path for log file
-        timestamp_folder: Path to timestamp folder
-        save_windows: Whether to save captured windows to disk
-        debug: If True, load images from timestamp_folder instead of capturing
-
-    Returns:
-        List of captured/loaded image dictionaries
-    """
+def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, debug=False) -> List[Dict[str, Any]]:
     if debug:
         # Debug mode: load images from existing folder
         captured_images = _load_images_from_folder(timestamp_folder)
@@ -278,24 +148,31 @@ def capture_and_save_windows(log_mode: str = "none", log_file_path: str = None, 
         ctypes.windll.user32.SetProcessDPIAware()
 
     # Normal mode: capture windows
-    captured_images, windows = _capture_windows(log_mode=log_mode, log_file_path=log_file_path,
-                                                timestamp_folder=timestamp_folder)
 
-    if not captured_images:
-        raise Exception("❌ No images captured. Exiting.")
+    # Get all window info
+    windows = get_poker_window_info("Pot Limit Omaha")
+    if len(windows) > 0:
+        os.makedirs(timestamp_folder, exist_ok=True)
+    else:
+        return []
+
+    captured_images = _capture_windows(windows=windows)
+
+    # First, capture the full screen
+    try:
+        full_screen = ImageGrab.grab()
+        captured_images.append({
+            'image': full_screen,
+            'filename': "full_screen.png",
+            'description': "Full screen",
+            'window_name': 'full_screen'
+        })
+        print(f"Captured full screen")
+    except Exception as e:
+        print(f"Error capturing full screen: {e}")
 
     # Save windows with the same timestamp
     if save_windows:
-        _save_windows(
-            captured_images, windows,
-            timestamp_folder=timestamp_folder,
-            log_mode=log_mode,
-            log_file_path=log_file_path
-        )
-
-    # if save_windows:
-    #     print(f"✅ Captured and saved {len(captured_images)} images")
-    # else:
-    #     print(f"✅ Captured {len(captured_images)} images")
+        _save_windows(captured_images, windows, timestamp_folder)
 
     return captured_images

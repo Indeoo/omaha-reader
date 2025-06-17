@@ -30,7 +30,6 @@ if __name__ == "__main__":
                 # timestamp_folder = os.path.join(working_dir, f"Dropbox/data_screenshots/{session_timestamp}")
                 timestamp_folder = os.path.join(working_dir, f"_20250610_023049/_20250610_025342")
 
-                os.makedirs(timestamp_folder, exist_ok=True)
                 captured_images = capture_and_save_windows(timestamp_folder=timestamp_folder, save_windows=False,
                                                            debug=True)
 
