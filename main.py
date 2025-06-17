@@ -8,46 +8,10 @@ import time
 from datetime import datetime
 
 from src.utils.capture_utils import capture_and_save_windows
-from src.utils.detect_utils import detect_cards_single, detect_positions_single, save_detection_result_image
 from src.utils.opencv_utils import load_templates
-from src.utils.result_utils import print_detection_result, print_position_result, write_combined_result
+from src.utils.shared_processing import process_captured_images, format_results_for_console
 
 WAIT_TIME = 20
-
-
-def process_captured_image():
-    window_name = captured_item['window_name']
-    filename = captured_item['filename']
-    print(f"\n📷 Processing image {i + 1}/{len(captured_images)}: {window_name}")
-    print("-" * 40)
-    # Detect cards for single image
-    card_result = detect_cards_single(captured_item, i, player_templates, table_templates)
-    # Detect positions for single image (skip full screen)
-
-    position_result = None
-    if window_name != 'full_screen':
-        position_result = detect_positions_single(captured_item, i, position_templates)
-    # Write and print detection results for this image
-    if card_result:
-        print_detection_result(card_result)
-    else:
-        print(f"  🃏 No cards detected")
-    # Write and print position results for this image
-    if position_result:
-        print_position_result(position_result)
-    elif window_name != 'full_screen':
-        print(f"  🎯 No positions detected")
-
-    filename = f"detection_{filename}.txt"
-    write_combined_result(card_result, position_result, timestamp_folder, filename)
-
-    # Save result image with both cards and positions drawn
-    save_detection_result_image(
-        timestamp_folder,
-        captured_item,
-        card_result,
-        position_result
-    )
 
 
 if __name__ == "__main__":
@@ -73,9 +37,22 @@ if __name__ == "__main__":
                 print(f"\n🔄 Processing {len(captured_images)} captured images...")
                 print("=" * 60)
 
-                # Process each captured image individually
-                for i, captured_item in enumerate(captured_images):
-                    process_captured_image()
+                # Process all captured images using shared function
+                processed_results = process_captured_images(
+                    captured_images=captured_images,
+                    player_templates=player_templates,
+                    table_templates=table_templates,
+                    position_templates=position_templates,
+                    detect_positions=True
+                )
+
+                # Format and output results for console
+                format_results_for_console(
+                    processed_results=processed_results,
+                    timestamp_folder=timestamp_folder,
+                    save_result_images=True,
+                    write_result_files=True
+                )
 
                 print("\n" + "=" * 60)
                 print(f"✅ Processing complete. Results saved to: {timestamp_folder}")
