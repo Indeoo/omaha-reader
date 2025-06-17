@@ -9,7 +9,7 @@ from datetime import datetime
 
 from src.utils.capture_utils import capture_and_save_windows
 from src.utils.opencv_utils import load_templates
-from src.utils.shared_processing import process_captured_images, format_results_for_console
+from src.utils.shared_processing import process_captured_images
 
 WAIT_TIME = 20
 
@@ -43,15 +43,8 @@ if __name__ == "__main__":
                     player_templates=player_templates,
                     table_templates=table_templates,
                     position_templates=position_templates,
-                    detect_positions=True
-                )
-
-                # Format and output results for console
-                format_results_for_console(
-                    processed_results=processed_results,
+                    detect_positions=True,
                     timestamp_folder=timestamp_folder,
-                    save_result_images=True,
-                    write_result_files=True
                 )
 
                 print("\n" + "=" * 60)

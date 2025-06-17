@@ -3,17 +3,21 @@
 Shared image processing functions for both main.py and main_web3.py
 """
 from typing import Dict, List, Optional, Callable
-from src.utils.detect_utils import detect_cards_single, detect_positions_single
+from src.utils.detect_utils import detect_cards_single, detect_positions_single, save_detection_result_image
 from src.domain.readed_card import ReadedCard
+from src.utils.result_utils import print_detection_result, print_position_result, write_combined_result
 
 
 def process_captured_images(
         captured_images: List[Dict],
         player_templates: Dict,
         table_templates: Dict,
+        timestamp_folder: str,
         position_templates: Dict = None,
         detect_positions: bool = True,
-        process_callback: Callable = None
+        process_callback: Callable = None,
+        save_result_images=True,
+        write_detection_files=True,
 ) -> List[Dict]:
     """
     Process a list of captured images to detect cards and optionally positions.
@@ -57,34 +61,6 @@ def process_captured_images(
             'filename': captured_item['filename']
         }
 
-        processed_results.append(result)
-
-        # Call callback if provided
-        if process_callback:
-            process_callback(i, captured_item, card_result, position_result)
-
-    return processed_results
-
-
-def format_results_for_console(
-        processed_results: List[Dict],
-        timestamp_folder: str,
-        save_result_images: bool = True,
-        write_result_files: bool = True
-) -> None:
-    """
-    Format and output results for console-based application (main.py)
-
-    Args:
-        processed_results: List of processed result dictionaries
-        timestamp_folder: Folder to save results
-        save_result_images: Whether to save result images with detections drawn
-        write_result_files: Whether to write text result files
-    """
-    from src.utils.result_utils import print_detection_result, print_position_result, write_combined_result
-    from src.utils.detect_utils import save_detection_result_image
-
-    for result in processed_results:
         i = result['index']
         captured_item = result['captured_item']
         card_result = result['card_result']
@@ -108,7 +84,7 @@ def format_results_for_console(
             print(f"  🎯 No positions detected")
 
         # Write result file
-        if write_result_files:
+        if write_detection_files:
             result_filename = f"detection_{filename}.txt"
             write_combined_result(card_result, position_result, timestamp_folder, result_filename)
 
@@ -120,6 +96,14 @@ def format_results_for_console(
                 card_result,
                 position_result
             )
+
+        processed_results.append(result)
+
+        # Call callback if provided
+        if process_callback:
+            process_callback(i, captured_item, card_result, position_result)
+
+    return processed_results
 
 
 def format_results_for_web(processed_results: List[Dict]) -> List[Dict]:

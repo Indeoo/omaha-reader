@@ -64,7 +64,8 @@ def detection_worker():
                 player_templates=player_templates,
                 table_templates=table_templates,
                 position_templates=None,  # Web version doesn't need positions
-                detect_positions=False
+                detect_positions=False,
+                timestamp_folder=timestamp_folder
             )
 
             # Format results for web display
