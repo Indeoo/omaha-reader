@@ -28,8 +28,8 @@ latest_results = {
 }
 
 # Configuration
-WAIT_TIME = 20
-DEBUG_MODE = True  # Set to False for live capture
+WAIT_TIME = 10
+DEBUG_MODE = False  # Set to False for live capture
 
 # Templates (loaded once)
 player_templates = None
