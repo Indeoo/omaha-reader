@@ -170,9 +170,6 @@ if __name__ == "__main__":
         table_templates = load_templates("resources/templates/table_cards/")
         position_templates = load_templates("resources/templates/positions/")
 
-        # Create templates folder and HTML file
-        #create_templates_folder()
-
         # Start the detection worker in a background thread
         worker_thread = threading.Thread(target=detection_worker, daemon=True)
         worker_thread.start()
