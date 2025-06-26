@@ -1,17 +1,17 @@
 import os
 
 from datetime import datetime
-from typing import Dict
+from typing import Dict, List
 
 from src.domain.readed_card import ReadedCard
 
 
-def print_detection_result(detected_hand: Dict):
+def print_detection_result(result: Dict):
     """
-    Print detection result for a single image to console with colored cards
+    Print detection result for a single processed result to console with colored cards
 
     Args:
-        detected_hand: Detection result for a single window/image
+        result: Processed result dictionary containing detection info
     """
 
     def colorize_cards(cards_string: str) -> str:
@@ -41,39 +41,47 @@ def print_detection_result(detected_hand: Dict):
         return re.sub(card_pattern, replace_card, cards_string)
 
     try:
-        line = format_detection_output_single(detected_hand)
+        # Format the output line
+        line = format_detection_output_from_result(result)
         colored_line = colorize_cards(line)
         print(f"  🃏 {colored_line}")
 
         # Print summary
-        player_cards = detected_hand.get('player_cards_raw', [])
-        table_cards = detected_hand.get('table_cards_raw', [])
+        player_cards = result.get('player_cards', [])
+        table_cards = result.get('table_cards', [])
+        positions = result.get('positions', [])
 
         details = []
         if player_cards:
             details.append(f"{len(player_cards)} player cards")
         if table_cards:
             details.append(f"{len(table_cards)} table cards")
+        if positions:
+            details.append(f"{len(positions)} positions")
 
         if details:
             print(f"     ({', '.join(details)})")
+        elif not result.get('has_cards'):
+            print(f"  🃏 No cards detected")
 
     except Exception as e:
         print(f"  ❌ Error printing detection result: {str(e)}")
 
 
-def format_detection_output_single(detected_hand: Dict) -> str:
-    """Generate the detection output for a single hand"""
-    window_name = detected_hand['window_name']
+def format_detection_output_from_result(result: Dict) -> str:
+    """Generate the detection output from a processed result dictionary"""
+    window_name = result['window_name']
+    player_cards = result.get('player_cards', [])
+    table_cards = result.get('table_cards', [])
 
     combined_cards = ""
-    if detected_hand.get('player_cards_raw'):
-        combined_cards += f"Player:{ReadedCard.format_cards(detected_hand['player_cards_raw'])}"
-    if detected_hand.get('table_cards_raw'):
+    if player_cards:
+        combined_cards += f"Player:{ReadedCard.format_cards(player_cards)}"
+    if table_cards:
         if combined_cards:
-            combined_cards += f" Table:{ReadedCard.format_cards(detected_hand['table_cards_raw'])}"
+            combined_cards += f" Table:{ReadedCard.format_cards(table_cards)}"
         else:
-            combined_cards += f"Table:{ReadedCard.format_cards(detected_hand['table_cards_raw'])}"
+            combined_cards += f"Table:{ReadedCard.format_cards(table_cards)}"
 
     if combined_cards:
         return f"{window_name}: {combined_cards}"
@@ -81,16 +89,14 @@ def format_detection_output_single(detected_hand: Dict) -> str:
         return f"{window_name}: No cards detected"
 
 
-# New combined function to add to src/utils/result_utils.py
-def write_combined_result(card_result: Dict, position_result: Dict, timestamp_folder: str, filename: str):
+def write_combined_result(result: Dict, timestamp_folder: str, filename: str):
     """
-    Write both detection and position results for a single image to one file
+    Write detection and position results for a single image to one file
 
     Args:
-        card_result: Detection result for a single window/image (can be None)
-        position_result: Position result for a single window/image (can be None)
+        result: Processed result dictionary containing all detection info
         timestamp_folder: Path to the timestamp folder where file should be saved
-        filename: Name of the file to save (e.g., "results_20240116_143052_123.txt")
+        filename: Name of the file to save (e.g., "detection_20240116_143052_123.txt")
     """
     combined_file_path = os.path.join(timestamp_folder, filename)
 
@@ -99,29 +105,27 @@ def write_combined_result(card_result: Dict, position_result: Dict, timestamp_fo
             f.write(f"Combined Detection & Position Result - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write("=" * 60 + "\n\n")
 
-            # Window information (use card_result or position_result as available)
-            result_info = card_result or position_result
-            if result_info:
-                f.write(f"Window: {result_info['window_name']}\n")
-                f.write(f"Source File: {result_info['filename']}\n")
-                f.write(f"Image Index: {result_info['image_index']}\n")
-                f.write("-" * 30 + "\n\n")
+            # Window information
+            f.write(f"Window: {result['window_name']}\n")
+            f.write(f"Source File: {result['filename']}\n")
+            f.write(f"Image Index: {result['index']}\n")
+            f.write("-" * 30 + "\n\n")
 
             # ========== CARD DETECTION SECTION ==========
             f.write("🃏 CARD DETECTION:\n")
             f.write("=" * 30 + "\n")
 
-            if card_result:
+            if result['has_cards']:
                 # Format detected cards
-                line = format_detection_output_single(card_result)
+                line = format_detection_output_from_result(result)
                 f.write(f"{line}\n\n")
 
                 # Add detailed card information
                 f.write("📊 CARD DETAILS:\n")
                 f.write("-" * 20 + "\n")
 
-                player_cards = card_result.get('player_cards_raw', [])
-                table_cards = card_result.get('table_cards_raw', [])
+                player_cards = result.get('player_cards', [])
+                table_cards = result.get('table_cards', [])
 
                 if player_cards:
                     f.write(f"\nPlayer Cards ({len(player_cards)} cards):\n")
@@ -144,30 +148,26 @@ def write_combined_result(card_result: Dict, position_result: Dict, timestamp_fo
             f.write("🎯 POSITION DETECTION:\n")
             f.write("=" * 30 + "\n")
 
-            if position_result:
-                positions = position_result.get('positions', [])
+            positions = result.get('positions', [])
 
-                f.write(f"Detected Positions: {len(positions)} found\n")
+            f.write(f"Detected Positions: {len(positions)} found\n")
+            f.write("-" * 20 + "\n")
+
+            if positions:
+                position_names = ", ".join([p.position_name for p in positions])
+                f.write(f"Positions: {position_names}\n\n")
+
+                f.write("📊 POSITION DETAILS:\n")
                 f.write("-" * 20 + "\n")
-
-                if positions:
-                    position_names = ", ".join([p.position_name for p in positions])
-                    f.write(f"Positions: {position_names}\n\n")
-
-                    f.write("📊 POSITION DETAILS:\n")
-                    f.write("-" * 20 + "\n")
-                    for i, pos in enumerate(positions, 1):
-                        f.write(f"\n{i}. {pos.position_name}:\n")
-                        f.write(f"   Center: {pos.center}\n")
-                        f.write(f"   Score: {pos.match_score:.3f}\n")
-                        f.write(f"   Bounding Box: {pos.bounding_rect}\n")
-                else:
-                    f.write("No positions detected in this image.\n")
+                for i, pos in enumerate(positions, 1):
+                    f.write(f"\n{i}. {pos.position_name}:\n")
+                    f.write(f"   Center: {pos.center}\n")
+                    f.write(f"   Score: {pos.match_score:.3f}\n")
+                    f.write(f"   Bounding Box: {pos.bounding_rect}\n")
             else:
-                f.write("No position detection performed for this image.\n")
+                f.write("No positions detected in this image.\n")
 
             f.write("\n" + "=" * 60 + "\n")
 
     except Exception as e:
         print(f"  ❌ Error writing combined result to {filename}: {str(e)}")
-

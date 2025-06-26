@@ -64,7 +64,7 @@ class PokerGameProcessor:
             captured_images: List of captured image dictionaries
             timestamp_folder: Folder to save results
             process_callback: Optional callback function called for each processed image
-                             with args (i, captured_item, card_result, position_result)
+                             with args (i, captured_item, result)
 
         Returns:
             List of dictionaries containing processed results for each image
@@ -91,17 +91,6 @@ class PokerGameProcessor:
             except Exception as e:
                 print(f"    ❌ Error detecting cards in {window_name}: {str(e)}")
 
-            # Create card result if any cards detected
-            card_result = None
-            if player_cards or table_cards:
-                card_result = {
-                    'window_name': window_name,
-                    'filename': filename,
-                    'image_index': i,
-                    'player_cards_raw': player_cards,
-                    'table_cards_raw': table_cards
-                }
-
             # Detect positions if enabled
             positions = []
             if self.detect_positions and self.position_templates and window_name:
@@ -110,55 +99,72 @@ class PokerGameProcessor:
                 except Exception as e:
                     print(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
 
-            # Create position result
-            position_result = {
+            # Create combined result without duplication
+            result = {
+                'index': i,
                 'window_name': window_name,
                 'filename': filename,
-                'image_index': i,
-                'positions': positions
+                'captured_item': captured_item,
+                'player_cards': player_cards,
+                'table_cards': table_cards,
+                'positions': positions,
+                'has_cards': bool(player_cards or table_cards),
+                'has_positions': bool(positions)
             }
+
+            processed_results.append(result)
 
             # Print processing info
             print(f"\n📷 Processing image {i + 1}: {window_name}")
             print("-" * 40)
 
-            # Print detection results
-            if card_result:
-                print_detection_result(card_result)
-            else:
-                print(f"  🃏 No cards detected")
+            # Print detection results using the new format
+            print_detection_result(result)
 
             # Write result file
             if self.write_detection_files:
                 result_filename = f"detection_{filename}.txt"
-                write_combined_result(card_result, position_result, timestamp_folder, result_filename)
+                write_combined_result(result, timestamp_folder, result_filename)
 
             # Save result image
             if self.save_result_images:
                 save_detection_result_image(
                     timestamp_folder,
                     captured_item,
-                    card_result,
-                    position_result
+                    result
                 )
-
-            # Create combined result
-            result = {
-                'index': i,
-                'captured_item': captured_item,
-                'card_result': card_result,
-                'position_result': position_result,
-                'window_name': window_name,
-                'filename': filename
-            }
-
-            processed_results.append(result)
 
             # Call callback if provided
             if process_callback:
-                process_callback(i, captured_item, card_result, position_result)
+                process_callback(i, captured_item, result)
 
         return processed_results
+
+
+def process_captured_images(
+        captured_images: List[Dict],
+        player_templates: Dict,
+        table_templates: Dict,
+        position_templates: Dict,
+        detect_positions: bool,
+        timestamp_folder: str,
+) -> List[Dict]:
+    """
+    Legacy function for backward compatibility with main.py
+    """
+    processor = PokerGameProcessor(
+        player_templates=player_templates,
+        table_templates=table_templates,
+        position_templates=position_templates,
+        detect_positions=detect_positions,
+        save_result_images=True,
+        write_detection_files=True
+    )
+
+    return processor.process_captured_images(
+        captured_images=captured_images,
+        timestamp_folder=timestamp_folder
+    )
 
 
 def format_results_for_web(processed_results: List[Dict]) -> List[Dict]:
@@ -174,20 +180,13 @@ def format_results_for_web(processed_results: List[Dict]) -> List[Dict]:
     detections = []
 
     for result in processed_results:
-        card_result = result['card_result']
-        window_name = result['window_name']
-
-        if card_result:
-            # Extract cards
-            player_cards = card_result.get('player_cards_raw', [])
-            table_cards = card_result.get('table_cards_raw', [])
-
+        if result['has_cards']:
             detection = {
-                'window_name': window_name,
-                'player_cards': format_cards_for_web(player_cards),
-                'table_cards': format_cards_for_web(table_cards),
-                'player_cards_string': ReadedCard.format_cards(player_cards),
-                'table_cards_string': ReadedCard.format_cards(table_cards)
+                'window_name': result['window_name'],
+                'player_cards': format_cards_for_web(result['player_cards']),
+                'table_cards': format_cards_for_web(result['table_cards']),
+                'player_cards_string': ReadedCard.format_cards(result['player_cards']),
+                'table_cards_string': ReadedCard.format_cards(result['table_cards'])
             }
 
             if detection['player_cards'] or detection['table_cards']:

@@ -55,16 +55,14 @@ def detect_positions(cv2_image: np.ndarray, position_templates: Dict) -> List:
     return position_reader.read(cv2_image)
 
 
-def save_detection_result_image(timestamp_folder: str, captured_item: Dict,
-                                card_result: Optional[Dict], position_result: Optional[Dict]):
+def save_detection_result_image(timestamp_folder: str, captured_item: Dict, result: Dict):
     """
     Draw and save result image for a single captured image with detected cards and positions
 
     Args:
         timestamp_folder: Folder to save result images
         captured_item: Single captured image dictionary
-        card_result: Detected card results for this image (can be None)
-        position_result: Position results for this image (can be None)
+        result: Processed result dictionary containing all detection info
     """
     window_name = captured_item['window_name']
     filename = captured_item['filename']
@@ -77,9 +75,9 @@ def save_detection_result_image(timestamp_folder: str, captured_item: Dict,
         drawn_items = []
 
         # Draw cards if any detected
-        if card_result:
-            player_cards = card_result.get('player_cards_raw', [])
-            table_cards = card_result.get('table_cards_raw', [])
+        if result['has_cards']:
+            player_cards = result.get('player_cards', [])
+            table_cards = result.get('table_cards', [])
 
             if player_cards:
                 result_image = draw_cards(result_image, player_cards, color=(0, 255, 0))  # Green for player cards
@@ -91,8 +89,8 @@ def save_detection_result_image(timestamp_folder: str, captured_item: Dict,
                 drawn_items.append(f"{len(table_cards)} table cards")
 
         # Draw positions if any detected
-        if position_result and position_result.get('positions'):
-            positions = position_result['positions']
+        positions = result.get('positions', [])
+        if positions:
             result_image = draw_detected_positions(result_image, positions)
             drawn_items.append(f"{len(positions)} positions")
 
