@@ -5,36 +5,9 @@ import cv2
 
 from src.domain.readed_card import ReadedCard
 from src.omaha_card_reader import OmahaCardReader
+from src.player_position_reader import PlayerPositionReader
 from src.utils.opencv_utils import pil_to_cv2, save_opencv_image
 from src.utils.template_matching_utils import draw_detected_cards
-
-# Initialize readers as module-level variables to avoid recreating them
-_player_card_reader = None
-_table_card_reader = None
-_position_reader = None
-
-
-def _get_card_readers(player_templates, table_templates):
-    """Get or create card readers (singleton pattern)"""
-    global _player_card_reader, _table_card_reader
-
-    if _player_card_reader is None:
-        _player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
-    if _table_card_reader is None:
-        _table_card_reader = OmahaCardReader(table_templates, None)  # No search region for table cards
-
-    return _player_card_reader, _table_card_reader
-
-
-def _get_position_reader(position_templates):
-    """Get or create position reader (singleton pattern)"""
-    global _position_reader
-
-    if _position_reader is None:
-        from src.player_position_reader import PlayerPositionReader
-        _position_reader = PlayerPositionReader(position_templates)
-
-    return _position_reader
 
 
 def detect_cards_single(captured_item: Dict, image_index: int, player_templates: Dict, table_templates: Dict) -> \
@@ -51,7 +24,8 @@ Optional[Dict]:
     Returns:
         Dictionary with detected card results, or None if no cards detected
     """
-    player_card_reader, table_card_reader = _get_card_readers(player_templates, table_templates)
+    player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
+    table_card_reader = OmahaCardReader(table_templates, None)
 
     window_name = captured_item['window_name']
     filename = captured_item['filename']
@@ -91,7 +65,7 @@ def detect_positions_single(captured_item: Dict, image_index: int, position_temp
     Returns:
         Dictionary with position results
     """
-    position_reader = _get_position_reader(position_templates)
+    position_reader = PlayerPositionReader(position_templates)
 
     window_name = captured_item['window_name']
     filename = captured_item['filename']

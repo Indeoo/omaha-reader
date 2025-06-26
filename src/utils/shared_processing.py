@@ -8,31 +8,61 @@ from src.utils.benchmark_utils import benchmark
 from src.utils.detect_utils import detect_cards_single, detect_positions_single, save_detection_result_image
 from src.domain.readed_card import ReadedCard
 from src.utils.result_utils import print_detection_result, print_position_result, write_combined_result
+from src.utils.opencv_utils import load_templates
 
 
 class PokerGameProcessor:
+    def __init__(
+            self,
+            player_templates_dir: str = None,
+            table_templates_dir: str = None,
+            position_templates_dir: str = None,
+            player_templates: Dict = None,
+            table_templates: Dict = None,
+            position_templates: Dict = None,
+            detect_positions: bool = True,
+            save_result_images=True,
+            write_detection_files=True,
+    ):
+        # Load templates from directories if provided
+        if player_templates_dir:
+            self.player_templates = load_templates(player_templates_dir)
+        elif player_templates:
+            self.player_templates = player_templates
+        else:
+            self.player_templates = {}
+
+        if table_templates_dir:
+            self.table_templates = load_templates(table_templates_dir)
+        elif table_templates:
+            self.table_templates = table_templates
+        else:
+            self.table_templates = {}
+
+        if position_templates_dir:
+            self.position_templates = load_templates(position_templates_dir)
+        elif position_templates:
+            self.position_templates = position_templates
+        else:
+            self.position_templates = {}
+
+            self.detect_positions = detect_positions
+            self.save_result_images = save_result_images
+            self.write_detection_files = write_detection_files
+
     @benchmark
     def process_captured_images(
             self,
             captured_images: List[Dict],
-            player_templates: Dict,
-            table_templates: Dict,
             timestamp_folder: str,
-            position_templates: Dict = None,
-            detect_positions: bool = True,
             process_callback: Callable = None,
-            save_result_images=True,
-            write_detection_files=True,
     ) -> List[Dict]:
         """
         Process a list of captured images to detect cards and optionally positions.
 
         Args:
             captured_images: List of captured image dictionaries
-            player_templates: Dictionary of player card templates
-            table_templates: Dictionary of table card templates
-            position_templates: Dictionary of position templates (optional)
-            detect_positions: Whether to detect positions (default: True)
+            timestamp_folder: Folder to save results
             process_callback: Optional callback function called for each processed image
                              with args (i, captured_item, card_result, position_result)
 
@@ -45,12 +75,12 @@ class PokerGameProcessor:
             window_name = captured_item['window_name']
 
             # Detect cards for single image
-            card_result = detect_cards_single(captured_item, i, player_templates, table_templates)
+            card_result = detect_cards_single(captured_item, i, self.player_templates, self.table_templates)
 
             # Detect positions for single image (skip full screen)
             position_result = None
-            if detect_positions and position_templates and window_name:
-                position_result = detect_positions_single(captured_item, i, position_templates)
+            if self.detect_positions and self.position_templates and window_name:
+                position_result = detect_positions_single(captured_item, i, self.position_templates)
 
             # Create combined result
             result = {
@@ -83,12 +113,12 @@ class PokerGameProcessor:
                 print_position_result(position_result)
 
             # Write result file
-            if write_detection_files:
+            if self.write_detection_files:
                 result_filename = f"detection_{filename}.txt"
                 write_combined_result(card_result, position_result, timestamp_folder, result_filename)
 
             # Save result image
-            if save_result_images:
+            if self.save_result_images:
                 save_detection_result_image(
                     timestamp_folder,
                     captured_item,

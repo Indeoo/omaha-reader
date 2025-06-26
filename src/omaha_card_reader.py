@@ -8,7 +8,6 @@ from src.utils.template_matching_utils import (
     find_template_matches_parallel,
     filter_overlapping_detections,
     sort_detections_by_position,
-    draw_detected_cards as draw_detections
 )
 
 

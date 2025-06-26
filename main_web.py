@@ -12,7 +12,6 @@ from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 
 from src.utils.capture_utils import capture_and_save_windows
-from src.utils.opencv_utils import load_templates
 from src.utils.shared_processing import format_results_for_web, PokerGameProcessor
 
 app = Flask(__name__)
@@ -29,17 +28,20 @@ latest_results = {
 WAIT_TIME = 5
 DEBUG_MODE = True  # Set to False for live capture
 
-# Templates (loaded once)
-player_templates = None
-table_templates = None
-position_templates = None
-
 
 def detection_worker():
     """Background worker that continuously captures and detects cards"""
     global latest_results
 
-    poker_game_processor = PokerGameProcessor()
+    # Initialize poker game processor with templates
+    poker_game_processor = PokerGameProcessor(
+        player_templates_dir="resources/templates/player_cards/",
+        table_templates_dir="resources/templates/table_cards/",
+        position_templates_dir="resources/templates/positions/",
+        detect_positions=False,  # Web version doesn't need positions
+        save_result_images=False,  # Don't save result images in web mode
+        write_detection_files=False  # Don't write files in web mode
+    )
 
     while True:
         try:
@@ -63,11 +65,7 @@ def detection_worker():
                 # Process all captured images using shared function
                 processed_results = poker_game_processor.process_captured_images(
                     captured_images=captured_images,
-                    player_templates=player_templates,
-                    table_templates=table_templates,
-                    position_templates=None,  # Web version doesn't need positions
-                    detect_positions=False,
-                    timestamp_folder=timestamp_folder
+                    timestamp_folder=timestamp_folder,
                 )
 
                 # Format results for web display
@@ -82,7 +80,7 @@ def detection_worker():
 
                 print(f"Updated results at {latest_results['last_update']}")
             else:
-                print("No poker board detected, skip this timestmap")
+                print("No poker board detected, skip this timestamp")
 
         except Exception as e:
             print(f"Error in detection worker: {str(e)}")
@@ -103,6 +101,15 @@ def get_cards():
     return jsonify(latest_results)
 
 
+@app.route('/api/config')
+def get_config():
+    """API endpoint to get configuration settings"""
+    return jsonify({
+        'frontend_refresh_interval': 5,
+        'backend_capture_interval': WAIT_TIME
+    })
+
+
 @app.route('/health')
 def health():
     """Health check endpoint"""
@@ -114,11 +121,6 @@ if __name__ == "__main__":
     print("------------------------------")
 
     try:
-        # Load templates
-        player_templates = load_templates("resources/templates/player_cards/")
-        table_templates = load_templates("resources/templates/table_cards/")
-        position_templates = load_templates("resources/templates/positions/")
-
         # Start the detection worker in a background thread
         worker_thread = threading.Thread(target=detection_worker, daemon=True)
         worker_thread.start()
