@@ -11,7 +11,6 @@ from datetime import datetime
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 
-from src.domain.game import Game
 from src.utils.capture_utils import capture_and_save_windows
 from src.utils.shared_processing import PokerGameProcessor, format_results_to_games
 
@@ -65,7 +64,7 @@ def detection_worker():
 
             if len(captured_images) > 1:
                 # Process all captured images using shared function
-                processed_results = poker_game_processor.process_captured_images(
+                processed_results = poker_game_processor.process_images(
                     captured_images=captured_images,
                     timestamp_folder=timestamp_folder,
                 )

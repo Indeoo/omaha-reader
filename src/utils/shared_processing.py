@@ -52,7 +52,7 @@ class PokerGameProcessor:
         self.write_detection_files = write_detection_files
 
     @benchmark
-    def process_captured_images(
+    def process_images(
             self,
             captured_images: List[Dict],
             timestamp_folder: str,
@@ -160,7 +160,7 @@ def process_captured_images(
         write_detection_files=True
     )
 
-    return processor.process_captured_images(
+    return processor.process_images(
         captured_images=captured_images,
         timestamp_folder=timestamp_folder
     )
