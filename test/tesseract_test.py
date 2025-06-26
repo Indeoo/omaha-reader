@@ -5,10 +5,12 @@ from PIL import Image, ImageEnhance, ImageOps
 import pytesseract
 import re
 
+from matplotlib import pyplot as plt
+
 
 class TestPytesseract(unittest.TestCase):
     def testPot(self):
-        img = Image.open(f"_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
+        img = Image.open(f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
 
         # # Load full image and preprocess
         gray_full = img.convert("L")
@@ -39,7 +41,7 @@ class TestPytesseract(unittest.TestCase):
 
     def testBalances(self):
         # Load and preprocess image
-        img = cv2.imread(f"_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
+        img = cv2.imread(f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
 
 
         # Load full image and convert to grayscale
@@ -94,3 +96,68 @@ class TestPytesseract(unittest.TestCase):
         # cv2.destroyAllWindows()
 
 
+    def testReadBid(self):
+        # Load and preprocess image
+        img_path = f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/04_unknown__2_50__5_Pot_Limit_Omaha.png"
+        #img = cv2.imread(f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
+
+        img = cv2.imread(img_path)
+        # Convert BGR to RGB for display
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
+        # Print image shape for reference
+        print("Image shape (h, w, c):", img.shape)
+
+        # Initial guess for bubble ROI (tweak these values as needed)
+        x, y, w, h = 572, 207, 40, 25
+        roi = img_rgb[y:y + h, x:x + w]
+
+        # Draw rectangle on the original image for context
+        img_with_rect = img_rgb.copy()
+        cv2.rectangle(img_with_rect, (x, y), (x + w, y + h), (255, 0, 0), 2)
+
+        # Display the original with rectangle and the cropped ROI
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+        axes[0].imshow(img_with_rect)
+        axes[0].set_title("Original with ROI")
+        axes[0].axis("off")
+
+        axes[1].imshow(roi)
+        axes[1].set_title("Cropped Bubble")
+        axes[1].axis("off")
+
+        plt.show()
+
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        crop = gray[y:y + h, x:x + w]
+
+        # 3. Binarize (invert so text is white on black)
+        _, thresh = cv2.threshold(crop, 0, 255,
+                                  cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+
+        # 4. Upscale so the decimal dot is larger
+        upscaled = cv2.resize(thresh, None, fx=4, fy=4,
+                              interpolation=cv2.INTER_CUBIC)
+
+        # 5. Dilate to join tiny blobs (the “.”) into the text
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        dilated = cv2.dilate(upscaled, kernel, iterations=1)
+
+        # 6. OCR with whitelist “0123456789.” and disable dictionaries
+        config = (
+            "--psm 7 --oem 3 "
+            "-c tessedit_char_whitelist=0123456789. "
+            "-c load_system_dawg=0 -c load_freq_dawg=0"
+        )
+        text = pytesseract.image_to_string(dilated, config=config).strip()
+
+        print("Detected stake:", text)
+
+
+        #POSITION 6 x, y, w, h = 562, 310, 45, 20
+        #POSITION 5 x, y, w, h = 572, 207, 40, 25
+        #POSITION 4 x, y, w, h = 450, 165, 45, 15
+        #POSITION 3 x, y, w, h = 185, 215, 45, 15
+        #POSITION 2 x, y, w, h = 195, 215 + 95, 45, 15
+        #POSITION 1 x, y, w, h = 386, 214 + 120, 45, 15
