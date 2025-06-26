@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Union
 
 import numpy as np
 import cv2
@@ -6,6 +6,7 @@ import cv2
 from src.domain.readed_card import ReadedCard
 from src.omaha_card_reader import OmahaCardReader
 from src.player_position_reader import PlayerPositionReader
+from src.utils.detection_result import DetectionResult
 from src.utils.opencv_utils import pil_to_cv2, save_opencv_image
 from src.utils.template_matching_utils import draw_detected_cards
 
@@ -55,14 +56,14 @@ def detect_positions(cv2_image: np.ndarray, position_templates: Dict) -> List:
     return position_reader.read(cv2_image)
 
 
-def save_detection_result_image(timestamp_folder: str, captured_item: Dict, result: Dict):
+def save_detection_result_image(timestamp_folder: str, captured_item: Dict, result: Union[Dict, DetectionResult]):
     """
     Draw and save result image for a single captured image with detected cards and positions
 
     Args:
         timestamp_folder: Folder to save result images
         captured_item: Single captured image dictionary
-        result: Processed result dictionary containing all detection info
+        result: DetectionResult object or dictionary containing all detection info
     """
     window_name = captured_item['window_name']
     filename = captured_item['filename']
@@ -74,11 +75,20 @@ def save_detection_result_image(timestamp_folder: str, captured_item: Dict, resu
         # Track what we're drawing for debugging
         drawn_items = []
 
-        # Draw cards if any detected
-        if result['has_cards']:
+        # Handle both DetectionResult objects and dictionaries
+        if isinstance(result, DetectionResult):
+            has_cards = result.has_cards
+            player_cards = result.player_cards
+            table_cards = result.table_cards
+            positions = result.positions
+        else:
+            has_cards = result['has_cards']
             player_cards = result.get('player_cards', [])
             table_cards = result.get('table_cards', [])
+            positions = result.get('positions', [])
 
+        # Draw cards if any detected
+        if has_cards:
             if player_cards:
                 result_image = draw_cards(result_image, player_cards, color=(0, 255, 0))  # Green for player cards
                 drawn_items.append(f"{len(player_cards)} player cards")
@@ -89,7 +99,6 @@ def save_detection_result_image(timestamp_folder: str, captured_item: Dict, resu
                 drawn_items.append(f"{len(table_cards)} table cards")
 
         # Draw positions if any detected
-        positions = result.get('positions', [])
         if positions:
             result_image = draw_detected_positions(result_image, positions)
             drawn_items.append(f"{len(positions)} positions")

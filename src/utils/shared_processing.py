@@ -6,7 +6,7 @@ from typing import Dict, List, Callable
 
 from src.utils.benchmark_utils import benchmark
 from src.utils.detect_utils import detect_player_cards, detect_table_cards, detect_positions, save_detection_result_image
-from src.domain.readed_card import ReadedCard
+from src.utils.detection_result import DetectionResult
 from src.utils.result_utils import print_detection_result, write_combined_result
 from src.utils.opencv_utils import load_templates, pil_to_cv2
 
@@ -56,7 +56,7 @@ class PokerGameProcessor:
             captured_images: List[Dict],
             timestamp_folder: str,
             process_callback: Callable = None,
-    ) -> List[Dict]:
+    ) -> List[DetectionResult]:
         """
         Process a list of captured images to detect cards and optionally positions.
 
@@ -67,7 +67,7 @@ class PokerGameProcessor:
                              with args (i, captured_item, result)
 
         Returns:
-            List of dictionaries containing processed results for each image
+            List of DetectionResult objects containing processed results for each image
         """
         processed_results = []
 
@@ -99,18 +99,16 @@ class PokerGameProcessor:
                 except Exception as e:
                     print(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
 
-            # Create combined result without duplication
-            result = {
-                'index': i,
-                'window_name': window_name,
-                'filename': filename,
-                'captured_item': captured_item,
-                'player_cards': player_cards,
-                'table_cards': table_cards,
-                'positions': positions,
-                'has_cards': bool(player_cards or table_cards),
-                'has_positions': bool(positions)
-            }
+            # Create DetectionResult object instead of dictionary
+            result = DetectionResult(
+                index=i,
+                window_name=window_name,
+                filename=filename,
+                captured_item=captured_item,
+                player_cards=player_cards,
+                table_cards=table_cards,
+                positions=positions
+            )
 
             processed_results.append(result)
 
@@ -148,7 +146,7 @@ def process_captured_images(
         position_templates: Dict,
         detect_positions: bool,
         timestamp_folder: str,
-) -> List[Dict]:
+) -> List[DetectionResult]:
     """
     Legacy function for backward compatibility with main.py
     """
@@ -167,12 +165,12 @@ def process_captured_images(
     )
 
 
-def format_results_for_web(processed_results: List[Dict]) -> List[Dict]:
+def format_results_for_web(processed_results: List[DetectionResult]) -> List[Dict]:
     """
     Format results for web-based application (main_web3.py)
 
     Args:
-        processed_results: List of processed result dictionaries
+        processed_results: List of DetectionResult objects
 
     Returns:
         List of formatted detections for web display
@@ -180,13 +178,13 @@ def format_results_for_web(processed_results: List[Dict]) -> List[Dict]:
     detections = []
 
     for result in processed_results:
-        if result['has_cards']:
+        if result.has_cards:
             detection = {
-                'window_name': result['window_name'],
-                'player_cards': format_cards_for_web(result['player_cards']),
-                'table_cards': format_cards_for_web(result['table_cards']),
-                'player_cards_string': ReadedCard.format_cards(result['player_cards']),
-                'table_cards_string': ReadedCard.format_cards(result['table_cards'])
+                'window_name': result.window_name,
+                'player_cards': format_cards_for_web(result.player_cards),
+                'table_cards': format_cards_for_web(result.table_cards),
+                'player_cards_string': result.get_player_cards_string(),
+                'table_cards_string': result.get_table_cards_string()
             }
 
             if detection['player_cards'] or detection['table_cards']:

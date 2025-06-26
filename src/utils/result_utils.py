@@ -1,17 +1,18 @@
 import os
 
 from datetime import datetime
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from src.domain.readed_card import ReadedCard
+from src.utils.detection_result import DetectionResult
 
 
-def print_detection_result(result: Dict):
+def print_detection_result(result: Union[Dict, DetectionResult]):
     """
     Print detection result for a single processed result to console with colored cards
 
     Args:
-        result: Processed result dictionary containing detection info
+        result: DetectionResult object or dictionary (for backward compatibility)
     """
 
     def colorize_cards(cards_string: str) -> str:
@@ -46,11 +47,19 @@ def print_detection_result(result: Dict):
         colored_line = colorize_cards(line)
         print(f"  🃏 {colored_line}")
 
-        # Print summary
-        player_cards = result.get('player_cards', [])
-        table_cards = result.get('table_cards', [])
-        positions = result.get('positions', [])
+        # Handle both DetectionResult objects and dictionaries
+        if isinstance(result, DetectionResult):
+            player_cards = result.player_cards
+            table_cards = result.table_cards
+            positions = result.positions
+            has_cards = result.has_cards
+        else:
+            player_cards = result.get('player_cards', [])
+            table_cards = result.get('table_cards', [])
+            positions = result.get('positions', [])
+            has_cards = result.get('has_cards', False)
 
+        # Print summary
         details = []
         if player_cards:
             details.append(f"{len(player_cards)} player cards")
@@ -61,18 +70,24 @@ def print_detection_result(result: Dict):
 
         if details:
             print(f"     ({', '.join(details)})")
-        elif not result.get('has_cards'):
+        elif not has_cards:
             print(f"  🃏 No cards detected")
 
     except Exception as e:
         print(f"  ❌ Error printing detection result: {str(e)}")
 
 
-def format_detection_output_from_result(result: Dict) -> str:
-    """Generate the detection output from a processed result dictionary"""
-    window_name = result['window_name']
-    player_cards = result.get('player_cards', [])
-    table_cards = result.get('table_cards', [])
+def format_detection_output_from_result(result: Union[Dict, DetectionResult]) -> str:
+    """Generate the detection output from a processed result"""
+    # Handle both DetectionResult objects and dictionaries
+    if isinstance(result, DetectionResult):
+        window_name = result.window_name
+        player_cards = result.player_cards
+        table_cards = result.table_cards
+    else:
+        window_name = result['window_name']
+        player_cards = result.get('player_cards', [])
+        table_cards = result.get('table_cards', [])
 
     combined_cards = ""
     if player_cards:
@@ -89,16 +104,24 @@ def format_detection_output_from_result(result: Dict) -> str:
         return f"{window_name}: No cards detected"
 
 
-def write_combined_result(result: Dict, timestamp_folder: str, filename: str):
+def write_combined_result(result: DetectionResult, timestamp_folder: str, filename: str):
     """
     Write detection and position results for a single image to one file
 
     Args:
-        result: Processed result dictionary containing all detection info
+        result: DetectionResult object or dictionary containing all detection info
         timestamp_folder: Path to the timestamp folder where file should be saved
         filename: Name of the file to save (e.g., "detection_20240116_143052_123.txt")
     """
     combined_file_path = os.path.join(timestamp_folder, filename)
+
+    window_name = result.window_name
+    source_filename = result.filename
+    index = result.index
+    has_cards = result.has_cards
+    player_cards = result.player_cards
+    table_cards = result.table_cards
+    positions = result.positions
 
     try:
         with open(combined_file_path, 'w', encoding='utf-8') as f:
@@ -106,16 +129,16 @@ def write_combined_result(result: Dict, timestamp_folder: str, filename: str):
             f.write("=" * 60 + "\n\n")
 
             # Window information
-            f.write(f"Window: {result['window_name']}\n")
-            f.write(f"Source File: {result['filename']}\n")
-            f.write(f"Image Index: {result['index']}\n")
+            f.write(f"Window: {window_name}\n")
+            f.write(f"Source File: {source_filename}\n")
+            f.write(f"Image Index: {index}\n")
             f.write("-" * 30 + "\n\n")
 
             # ========== CARD DETECTION SECTION ==========
             f.write("🃏 CARD DETECTION:\n")
             f.write("=" * 30 + "\n")
 
-            if result['has_cards']:
+            if has_cards:
                 # Format detected cards
                 line = format_detection_output_from_result(result)
                 f.write(f"{line}\n\n")
@@ -123,9 +146,6 @@ def write_combined_result(result: Dict, timestamp_folder: str, filename: str):
                 # Add detailed card information
                 f.write("📊 CARD DETAILS:\n")
                 f.write("-" * 20 + "\n")
-
-                player_cards = result.get('player_cards', [])
-                table_cards = result.get('table_cards', [])
 
                 if player_cards:
                     f.write(f"\nPlayer Cards ({len(player_cards)} cards):\n")
@@ -147,8 +167,6 @@ def write_combined_result(result: Dict, timestamp_folder: str, filename: str):
             # ========== POSITION DETECTION SECTION ==========
             f.write("🎯 POSITION DETECTION:\n")
             f.write("=" * 30 + "\n")
-
-            positions = result.get('positions', [])
 
             f.write(f"Detected Positions: {len(positions)} found\n")
             f.write("-" * 20 + "\n")
