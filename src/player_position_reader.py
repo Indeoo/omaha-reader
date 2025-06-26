@@ -2,6 +2,7 @@ import multiprocessing
 from typing import List, Dict, Tuple, Optional
 import numpy as np
 
+from src.domain.card_reader import TableReader
 from src.utils.benchmark_utils import benchmark
 from src.utils.template_matching_utils import (
     find_template_matches_parallel,
@@ -24,7 +25,7 @@ class DetectedPosition:
         return f"DetectedPosition({self.position_name}, score={self.match_score:.3f}, center={self.center})"
 
 
-class PlayerPositionReader:
+class PlayerPositionReader(TableReader):
     """
     Detects player positions (like BTN, SB, BB, etc.) in poker table images
     """

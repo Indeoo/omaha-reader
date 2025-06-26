@@ -7,6 +7,7 @@ from typing import Dict, List, Callable
 from src.domain.game import Game
 from src.omaha_card_reader import OmahaCardReader
 from src.player_position_reader import PlayerPositionReader
+from src.table_card_reader import TableCardReader
 from src.utils.benchmark_utils import benchmark
 from src.utils.detect_utils import save_detection_result_image
 from src.domain.detection_result import DetectionResult
@@ -90,7 +91,7 @@ class PokerGameProcessor:
             table_cards = []
             try:
                 player_cards = OmahaCardReader(self.player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION).read(cv2_image)
-                table_cards = OmahaCardReader(self.table_templates, None).read(cv2_image)
+                table_cards = TableCardReader(self.table_templates, None).read(cv2_image)
             except Exception as e:
                 print(f"    ❌ Error detecting cards in {window_name}: {str(e)}")
 

@@ -11,7 +11,7 @@ from src.utils.template_matching_utils import (
 )
 
 
-class OmahaCardReader(TableReader):
+class TableCardReader(TableReader):
     DEFAULT_SEARCH_REGION = (0.2, 0.5, 0.8, 0.95)
     #                       (left, top, right, bottom)
     DEFAULT_MIN_CARD_SIZE = 20
