@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 
 import numpy as np
 import cv2
@@ -10,87 +10,49 @@ from src.utils.opencv_utils import pil_to_cv2, save_opencv_image
 from src.utils.template_matching_utils import draw_detected_cards
 
 
-def detect_cards_single(captured_item: Dict, image_index: int, player_templates: Dict, table_templates: Dict) -> \
-Optional[Dict]:
+def detect_player_cards(cv2_image: np.ndarray, player_templates: Dict) -> List[ReadedCard]:
     """
-    Detect cards in a single captured image
+    Detect player cards in the image
 
     Args:
-        captured_item: Single captured image dictionary
-        image_index: Index of the image in the capture sequence
+        cv2_image: OpenCV format image
         player_templates: Dictionary of player card templates
+
+    Returns:
+        List of detected player cards
+    """
+    player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
+    return player_card_reader.read(cv2_image)
+
+
+def detect_table_cards(cv2_image: np.ndarray, table_templates: Dict) -> List[ReadedCard]:
+    """
+    Detect table cards in the image
+
+    Args:
+        cv2_image: OpenCV format image
         table_templates: Dictionary of table card templates
 
     Returns:
-        Dictionary with detected card results, or None if no cards detected
+        List of detected table cards
     """
-    player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
     table_card_reader = OmahaCardReader(table_templates, None)
-
-    window_name = captured_item['window_name']
-    filename = captured_item['filename']
-
-    try:
-        cv2_image = pil_to_cv2(captured_item['image'])
-
-        # Read cards
-        player_cards = player_card_reader.read(cv2_image)
-        table_cards = table_card_reader.read(cv2_image)
-
-        # Return results if any cards detected
-        if player_cards or table_cards:
-            return {
-                'window_name': window_name,
-                'filename': filename,
-                'image_index': image_index,
-                'player_cards_raw': player_cards,
-                'table_cards_raw': table_cards
-            }
-        return None
-
-    except Exception as e:
-        print(f"    ❌ Error processing {window_name}: {str(e)}")
-        return None
+    return table_card_reader.read(cv2_image)
 
 
-def detect_positions_single(captured_item: Dict, image_index: int, position_templates: Dict) -> Dict:
+def detect_positions(cv2_image: np.ndarray, position_templates: Dict) -> List:
     """
-    Detect player positions in a single captured image
+    Detect player positions in the image
 
     Args:
-        captured_item: Single captured image dictionary
-        image_index: Index of the image in the capture sequence
+        cv2_image: OpenCV format image
         position_templates: Dictionary of position templates
 
     Returns:
-        Dictionary with position results
+        List of detected positions
     """
     position_reader = PlayerPositionReader(position_templates)
-
-    window_name = captured_item['window_name']
-    filename = captured_item['filename']
-
-    try:
-        cv2_image = pil_to_cv2(captured_item['image'])
-
-        # Detect positions
-        detected_positions = position_reader.read(cv2_image)
-
-        return {
-            'window_name': window_name,
-            'filename': filename,
-            'image_index': image_index,
-            'positions': detected_positions
-        }
-
-    except Exception as e:
-        print(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
-        return {
-            'window_name': window_name,
-            'filename': filename,
-            'image_index': image_index,
-            'positions': []
-        }
+    return position_reader.read(cv2_image)
 
 
 def save_detection_result_image(timestamp_folder: str, captured_item: Dict,
