@@ -154,10 +154,12 @@ class TestPytesseract(unittest.TestCase):
 
         print("Detected stake:", text)
 
-
-        #POSITION 6 x, y, w, h = 562, 310, 45, 20
-        #POSITION 5 x, y, w, h = 572, 207, 40, 25
-        #POSITION 4 x, y, w, h = 450, 165, 45, 15
-        #POSITION 3 x, y, w, h = 185, 215, 45, 15
-        #POSITION 2 x, y, w, h = 195, 215 + 95, 45, 15
-        #POSITION 1 x, y, w, h = 386, 214 + 120, 45, 15
+        # Map of coordinates for each position
+        position_coords = {
+            'POSITION6': (562, 310, 45, 20),
+            'POSITION5': (572, 207, 40, 25),
+            'POSITION4': (450, 165, 45, 15),
+            'POSITION3': (185, 215, 45, 15),
+            'POSITION2': (195, 310, 45, 15),  # 215 + 95
+            'POSITION1': (386, 334, 45, 15)  # 214 + 120
+        }
