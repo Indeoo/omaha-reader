@@ -106,16 +106,16 @@ class DetectionService:
                     timestamp_folder = os.path.join(os.getcwd(), f"Dropbox/data_screenshots/{session_timestamp}")
 
                 # Capture windows
-                captured_images = capture_and_save_windows(
+                captured_windows = capture_and_save_windows(
                     timestamp_folder=timestamp_folder,
                     save_windows=not self.debug_mode,
                     debug=self.debug_mode
                 )
 
-                if len(captured_images) > 1:
+                if len(captured_windows) > 1:
                     # Process all captured images using shared function
                     processed_results = self._poker_game_processor.process_images(
-                        captured_images=captured_images,
+                        captured_images=captured_windows,
                         timestamp_folder=timestamp_folder,
                     )
 
