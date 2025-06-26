@@ -6,8 +6,9 @@ Separated from web service for better code organization.
 import os
 import threading
 import time
+import hashlib
 from datetime import datetime
-from typing import List, Callable, Optional
+from typing import List, Callable, Dict
 
 from src.utils.capture_utils import capture_and_save_windows
 from src.utils.shared_processing import PokerGameProcessor, format_results_to_games
@@ -30,6 +31,10 @@ class DetectionService:
             'last_update': None
         }
         self._state_lock = threading.Lock()
+
+        # Window hash tracking - maps window_name to image hash
+        self._window_hashes: Dict[str, str] = {}
+        self._hash_lock = threading.Lock()
 
         # Thread management
         self._worker_thread = None
@@ -77,6 +82,76 @@ class DetectionService:
                 'last_update': self._latest_results['last_update']
             }
 
+    def _calculate_image_hash(self, pil_image) -> str:
+        """
+        Calculate a hash of the image content to detect changes
+
+        Args:
+            pil_image: PIL Image object
+
+        Returns:
+            String hash of the image content
+        """
+        try:
+            # Convert image to bytes and calculate SHA256 hash
+            # Using a smaller image for faster hashing while maintaining uniqueness
+            resized_image = pil_image.resize((100, 100))  # Small size for fast hashing
+            image_bytes = resized_image.tobytes()
+            return hashlib.sha256(image_bytes).hexdigest()[:16]  # Use first 16 chars for efficiency
+        except Exception as e:
+            print(f"❌ Error calculating image hash: {str(e)}")
+            return ""
+
+    def _get_images_to_process(self, captured_images: List[Dict]) -> List[Dict]:
+        """
+        Determine which captured images need processing based on hash comparison
+
+        Args:
+            captured_images: List of captured image dictionaries
+
+        Returns:
+            List of images that need processing (changed or new)
+        """
+        images_to_process = []
+        current_window_hashes = {}
+
+        with self._hash_lock:
+            for captured_item in captured_images:
+                window_name = captured_item['window_name']
+
+                # Calculate hash for current image
+                current_hash = self._calculate_image_hash(captured_item['image'])
+                current_window_hashes[window_name] = current_hash
+
+                # Check if this window is new or changed
+                stored_hash = self._window_hashes.get(window_name)
+
+                if stored_hash is None:
+                    # New window
+                    print(f"🆕 New window detected: {window_name}")
+                    images_to_process.append(captured_item)
+                elif stored_hash != current_hash:
+                    # Changed window
+                    print(f"🔄 Window changed: {window_name}")
+                    images_to_process.append(captured_item)
+                else:
+                    # Unchanged window
+                    print(f"📊 Window unchanged: {window_name}")
+
+            # Update stored hashes with current ones
+            self._window_hashes.update(current_window_hashes)
+
+            # Clean up hashes for windows that no longer exist
+            current_window_names = set(current_window_hashes.keys())
+            stored_window_names = set(self._window_hashes.keys())
+            removed_windows = stored_window_names - current_window_names
+
+            for removed_window in removed_windows:
+                del self._window_hashes[removed_window]
+                print(f"🗑️ Removed hash for closed window: {removed_window}")
+
+        return images_to_process
+
     def _has_detection_changed(self, new_games, old_games) -> bool:
         """Check if detection results have actually changed"""
         if len(new_games) != len(old_games):
@@ -112,38 +187,47 @@ class DetectionService:
                     debug=self.debug_mode
                 )
 
-                if len(captured_windows) > 1:
-                    # Process all captured images using shared function
-                    processed_results = self._poker_game_processor.process_images(
-                        captured_images=captured_windows,
-                        timestamp_folder=timestamp_folder,
-                    )
+                if captured_windows:
+                    # Determine which images need processing based on hash comparison
+                    images_to_process = self._get_images_to_process(captured_windows)
 
-                    games = format_results_to_games(processed_results)
+                    if images_to_process:
+                        print(
+                            f"🔍 Processing {len(images_to_process)} changed/new images out of {len(captured_windows)} total")
 
-                    # Check if results have changed
-                    if self._has_detection_changed(games, self._previous_games):
-                        # Update state with Game instances
-                        with self._state_lock:
-                            self._latest_results = {
+                        # Process only the changed/new images
+                        processed_results = self._poker_game_processor.process_images(
+                            captured_images=images_to_process,
+                            timestamp_folder=timestamp_folder,
+                        )
+
+                        games = format_results_to_games(processed_results)
+
+                        # Check if results have changed
+                        if self._has_detection_changed(games, self._previous_games):
+                            # Update state with Game instances
+                            with self._state_lock:
+                                self._latest_results = {
+                                    'timestamp': session_timestamp,
+                                    'detections': games,  # Store Game instances
+                                    'last_update': datetime.now().isoformat()
+                                }
+
+                            # Notify observers
+                            notification_data = {
+                                'type': 'detection_update',
                                 'timestamp': session_timestamp,
-                                'detections': games,  # Store Game instances
-                                'last_update': datetime.now().isoformat()
+                                'detections': [game.to_dict() for game in games],
+                                'last_update': self._latest_results['last_update']
                             }
+                            self._notify_observers(notification_data)
 
-                        # Notify observers
-                        notification_data = {
-                            'type': 'detection_update',
-                            'timestamp': session_timestamp,
-                            'detections': [game.to_dict() for game in games],
-                            'last_update': self._latest_results['last_update']
-                        }
-                        self._notify_observers(notification_data)
-
-                        print(f"🔄 Detection changed - notified observers at {self._latest_results['last_update']}")
-                        self._previous_games = games
+                            print(f"🔄 Detection changed - notified observers at {self._latest_results['last_update']}")
+                            self._previous_games = games
+                        else:
+                            print(f"📊 Detection results unchanged - skipping notification")
                     else:
-                        print(f"📊 No changes detected - skipping notification")
+                        print(f"📊 No image changes detected - skipping processing")
                 else:
                     print("🚫 No poker tables detected, skipping this cycle")
 
@@ -181,3 +265,8 @@ class DetectionService:
     def is_running(self) -> bool:
         """Check if the detection service is running"""
         return self._running
+
+    def get_window_hash_stats(self) -> Dict[str, str]:
+        """Get current window hash statistics for debugging"""
+        with self._hash_lock:
+            return self._window_hashes.copy()

@@ -104,12 +104,20 @@ def _load_images_from_folder(timestamp_folder: str) -> List[Dict[str, Any]]:
             filepath = os.path.join(timestamp_folder, filename)
             image = Image.open(filepath)
 
-            # Extract window name from filename (remove extension and number prefix)
-            window_name = filename
-            if '_' in filename:
-                parts = filename.split('_', 2)
-                if len(parts) >= 3:
-                    window_name = parts[2].replace('.png', '').replace('_', ' ')
+            # Extract window name from filename - MAKE IT UNIQUE for debug mode
+            # Keep the full filename as window name to ensure uniqueness
+            window_name = filename.replace('.png', '')  # Use full filename without extension
+
+            # Alternative: if you want cleaner names but still unique, use this instead:
+            # if '_' in filename:
+            #     parts = filename.split('_', 2)
+            #     if len(parts) >= 3:
+            #         # Include the prefix number to make it unique
+            #         window_name = f"{parts[0]}_{parts[2].replace('.png', '').replace('_', ' ')}"
+            #     else:
+            #         window_name = filename.replace('.png', '')
+            # else:
+            #     window_name = filename.replace('.png', '')
 
             captured_images.append({
                 'image': image,
@@ -117,7 +125,7 @@ def _load_images_from_folder(timestamp_folder: str) -> List[Dict[str, Any]]:
                 'description': f"Loaded from debug folder",
                 'window_name': window_name
             })
-            print(f"  ✓ Loaded: {filename}")
+            print(f"  ✓ Loaded: {filename} → window: {window_name}")
 
         except Exception as e:
             print(f"  ❌ Failed to load {filename}: {str(e)}")
