@@ -140,32 +140,6 @@ class PokerGameProcessor:
         return processed_results
 
 
-def process_captured_images(
-        captured_images: List[Dict],
-        player_templates: Dict,
-        table_templates: Dict,
-        position_templates: Dict,
-        detect_positions: bool,
-        timestamp_folder: str,
-) -> List[DetectionResult]:
-    """
-    Legacy function for backward compatibility with main.py
-    """
-    processor = PokerGameProcessor(
-        player_templates=player_templates,
-        table_templates=table_templates,
-        position_templates=position_templates,
-        detect_positions=detect_positions,
-        save_result_images=True,
-        write_detection_files=True
-    )
-
-    return processor.process_images(
-        captured_images=captured_images,
-        timestamp_folder=timestamp_folder
-    )
-
-
 def format_cards_for_web(cards: List) -> List[Dict]:
     """Format cards for web display with suit symbols"""
     if not cards:
