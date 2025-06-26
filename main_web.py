@@ -11,16 +11,18 @@ from datetime import datetime
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 
+from src.domain.game import Game
 from src.utils.capture_utils import capture_and_save_windows
 from src.utils.shared_processing import format_results_for_web, PokerGameProcessor
 
 app = Flask(__name__)
 CORS(app)
 
+
 # Global variables to store the latest detection results
 latest_results = {
     'timestamp': None,
-    'detections': [],
+    'detections': [],  # This will now be a list of Game instances
     'last_update': None
 }
 
@@ -49,7 +51,7 @@ def detection_worker():
 
             if DEBUG_MODE:
                 # Debug mode - use existing folder
-                timestamp_folder = os.path.join(os.getcwd(), "_20250610_023049/_20250610_025342")
+                timestamp_folder = os.path.join(os.getcwd(), "Dropbox/data_screenshots/_20250610_023049/_20250610_025342")
             else:
                 # Live mode - create new folder
                 timestamp_folder = os.path.join(os.getcwd(), f"Dropbox/data_screenshots/{session_timestamp}")
@@ -69,12 +71,24 @@ def detection_worker():
                 )
 
                 # Format results for web display
-                detections = format_results_for_web(processed_results)
+                detections_data = format_results_for_web(processed_results)
 
-                # Update global results
+                # Convert detections to Game instances
+                games = []
+                for detection in detections_data:
+                    game = Game(
+                        window_name=detection['window_name'],
+                        player_cards=detection['player_cards'],
+                        table_cards=detection['table_cards'],
+                        player_cards_string=detection['player_cards_string'],
+                        table_cards_string=detection['table_cards_string']
+                    )
+                    games.append(game)
+
+                # Update global results with Game instances
                 latest_results = {
                     'timestamp': session_timestamp,
-                    'detections': detections,
+                    'detections': games,  # Now a list of Game instances
                     'last_update': datetime.now().isoformat()
                 }
 
@@ -98,7 +112,13 @@ def index():
 @app.route('/api/cards')
 def get_cards():
     """API endpoint to get latest card detections"""
-    return jsonify(latest_results)
+    # Convert Game instances to dictionaries for JSON serialization
+    serializable_results = {
+        'timestamp': latest_results['timestamp'],
+        'detections': [game.to_dict() for game in latest_results['detections']],
+        'last_update': latest_results['last_update']
+    }
+    return jsonify(serializable_results)
 
 
 @app.route('/api/config')
