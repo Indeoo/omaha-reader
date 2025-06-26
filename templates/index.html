@@ -31,12 +31,44 @@
             color: #888;
         }
 
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .connection-status.connected {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .connection-status.connecting {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .connection-status.disconnected {
+            background-color: #f44336;
+            color: white;
+        }
+
         .table-container {
             background-color: #2a2a2a;
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .table-container.updated {
+            box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+            border: 2px solid #4CAF50;
         }
 
         .table-name {
@@ -78,6 +110,16 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
             background-color: #4a4a4a;
+        }
+
+        .cards-block.new-cards {
+            animation: newCardsGlow 2s ease-in-out;
+        }
+
+        @keyframes newCardsGlow {
+            0% { box-shadow: 0 0 0 rgba(76, 175, 80, 0.7); }
+            50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.7); }
+            100% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
         }
 
         .card {
@@ -157,30 +199,58 @@
             color: #4CAF50;
             font-weight: bold;
         }
+
+        .update-indicator {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            transform: translateY(-50%);
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+        }
+
+        .update-indicator.show {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎰 Poker Card Detector</h1>
-        <div class="status" id="status">Waiting for data...</div>
+        <div class="status" id="status">Connecting to server...</div>
         <div id="content">
-            <div class="loading">Loading...</div>
+            <div class="loading">Connecting...</div>
         </div>
     </div>
 
+    <div class="connection-status connecting" id="connectionStatus">
+        🔗 Connecting...
+    </div>
+
     <div class="timer-info" id="timerInfo">
-        <div>Frontend: <span class="countdown" id="frontendCountdown">-</span>s</div>
+        <div>Mode: <span class="countdown">Real-time SSE</span></div>
         <div>Backend: <span id="backendInfo">-</span>s</div>
     </div>
+
+    <div class="update-indicator" id="updateIndicator">
+        🔄
+    </div>
+
     <div class="toast" id="toast">Copied to clipboard!</div>
 
     <script>
         let config = {
-            frontend_refresh_interval: 5,
-            backend_capture_interval: 5
+            frontend_refresh_interval: 0,
+            backend_capture_interval: 5,
+            sse_enabled: false
         };
-        let frontendCountdown = 0;
-        let frontendInterval;
+        let eventSource = null;
+        let previousDetections = [];
 
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text).then(() => {
@@ -200,6 +270,20 @@
             }, 2000);
         }
 
+        function showUpdateIndicator() {
+            const indicator = document.getElementById('updateIndicator');
+            indicator.classList.add('show');
+            setTimeout(() => {
+                indicator.classList.remove('show');
+            }, 1000);
+        }
+
+        function updateConnectionStatus(status, message) {
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.className = `connection-status ${status}`;
+            statusEl.textContent = message;
+        }
+
         function getSuitColor(card) {
             const suit = card.slice(-1);
             if (suit === '♥') return 'red';
@@ -208,7 +292,14 @@
             return 'black'; // spades
         }
 
-        function renderCards(detections) {
+        function detectChanges(newDetections) {
+            // Simple change detection - compare JSON strings
+            const newStr = JSON.stringify(newDetections);
+            const prevStr = JSON.stringify(previousDetections);
+            return newStr !== prevStr;
+        }
+
+        function renderCards(detections, isUpdate = false) {
             const content = document.getElementById('content');
 
             if (!detections || detections.length === 0) {
@@ -218,8 +309,9 @@
 
             let html = '';
             detections.forEach((detection, index) => {
+                const tableClass = isUpdate ? 'table-container updated' : 'table-container';
                 html += `
-                    <div class="table-container">
+                    <div class="${tableClass}">
                         <div class="table-name">${detection.window_name}</div>
 
                         <div class="cards-section">
@@ -228,7 +320,8 @@
                 `;
 
                 if (detection.player_cards && detection.player_cards.length > 0) {
-                    html += `<div class="cards-block" onclick="copyToClipboard('${detection.player_cards_string}')">`;
+                    const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
+                    html += `<div class="${cardsClass}" onclick="copyToClipboard('${detection.player_cards_string}')">`;
                     detection.player_cards.forEach(card => {
                         const colorClass = getSuitColor(card.display);
                         html += `<div class="card ${colorClass}">${card.display}</div>`;
@@ -248,7 +341,8 @@
                 `;
 
                 if (detection.table_cards && detection.table_cards.length > 0) {
-                    html += `<div class="cards-block" onclick="copyToClipboard('${detection.table_cards_string}')">`;
+                    const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
+                    html += `<div class="${cardsClass}" onclick="copyToClipboard('${detection.table_cards_string}')">`;
                     detection.table_cards.forEach(card => {
                         const colorClass = getSuitColor(card.display);
                         html += `<div class="card ${colorClass}">${card.display}</div>`;
@@ -266,34 +360,125 @@
             });
 
             content.innerHTML = html;
+
+            // Remove update classes after animation
+            if (isUpdate) {
+                setTimeout(() => {
+                    document.querySelectorAll('.updated').forEach(el => {
+                        el.classList.remove('updated');
+                    });
+                    document.querySelectorAll('.new-cards').forEach(el => {
+                        el.classList.remove('new-cards');
+                    });
+                }, 2000);
+            }
         }
 
         function updateStatus(lastUpdate) {
             const status = document.getElementById('status');
             if (lastUpdate) {
                 const date = new Date(lastUpdate);
-                status.textContent = `Last capture: ${date.toLocaleTimeString()}`;
+                status.textContent = `Last update: ${date.toLocaleTimeString()} (Real-time)`;
             }
         }
 
         function updateTimerDisplay() {
-            document.getElementById('frontendCountdown').textContent = frontendCountdown;
             document.getElementById('backendInfo').textContent = `every ${config.backend_capture_interval}`;
         }
 
-        function startFrontendTimer() {
-            frontendCountdown = config.frontend_refresh_interval;
-            clearInterval(frontendInterval);
+        function initializeSSE() {
+            if (eventSource) {
+                eventSource.close();
+            }
 
-            frontendInterval = setInterval(() => {
-                frontendCountdown--;
-                updateTimerDisplay();
+            updateConnectionStatus('connecting', '🔗 Connecting...');
 
-                if (frontendCountdown <= 0) {
-                    fetchCards();
-                    frontendCountdown = config.frontend_refresh_interval;
+            eventSource = new EventSource('/api/stream');
+
+            eventSource.onopen = function(event) {
+                console.log('SSE connection opened');
+                updateConnectionStatus('connected', '🟢 Connected');
+            };
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    switch(data.type) {
+                        case 'connected':
+                            console.log('SSE client connected:', data.client_id);
+                            break;
+
+                        case 'detection_update':
+                            console.log('Received detection update:', data);
+
+                            const hasChanges = detectChanges(data.detections);
+                            if (hasChanges) {
+                                showUpdateIndicator();
+                            }
+
+                            updateStatus(data.last_update);
+                            renderCards(data.detections, hasChanges);
+                            previousDetections = data.detections;
+                            break;
+
+                        case 'heartbeat':
+                            // Keep connection alive
+                            break;
+
+                        default:
+                            console.log('Unknown SSE message type:', data.type);
+                    }
+                } catch (e) {
+                    console.error('Error parsing SSE message:', e);
                 }
-            }, 1000);
+            };
+
+            eventSource.onerror = function(event) {
+                console.error('SSE connection error:', event);
+                updateConnectionStatus('disconnected', '🔴 Disconnected');
+
+                // Auto-reconnect after 3 seconds
+                setTimeout(() => {
+                    if (eventSource.readyState === EventSource.CLOSED) {
+                        console.log('Attempting to reconnect SSE...');
+                        initializeSSE();
+                    }
+                }, 3000);
+            };
+        }
+
+        async function fallbackToPolling() {
+            console.log('Falling back to polling mode');
+            updateConnectionStatus('connecting', '🔄 Polling mode');
+
+            async function fetchCards() {
+                try {
+                    const response = await fetch('/api/cards');
+                    const data = await response.json();
+
+                    const hasChanges = detectChanges(data.detections);
+                    if (hasChanges) {
+                        showUpdateIndicator();
+                    }
+
+                    updateStatus(data.last_update);
+                    renderCards(data.detections, hasChanges);
+                    previousDetections = data.detections;
+
+                    updateConnectionStatus('connected', '🟡 Polling');
+                } catch (error) {
+                    console.error('Error fetching cards:', error);
+                    document.getElementById('content').innerHTML = '<div class="error">Error loading data</div>';
+                    updateConnectionStatus('disconnected', '🔴 Error');
+                }
+            }
+
+            // Initial fetch
+            await fetchCards();
+
+            // Set up polling interval
+            setInterval(fetchCards, config.backend_capture_interval * 1000);
         }
 
         async function loadConfig() {
@@ -302,30 +487,41 @@
                 const data = await response.json();
                 config = data;
                 updateTimerDisplay();
+                return data.sse_enabled;
             } catch (error) {
                 console.error('Error loading config:', error);
-            }
-        }
-
-        async function fetchCards() {
-            try {
-                const response = await fetch('/api/cards');
-                const data = await response.json();
-
-                updateStatus(data.last_update);
-                renderCards(data.detections);
-            } catch (error) {
-                console.error('Error fetching cards:', error);
-                document.getElementById('content').innerHTML = '<div class="error">Error loading data</div>';
+                return false;
             }
         }
 
         // Initial setup
         async function initialize() {
-            await loadConfig();
-            await fetchCards();
-            startFrontendTimer();
+            const sseEnabled = await loadConfig();
+
+            if (sseEnabled && typeof(EventSource) !== "undefined") {
+                console.log('Initializing with SSE...');
+                initializeSSE();
+            } else {
+                console.log('SSE not available, using polling...');
+                await fallbackToPolling();
+            }
         }
+
+        // Handle page visibility changes to reconnect SSE when page becomes visible
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && config.sse_enabled && eventSource && eventSource.readyState === EventSource.CLOSED) {
+                console.log('Page visible again, reconnecting SSE...');
+                initializeSSE();
+            }
+        });
+
+        // Handle browser back/forward navigation
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted && config.sse_enabled) {
+                console.log('Page restored from cache, reconnecting SSE...');
+                initializeSSE();
+            }
+        });
 
         initialize();
     </script>
