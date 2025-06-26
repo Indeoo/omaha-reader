@@ -4,6 +4,7 @@ Shared image processing functions for both main.py and main_web3.py
 """
 from typing import Dict, List, Callable
 
+from src.domain.game import Game
 from src.utils.benchmark_utils import benchmark
 from src.utils.detect_utils import detect_player_cards, detect_table_cards, detect_positions, save_detection_result_image
 from src.utils.detection_result import DetectionResult
@@ -165,34 +166,6 @@ def process_captured_images(
     )
 
 
-def format_results_for_web(processed_results: List[DetectionResult]) -> List[Dict]:
-    """
-    Format results for web-based application (main_web3.py)
-
-    Args:
-        processed_results: List of DetectionResult objects
-
-    Returns:
-        List of formatted detections for web display
-    """
-    detections = []
-
-    for result in processed_results:
-        if result.has_cards:
-            detection = {
-                'window_name': result.window_name,
-                'player_cards': format_cards_for_web(result.player_cards),
-                'table_cards': format_cards_for_web(result.table_cards),
-                'player_cards_string': result.get_player_cards_string(),
-                'table_cards_string': result.get_table_cards_string()
-            }
-
-            if detection['player_cards'] or detection['table_cards']:
-                detections.append(detection)
-
-    return detections
-
-
 def format_cards_for_web(cards: List) -> List[Dict]:
     """Format cards for web display with suit symbols"""
     if not cards:
@@ -230,3 +203,37 @@ def format_card_with_unicode(card_name: str) -> str:
         return f"{rank}{suit_unicode[suit]}"
     else:
         return card_name
+
+
+def format_results_to_games(processed_results: List[DetectionResult]) -> List[Game]:
+    """
+    Convert DetectionResult objects directly to Game instances
+
+    Args:
+        processed_results: List of DetectionResult objects
+
+    Returns:
+        List of Game instances
+    """
+    from src.domain.game import Game
+
+    games = []
+
+    for result in processed_results:
+        if result.has_cards:
+            # Format cards for web display
+            player_cards = format_cards_for_web(result.player_cards)
+            table_cards = format_cards_for_web(result.table_cards)
+
+            # Only create game if there are actual cards
+            if player_cards or table_cards:
+                game = Game(
+                    window_name=result.window_name,
+                    player_cards=player_cards,
+                    table_cards=table_cards,
+                    player_cards_string=result.get_player_cards_string(),
+                    table_cards_string=result.get_table_cards_string()
+                )
+                games.append(game)
+
+    return games

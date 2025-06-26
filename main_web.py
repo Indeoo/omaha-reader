@@ -13,7 +13,7 @@ from flask_cors import CORS
 
 from src.domain.game import Game
 from src.utils.capture_utils import capture_and_save_windows
-from src.utils.shared_processing import format_results_for_web, PokerGameProcessor
+from src.utils.shared_processing import PokerGameProcessor, format_results_to_games
 
 app = Flask(__name__)
 CORS(app)
@@ -70,20 +70,7 @@ def detection_worker():
                     timestamp_folder=timestamp_folder,
                 )
 
-                # Format results for web display
-                detections_data = format_results_for_web(processed_results)
-
-                # Convert detections to Game instances
-                games = []
-                for detection in detections_data:
-                    game = Game(
-                        window_name=detection['window_name'],
-                        player_cards=detection['player_cards'],
-                        table_cards=detection['table_cards'],
-                        player_cards_string=detection['player_cards_string'],
-                        table_cards_string=detection['table_cards_string']
-                    )
-                    games.append(game)
+                games = format_results_to_games(processed_results)
 
                 # Update global results with Game instances
                 latest_results = {
