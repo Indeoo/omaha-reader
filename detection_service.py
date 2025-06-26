@@ -116,6 +116,7 @@ class DetectionService:
         current_window_hashes = {}
 
         with self._hash_lock:
+            all_unchanged = True  # Track if all windows are unchanged
             for captured_item in captured_images:
                 window_name = captured_item['window_name']
 
@@ -130,13 +131,19 @@ class DetectionService:
                     # New window
                     print(f"🆕 New window detected: {window_name}")
                     images_to_process.append(captured_item)
+                    all_unchanged = False
                 elif stored_hash != current_hash:
                     # Changed window
                     print(f"🔄 Window changed: {window_name}")
                     images_to_process.append(captured_item)
+                    all_unchanged = False
                 else:
                     # Unchanged window
-                    print(f"📊 Window unchanged: {window_name}")
+                    if not all_unchanged:
+                        print(f"📊 Window unchanged: {window_name}")
+
+            if all_unchanged:
+                print("📊 All windows were unchanged")
 
             # Update stored hashes with current ones
             self._window_hashes.update(current_window_hashes)
