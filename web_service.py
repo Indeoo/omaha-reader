@@ -7,7 +7,7 @@ import json
 import threading
 import uuid
 from queue import Queue
-from typing import Dict, Optional
+from typing import Dict
 
 from flask import Flask, render_template, jsonify, Response
 from flask_cors import CORS
@@ -98,11 +98,6 @@ class WebService:
             """Main page"""
             return render_template('index.html')
 
-        @self.app.route('/api/cards')
-        def get_cards():
-            """API endpoint to get latest card detections (fallback for non-SSE clients)"""
-            return jsonify(self.detection_service.get_latest_results())
-
         @self.app.route('/api/stream')
         def sse_stream():
             """Server-Sent Events endpoint for real-time updates"""
@@ -152,9 +147,7 @@ class WebService:
         def get_config():
             """API endpoint to get configuration settings"""
             return jsonify({
-                'frontend_refresh_interval': 0,  # No polling needed with SSE
-                'backend_capture_interval': self.wait_time,
-                'sse_enabled': True
+                'backend_capture_interval': self.wait_time
             })
 
         @self.app.route('/health')

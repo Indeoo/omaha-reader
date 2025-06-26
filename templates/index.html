@@ -245,9 +245,7 @@
 
     <script>
         let config = {
-            frontend_refresh_interval: 0,
-            backend_capture_interval: 5,
-            sse_enabled: false
+            backend_capture_interval: 5
         };
         let eventSource = null;
         let previousDetections = [];
@@ -448,68 +446,34 @@
             };
         }
 
-        async function fallbackToPolling() {
-            console.log('Falling back to polling mode');
-            updateConnectionStatus('connecting', '🔄 Polling mode');
-
-            async function fetchCards() {
-                try {
-                    const response = await fetch('/api/cards');
-                    const data = await response.json();
-
-                    const hasChanges = detectChanges(data.detections);
-                    if (hasChanges) {
-                        showUpdateIndicator();
-                    }
-
-                    updateStatus(data.last_update);
-                    renderCards(data.detections, hasChanges);
-                    previousDetections = data.detections;
-
-                    updateConnectionStatus('connected', '🟡 Polling');
-                } catch (error) {
-                    console.error('Error fetching cards:', error);
-                    document.getElementById('content').innerHTML = '<div class="error">Error loading data</div>';
-                    updateConnectionStatus('disconnected', '🔴 Error');
-                }
-            }
-
-            // Initial fetch
-            await fetchCards();
-
-            // Set up polling interval
-            setInterval(fetchCards, config.backend_capture_interval * 1000);
-        }
-
         async function loadConfig() {
             try {
                 const response = await fetch('/api/config');
                 const data = await response.json();
                 config = data;
                 updateTimerDisplay();
-                return data.sse_enabled;
             } catch (error) {
                 console.error('Error loading config:', error);
-                return false;
             }
         }
 
         // Initial setup
         async function initialize() {
-            const sseEnabled = await loadConfig();
+            await loadConfig();
 
-            if (sseEnabled && typeof(EventSource) !== "undefined") {
+            if (typeof(EventSource) !== "undefined") {
                 console.log('Initializing with SSE...');
                 initializeSSE();
             } else {
-                console.log('SSE not available, using polling...');
-                await fallbackToPolling();
+                console.error('SSE not supported by this browser');
+                document.getElementById('content').innerHTML = '<div class="error">Real-time updates not supported by this browser</div>';
+                updateConnectionStatus('disconnected', '🔴 Not Supported');
             }
         }
 
         // Handle page visibility changes to reconnect SSE when page becomes visible
         document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && config.sse_enabled && eventSource && eventSource.readyState === EventSource.CLOSED) {
+            if (!document.hidden && eventSource && eventSource.readyState === EventSource.CLOSED) {
                 console.log('Page visible again, reconnecting SSE...');
                 initializeSSE();
             }
@@ -517,7 +481,7 @@
 
         // Handle browser back/forward navigation
         window.addEventListener('pageshow', function(event) {
-            if (event.persisted && config.sse_enabled) {
+            if (event.persisted) {
                 console.log('Page restored from cache, reconnecting SSE...');
                 initializeSSE();
             }
