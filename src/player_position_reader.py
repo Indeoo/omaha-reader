@@ -1,14 +1,8 @@
-import multiprocessing
 from typing import List, Dict, Tuple, Optional
 import numpy as np
 
 from src.domain.card_reader import TableReader
 from src.utils.benchmark_utils import benchmark
-from src.utils.template_matching_utils import (
-    find_template_matches_parallel,
-    filter_overlapping_detections,
-    sort_detections_by_position
-)
 
 
 class DetectedPosition:
@@ -26,33 +20,34 @@ class DetectedPosition:
 
 
 class PlayerPositionReader(TableReader):
-    """
-    Detects player positions (like BTN, SB, BB, etc.) in poker table images
-    """
-    DEFAULT_MATCH_THRESHOLD = 0.99  # Lower threshold for position markers
+    """Detects player positions (like BTN, SB, BB, etc.) in poker table images"""
+
+    # Default configuration for position detection
+    DEFAULT_MATCH_THRESHOLD = 0.99  # Higher threshold for position markers
     DEFAULT_OVERLAP_THRESHOLD = 0.3
     DEFAULT_MIN_POSITION_SIZE = 15
-    #DEFAULT_SCALE_FACTORS = [0.8, 0.9, 1.0, 1.1, 1.2]  # More scale variations for positions
-    DEFAULT_SCALE_FACTORS = [1.0]  # More scale variations for positions
+    DEFAULT_SCALE_FACTORS = [1.0]
 
     def __init__(self, templates: Dict[str, np.ndarray]):
         """
-        Initialize position reader with templates
+        Initialize position reader
 
         Args:
             templates: Dictionary of position_name -> template_image
         """
-        self.templates = templates
-        self.match_threshold = self.DEFAULT_MATCH_THRESHOLD
-        self.overlap_threshold = self.DEFAULT_OVERLAP_THRESHOLD
-        self.min_position_size = self.DEFAULT_MIN_POSITION_SIZE
-        self.scale_factors = self.DEFAULT_SCALE_FACTORS
-        self.max_workers = min(4, multiprocessing.cpu_count())
+        super().__init__(
+            templates=templates,
+            search_region=None,  # Search entire image for positions
+            match_threshold=self.DEFAULT_MATCH_THRESHOLD,
+            overlap_threshold=self.DEFAULT_OVERLAP_THRESHOLD,
+            min_detection_size=self.DEFAULT_MIN_POSITION_SIZE,
+            scale_factors=self.DEFAULT_SCALE_FACTORS
+        )
 
     @benchmark
     def read(self, image: np.ndarray) -> List[DetectedPosition]:
         """
-        Detect player positions in the image
+        Override read method to add benchmark decorator
 
         Args:
             image: Input image (poker table screenshot)
@@ -60,30 +55,30 @@ class PlayerPositionReader(TableReader):
         Returns:
             List of DetectedPosition objects
         """
-        if not self.templates:
-            print("No position templates loaded!")
-            return []
+        return super().read(image)
 
-        # Find all template matches
-        all_detections = find_template_matches_parallel(
-            image=image,
-            templates=self.templates,
-            search_region=None,  # Search entire image for positions
-            scale_factors=self.scale_factors,
-            match_threshold=self.match_threshold,
-            min_card_size=self.min_position_size,
-            max_workers=self.max_workers
-        )
+    def _get_sort_direction(self) -> str:
+        """Positions are sorted by match score instead of position"""
+        return 'score'  # Custom sort for positions
 
-        # Filter overlapping detections
-        filtered_detections = filter_overlapping_detections(
-            detections=all_detections,
-            overlap_threshold=self.overlap_threshold
-        )
+    def _sort_detections(self, detections: List[Dict]) -> List[Dict]:
+        """Sort positions by match score (highest first) for consistent ordering"""
+        return sorted(detections, key=lambda d: d['match_score'], reverse=True)
 
-        # Convert to DetectedPosition objects
+    def _convert_to_domain_objects(self, image: np.ndarray, detections: List[Dict]) -> List[DetectedPosition]:
+        """
+        Convert detection dictionaries to DetectedPosition objects
+
+        Args:
+            image: Original image
+            detections: List of detection dictionaries
+
+        Returns:
+            List of DetectedPosition objects sorted by match score
+        """
         detected_positions = []
-        for detection in filtered_detections:
+
+        for detection in detections:
             position = DetectedPosition(
                 position_name=detection['template_name'],
                 center=detection['center'],
@@ -91,8 +86,5 @@ class PlayerPositionReader(TableReader):
                 match_score=detection['match_score']
             )
             detected_positions.append(position)
-
-        # Sort by match score (highest first) for consistent ordering
-        detected_positions.sort(key=lambda p: p.match_score, reverse=True)
 
         return detected_positions
