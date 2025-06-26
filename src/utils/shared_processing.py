@@ -42,16 +42,12 @@ def process_captured_images(
     for i, captured_item in enumerate(captured_images):
         window_name = captured_item['window_name']
 
-        # Skip full screen captures for card detection
-        if window_name == 'full_screen':
-            continue
-
         # Detect cards for single image
         card_result = detect_cards_single(captured_item, i, player_templates, table_templates)
 
         # Detect positions for single image (skip full screen)
         position_result = None
-        if detect_positions and position_templates and window_name != 'full_screen':
+        if detect_positions and position_templates and window_name:
             position_result = detect_positions_single(captured_item, i, position_templates)
 
         # Create combined result
@@ -83,8 +79,6 @@ def process_captured_images(
         # Print position results
         if position_result:
             print_position_result(position_result)
-        elif window_name != 'full_screen':
-            print(f"  🎯 No positions detected")
 
         # Write result file
         if write_detection_files:

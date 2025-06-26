@@ -59,19 +59,14 @@ def get_poker_window_info(poker_window_name):
     return windows
 
 
-def _save_windows(
+def save_images(
         captured_images: List[Dict[str, Any]],
-        windows: List[Dict[str, Any]],
         timestamp_folder: str = None
 ):
-    # Now save all captured images in a separate loop
     print(f"\nSaving {len(captured_images)} captured images...")
     successes = 0
 
     print(f"Screenshots will be saved to: {timestamp_folder}")
-
-    # Write the window list to windows.txt
-    write_windows_list(windows, timestamp_folder)
 
     for i, captured_item in enumerate(captured_images, 1):
         try:
@@ -84,7 +79,6 @@ def _save_windows(
 
     # Print summary
     print("\n---- Capture Summary ----")
-    print(f"Total windows found: {len(windows)}")
     print(f"Images captured in memory: {len(captured_images)}")
     print(f"Successfully saved to disk: {successes}")
     print(f"Screenshots saved to: {timestamp_folder}")
@@ -158,21 +152,23 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
 
     captured_images = _capture_windows(windows=windows)
 
-    # First, capture the full screen
-    try:
-        full_screen = ImageGrab.grab()
-        captured_images.append({
-            'image': full_screen,
-            'filename': "full_screen.png",
-            'description': "Full screen",
-            'window_name': 'full_screen'
-        })
-        print(f"Captured full screen")
-    except Exception as e:
-        print(f"Error capturing full screen: {e}")
-
     # Save windows with the same timestamp
     if save_windows:
-        _save_windows(captured_images, windows, timestamp_folder)
+        try:
+            full_screen = ImageGrab.grab()
+            captured_images.append({
+                'image': full_screen,
+                'filename': "full_screen.png",
+                'description': "Full screen",
+                'window_name': 'full_screen'
+            })
+            print(f"Captured full screen")
+        except Exception as e:
+            print(f"Error capturing full screen: {e}")
+
+        # Write the window list to windows.txt
+        write_windows_list(windows, timestamp_folder)
+        save_images(captured_images, timestamp_folder)
+        captured_images = [img for img in captured_images if img['window_name'] != 'full_screen']
 
     return captured_images
