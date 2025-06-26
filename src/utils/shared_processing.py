@@ -5,10 +5,10 @@ Shared image processing functions for both main.py and main_web3.py
 from typing import Dict, List, Callable
 
 from src.utils.benchmark_utils import benchmark
-from src.utils.detect_utils import detect_cards_single, detect_positions_single, save_detection_result_image
+from src.utils.detect_utils import detect_player_cards, detect_table_cards, detect_positions, save_detection_result_image
 from src.domain.readed_card import ReadedCard
-from src.utils.result_utils import print_detection_result, print_position_result, write_combined_result
-from src.utils.opencv_utils import load_templates
+from src.utils.result_utils import print_detection_result, write_combined_result
+from src.utils.opencv_utils import load_templates, pil_to_cv2
 
 
 class PokerGameProcessor:
@@ -46,9 +46,9 @@ class PokerGameProcessor:
         else:
             self.position_templates = {}
 
-            self.detect_positions = detect_positions
-            self.save_result_images = save_result_images
-            self.write_detection_files = write_detection_files
+        self.detect_positions = detect_positions
+        self.save_result_images = save_result_images
+        self.write_detection_files = write_detection_files
 
     @benchmark
     def process_captured_images(
@@ -73,32 +73,52 @@ class PokerGameProcessor:
 
         for i, captured_item in enumerate(captured_images):
             window_name = captured_item['window_name']
+            filename = captured_item['filename']
 
-            # Detect cards for single image
-            card_result = detect_cards_single(captured_item, i, self.player_templates, self.table_templates)
+            # Convert image to OpenCV format once
+            try:
+                cv2_image = pil_to_cv2(captured_item['image'])
+            except Exception as e:
+                print(f"    ❌ Error converting image {window_name}: {str(e)}")
+                continue
 
-            # Detect positions for single image (skip full screen)
-            position_result = None
+            # Detect player and table cards
+            player_cards = []
+            table_cards = []
+            try:
+                player_cards = detect_player_cards(cv2_image, self.player_templates)
+                table_cards = detect_table_cards(cv2_image, self.table_templates)
+            except Exception as e:
+                print(f"    ❌ Error detecting cards in {window_name}: {str(e)}")
+
+            # Create card result if any cards detected
+            card_result = None
+            if player_cards or table_cards:
+                card_result = {
+                    'window_name': window_name,
+                    'filename': filename,
+                    'image_index': i,
+                    'player_cards_raw': player_cards,
+                    'table_cards_raw': table_cards
+                }
+
+            # Detect positions if enabled
+            positions = []
             if self.detect_positions and self.position_templates and window_name:
-                position_result = detect_positions_single(captured_item, i, self.position_templates)
+                try:
+                    positions = detect_positions(cv2_image, self.position_templates)
+                except Exception as e:
+                    print(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
 
-            # Create combined result
-            result = {
-                'index': i,
-                'captured_item': captured_item,
-                'card_result': card_result,
-                'position_result': position_result,
+            # Create position result
+            position_result = {
                 'window_name': window_name,
-                'filename': captured_item['filename']
+                'filename': filename,
+                'image_index': i,
+                'positions': positions
             }
 
-            i = result['index']
-            captured_item = result['captured_item']
-            card_result = result['card_result']
-            position_result = result['position_result']
-            window_name = result['window_name']
-            filename = result['filename']
-
+            # Print processing info
             print(f"\n📷 Processing image {i + 1}: {window_name}")
             print("-" * 40)
 
@@ -107,10 +127,6 @@ class PokerGameProcessor:
                 print_detection_result(card_result)
             else:
                 print(f"  🃏 No cards detected")
-
-            # Print position results
-            if position_result:
-                print_position_result(position_result)
 
             # Write result file
             if self.write_detection_files:
@@ -125,6 +141,16 @@ class PokerGameProcessor:
                     card_result,
                     position_result
                 )
+
+            # Create combined result
+            result = {
+                'index': i,
+                'captured_item': captured_item,
+                'card_result': card_result,
+                'position_result': position_result,
+                'window_name': window_name,
+                'filename': filename
+            }
 
             processed_results.append(result)
 

@@ -62,27 +62,6 @@ def print_detection_result(detected_hand: Dict):
         print(f"  ❌ Error printing detection result: {str(e)}")
 
 
-def print_position_result(position_result: Dict):
-    """
-    Print position detection result for a single image to console
-
-    Args:
-        position_result: Position result for a single window/image
-    """
-    try:
-        positions = position_result.get('positions', [])
-
-        if positions:
-            position_names = ", ".join([p.position_name for p in positions])
-            print(f"  🎯 Positions: {position_names}")
-            print(f"     ({len(positions)} positions detected)")
-        else:
-            print(f"  🎯 No positions detected")
-
-    except Exception as e:
-        print(f"  ❌ Error printing position result: {str(e)}")
-
-
 def format_detection_output_single(detected_hand: Dict) -> str:
     """Generate the detection output for a single hand"""
     window_name = detected_hand['window_name']
