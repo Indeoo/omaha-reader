@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 
 from src.domain.readed_card import ReadedCard
-from src.utils.detection_result import DetectionResult
+from src.domain.detection_result import DetectionResult
 from src.utils.opencv_utils import pil_to_cv2, save_opencv_image, draw_detected_cards
 
 

@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import List, Callable, Dict
 
 from src.utils.capture_utils import capture_and_save_windows
-from src.utils.shared_processing import PokerGameProcessor, format_results_to_games
+from src.utils.poker_game_processor import PokerGameProcessor, format_results_to_games
 
 
 class DetectionService:

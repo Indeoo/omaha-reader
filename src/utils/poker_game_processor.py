@@ -9,7 +9,7 @@ from src.omaha_card_reader import OmahaCardReader
 from src.player_position_reader import PlayerPositionReader
 from src.utils.benchmark_utils import benchmark
 from src.utils.detect_utils import save_detection_result_image
-from src.utils.detection_result import DetectionResult
+from src.domain.detection_result import DetectionResult
 from src.utils.result_utils import print_detection_result, write_combined_result
 from src.utils.opencv_utils import load_templates, pil_to_cv2
 

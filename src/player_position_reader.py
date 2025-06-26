@@ -95,19 +95,3 @@ class PlayerPositionReader:
         detected_positions.sort(key=lambda p: p.match_score, reverse=True)
 
         return detected_positions
-
-    def format_positions(self, positions: List[DetectedPosition]) -> str:
-        """
-        Format detected positions as a readable string
-
-        Args:
-            positions: List of DetectedPosition objects
-
-        Returns:
-            Formatted string like "BTN, SB, BB"
-        """
-        if not positions:
-            return "No positions detected"
-
-        position_names = [p.position_name for p in positions]
-        return ", ".join(position_names)

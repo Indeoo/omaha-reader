@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Dict, Union
 
 from src.domain.readed_card import ReadedCard
-from src.utils.detection_result import DetectionResult
+from src.domain.detection_result import DetectionResult
 
 
 def print_detection_result(result: Union[Dict, DetectionResult]):
