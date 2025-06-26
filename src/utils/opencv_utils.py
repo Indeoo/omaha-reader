@@ -1,5 +1,6 @@
 import glob
 import os
+from typing import List, Dict, Tuple
 
 import cv2
 import numpy as np
@@ -61,3 +62,51 @@ def load_templates(template_dir):
 
 def read_cv2_image(tpl_path):
     return cv2.imread(tpl_path, cv2.IMREAD_COLOR)
+
+
+
+def draw_detected_cards(
+        image: np.ndarray,
+        detections: List[Dict],
+        color: Tuple[int, int, int] = (0, 255, 0),
+        thickness: int = 2,
+        font_scale: float = 0.6,
+        show_scale: bool = True
+) -> np.ndarray:
+    """
+    Draw detected cards on the image
+
+    Args:
+        image: Input image
+        detections: List of detection dictionaries
+        color: BGR color for drawing
+        thickness: Line thickness
+        font_scale: Font scale for labels
+        show_scale: Whether to show scale information
+
+    Returns:
+        Image with drawn detections
+    """
+    result = image.copy()
+
+    for i, detection in enumerate(detections):
+        x, y, w, h = detection['bounding_rect']
+
+        # Draw bounding rectangle
+        cv2.rectangle(result, (x, y), (x + w, y + h), color, thickness)
+
+        # Draw center point
+        cv2.circle(result, detection['center'], 5, (255, 0, 0), -1)
+
+        # Add label with template name and confidence
+        label = f"{detection['template_name']} ({detection['match_score']:.2f})"
+        cv2.putText(result, label, (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness)
+
+        # Add scale info if requested
+        if show_scale and 'scale' in detection:
+            scale_info = f"Scale: {detection['scale']:.1f}"
+            cv2.putText(result, scale_info, (x, y + h + 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.7, (255, 255, 0), 1)
+
+    return result

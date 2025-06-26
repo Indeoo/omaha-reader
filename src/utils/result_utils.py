@@ -1,7 +1,7 @@
 import os
 
 from datetime import datetime
-from typing import Dict, List, Union
+from typing import Dict, Union
 
 from src.domain.readed_card import ReadedCard
 from src.utils.detection_result import DetectionResult

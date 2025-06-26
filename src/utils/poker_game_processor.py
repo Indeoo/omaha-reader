@@ -5,8 +5,10 @@ Shared image processing functions for both main.py and main_web3.py
 from typing import Dict, List, Callable
 
 from src.domain.game import Game
+from src.omaha_card_reader import OmahaCardReader
+from src.player_position_reader import PlayerPositionReader
 from src.utils.benchmark_utils import benchmark
-from src.utils.detect_utils import detect_player_cards, detect_table_cards, detect_positions, save_detection_result_image
+from src.utils.detect_utils import save_detection_result_image
 from src.utils.detection_result import DetectionResult
 from src.utils.result_utils import print_detection_result, write_combined_result
 from src.utils.opencv_utils import load_templates, pil_to_cv2
@@ -87,8 +89,8 @@ class PokerGameProcessor:
             player_cards = []
             table_cards = []
             try:
-                player_cards = detect_player_cards(cv2_image, self.player_templates)
-                table_cards = detect_table_cards(cv2_image, self.table_templates)
+                player_cards = OmahaCardReader(self.player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION).read(cv2_image)
+                table_cards = OmahaCardReader(self.table_templates, None).read(cv2_image)
             except Exception as e:
                 print(f"    ❌ Error detecting cards in {window_name}: {str(e)}")
 
@@ -96,7 +98,7 @@ class PokerGameProcessor:
             positions = []
             if self.detect_positions and self.position_templates and window_name:
                 try:
-                    positions = detect_positions(cv2_image, self.position_templates)
+                    positions = PlayerPositionReader(self.position_templates).read(cv2_image)
                 except Exception as e:
                     print(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
 

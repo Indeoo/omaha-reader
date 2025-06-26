@@ -1,59 +1,11 @@
-from typing import List, Dict, Optional, Tuple, Union
+from typing import List, Dict, Union
 
 import numpy as np
 import cv2
 
 from src.domain.readed_card import ReadedCard
-from src.omaha_card_reader import OmahaCardReader
-from src.player_position_reader import PlayerPositionReader
 from src.utils.detection_result import DetectionResult
-from src.utils.opencv_utils import pil_to_cv2, save_opencv_image
-from src.utils.template_matching_utils import draw_detected_cards
-
-
-def detect_player_cards(cv2_image: np.ndarray, player_templates: Dict) -> List[ReadedCard]:
-    """
-    Detect player cards in the image
-
-    Args:
-        cv2_image: OpenCV format image
-        player_templates: Dictionary of player card templates
-
-    Returns:
-        List of detected player cards
-    """
-    player_card_reader = OmahaCardReader(player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION)
-    return player_card_reader.read(cv2_image)
-
-
-def detect_table_cards(cv2_image: np.ndarray, table_templates: Dict) -> List[ReadedCard]:
-    """
-    Detect table cards in the image
-
-    Args:
-        cv2_image: OpenCV format image
-        table_templates: Dictionary of table card templates
-
-    Returns:
-        List of detected table cards
-    """
-    table_card_reader = OmahaCardReader(table_templates, None)
-    return table_card_reader.read(cv2_image)
-
-
-def detect_positions(cv2_image: np.ndarray, position_templates: Dict) -> List:
-    """
-    Detect player positions in the image
-
-    Args:
-        cv2_image: OpenCV format image
-        position_templates: Dictionary of position templates
-
-    Returns:
-        List of detected positions
-    """
-    position_reader = PlayerPositionReader(position_templates)
-    return position_reader.read(cv2_image)
+from src.utils.opencv_utils import pil_to_cv2, save_opencv_image, draw_detected_cards
 
 
 def save_detection_result_image(timestamp_folder: str, captured_item: Dict, result: Union[Dict, DetectionResult]):
