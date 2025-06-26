@@ -140,45 +140,6 @@ class PokerGameProcessor:
         return processed_results
 
 
-def format_cards_for_web(cards: List) -> List[Dict]:
-    """Format cards for web display with suit symbols"""
-    if not cards:
-        return []
-
-    formatted = []
-    for card in cards:
-        if card.template_name:
-            formatted.append({
-                'name': card.template_name,
-                'display': format_card_with_unicode(card.template_name),
-                'score': round(card.match_score, 3) if card.match_score else 0
-            })
-    return formatted
-
-
-def format_card_with_unicode(card_name: str) -> str:
-    """Convert card name to include Unicode suit symbols"""
-    if not card_name or len(card_name) < 2:
-        return card_name
-
-    # Unicode suit symbols mapping
-    suit_unicode = {
-        'S': '♠',  # Spades
-        'H': '♥',  # Hearts
-        'D': '♦',  # Diamonds
-        'C': '♣'  # Clubs
-    }
-
-    # Get the last character as suit
-    suit = card_name[-1].upper()
-    rank = card_name[:-1]
-
-    if suit in suit_unicode:
-        return f"{rank}{suit_unicode[suit]}"
-    else:
-        return card_name
-
-
 def format_results_to_games(processed_results: List[DetectionResult]) -> List[Game]:
     """
     Convert DetectionResult objects directly to Game instances
@@ -189,25 +150,16 @@ def format_results_to_games(processed_results: List[DetectionResult]) -> List[Ga
     Returns:
         List of Game instances
     """
-    from src.domain.game import Game
-
     games = []
 
     for result in processed_results:
         if result.has_cards:
-            # Format cards for web display
-            player_cards = format_cards_for_web(result.player_cards)
-            table_cards = format_cards_for_web(result.table_cards)
-
-            # Only create game if there are actual cards
-            if player_cards or table_cards:
-                game = Game(
-                    window_name=result.window_name,
-                    player_cards=player_cards,
-                    table_cards=table_cards,
-                    player_cards_string=result.get_player_cards_string(),
-                    table_cards_string=result.get_table_cards_string()
-                )
-                games.append(game)
+            # Create game with raw ReadedCard objects
+            game = Game(
+                window_name=result.window_name,
+                player_cards=result.player_cards,
+                table_cards=result.table_cards
+            )
+            games.append(game)
 
     return games

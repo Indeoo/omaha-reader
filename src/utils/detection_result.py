@@ -88,14 +88,6 @@ class DetectionResult:
             positions=data.get('positions', [])
         )
 
-    def get_player_cards_string(self) -> str:
-        """Get formatted string of player cards"""
-        return ReadedCard.format_cards(self.player_cards)
-
-    def get_table_cards_string(self) -> str:
-        """Get formatted string of table cards"""
-        return ReadedCard.format_cards(self.table_cards)
-
     def get_all_cards(self) -> List[ReadedCard]:
         """Get all detected cards (player + table)"""
         return self.player_cards + self.table_cards

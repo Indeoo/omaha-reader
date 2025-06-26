@@ -109,7 +109,7 @@ def write_combined_result(result: DetectionResult, timestamp_folder: str, filena
     Write detection and position results for a single image to one file
 
     Args:
-        result: DetectionResult object or dictionary containing all detection info
+        result: DetectionResult object containing all detection info
         timestamp_folder: Path to the timestamp folder where file should be saved
         filename: Name of the file to save (e.g., "detection_20240116_143052_123.txt")
     """

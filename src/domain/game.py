@@ -1,5 +1,6 @@
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
+from src.domain.readed_card import ReadedCard
 
 
 class Game:
@@ -10,34 +11,85 @@ class Game:
     def __init__(
             self,
             window_name: str,
-            player_cards: List = None,
-            table_cards: List = None,
-            player_cards_string: str = "",
-            table_cards_string: str = ""
+            player_cards: List[ReadedCard] = None,
+            table_cards: List[ReadedCard] = None
     ):
         """
         Initialize a Game instance.
 
         Args:
             window_name: Name of the window/table
-            player_cards: List of player cards with display info
-            table_cards: List of table cards with display info
-            player_cards_string: Raw string representation of player cards
-            table_cards_string: Raw string representation of table cards
+            player_cards: List of ReadedCard objects for player cards
+            table_cards: List of ReadedCard objects for table cards
         """
         self.window_name = window_name
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
-        self.player_cards_string = player_cards_string
-        self.table_cards_string = table_cards_string
         self.timestamp = datetime.now()
+
+    def get_player_cards_string(self) -> str:
+        """Get formatted string of player cards"""
+        return ReadedCard.format_cards(self.player_cards)
+
+    def get_table_cards_string(self) -> str:
+        """Get formatted string of table cards"""
+        return ReadedCard.format_cards(self.table_cards)
+
+    def get_player_cards_for_web(self) -> List[Dict]:
+        """Format player cards for web display with suit symbols"""
+        return self._format_cards_for_web(self.player_cards)
+
+    def get_table_cards_for_web(self) -> List[Dict]:
+        """Format table cards for web display with suit symbols"""
+        return self._format_cards_for_web(self.table_cards)
+
+    def _format_cards_for_web(self, cards: List[ReadedCard]) -> List[Dict]:
+        """Format cards for web display with suit symbols"""
+        if not cards:
+            return []
+
+        formatted = []
+        for card in cards:
+            if card.template_name:
+                formatted.append({
+                    'name': card.template_name,
+                    'display': self._format_card_with_unicode(card.template_name),
+                    'score': round(card.match_score, 3) if card.match_score else 0
+                })
+        return formatted
+
+    def _format_card_with_unicode(self, card_name: str) -> str:
+        """Convert card name to include Unicode suit symbols"""
+        if not card_name or len(card_name) < 2:
+            return card_name
+
+        # Unicode suit symbols mapping
+        suit_unicode = {
+            'S': '♠',  # Spades
+            'H': '♥',  # Hearts
+            'D': '♦',  # Diamonds
+            'C': '♣'  # Clubs
+        }
+
+        # Get the last character as suit
+        suit = card_name[-1].upper()
+        rank = card_name[:-1]
+
+        if suit in suit_unicode:
+            return f"{rank}{suit_unicode[suit]}"
+        else:
+            return card_name
+
+    def has_cards(self) -> bool:
+        """Check if any cards were detected"""
+        return bool(self.player_cards or self.table_cards)
 
     def to_dict(self):
         """Convert Game instance to dictionary for JSON serialization"""
         return {
             'window_name': self.window_name,
-            'player_cards': self.player_cards,
-            'table_cards': self.table_cards,
-            'player_cards_string': self.player_cards_string,
-            'table_cards_string': self.table_cards_string
+            'player_cards': self.get_player_cards_for_web(),
+            'table_cards': self.get_table_cards_for_web(),
+            'player_cards_string': self.get_player_cards_string(),
+            'table_cards_string': self.get_table_cards_string()
         }
