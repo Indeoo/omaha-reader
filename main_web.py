@@ -10,7 +10,7 @@ from detection_service import DetectionService
 from web_service import WebService
 
 # Configuration
-WAIT_TIME = 5
+WAIT_TIME = 3
 DEBUG_MODE = True  # Set to False for live capture
 
 
