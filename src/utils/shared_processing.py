@@ -10,97 +10,99 @@ from src.domain.readed_card import ReadedCard
 from src.utils.result_utils import print_detection_result, print_position_result, write_combined_result
 
 
-@benchmark
-def process_captured_images(
-        captured_images: List[Dict],
-        player_templates: Dict,
-        table_templates: Dict,
-        timestamp_folder: str,
-        position_templates: Dict = None,
-        detect_positions: bool = True,
-        process_callback: Callable = None,
-        save_result_images=True,
-        write_detection_files=True,
-) -> List[Dict]:
-    """
-    Process a list of captured images to detect cards and optionally positions.
+class PokerGameProcessor:
+    @benchmark
+    def process_captured_images(
+            self,
+            captured_images: List[Dict],
+            player_templates: Dict,
+            table_templates: Dict,
+            timestamp_folder: str,
+            position_templates: Dict = None,
+            detect_positions: bool = True,
+            process_callback: Callable = None,
+            save_result_images=True,
+            write_detection_files=True,
+    ) -> List[Dict]:
+        """
+        Process a list of captured images to detect cards and optionally positions.
 
-    Args:
-        captured_images: List of captured image dictionaries
-        player_templates: Dictionary of player card templates
-        table_templates: Dictionary of table card templates
-        position_templates: Dictionary of position templates (optional)
-        detect_positions: Whether to detect positions (default: True)
-        process_callback: Optional callback function called for each processed image
-                         with args (i, captured_item, card_result, position_result)
+        Args:
+            captured_images: List of captured image dictionaries
+            player_templates: Dictionary of player card templates
+            table_templates: Dictionary of table card templates
+            position_templates: Dictionary of position templates (optional)
+            detect_positions: Whether to detect positions (default: True)
+            process_callback: Optional callback function called for each processed image
+                             with args (i, captured_item, card_result, position_result)
 
-    Returns:
-        List of dictionaries containing processed results for each image
-    """
-    processed_results = []
+        Returns:
+            List of dictionaries containing processed results for each image
+        """
+        processed_results = []
 
-    for i, captured_item in enumerate(captured_images):
-        window_name = captured_item['window_name']
+        for i, captured_item in enumerate(captured_images):
+            window_name = captured_item['window_name']
 
-        # Detect cards for single image
-        card_result = detect_cards_single(captured_item, i, player_templates, table_templates)
+            # Detect cards for single image
+            card_result = detect_cards_single(captured_item, i, player_templates, table_templates)
 
-        # Detect positions for single image (skip full screen)
-        position_result = None
-        if detect_positions and position_templates and window_name:
-            position_result = detect_positions_single(captured_item, i, position_templates)
+            # Detect positions for single image (skip full screen)
+            position_result = None
+            if detect_positions and position_templates and window_name:
+                position_result = detect_positions_single(captured_item, i, position_templates)
 
-        # Create combined result
-        result = {
-            'index': i,
-            'captured_item': captured_item,
-            'card_result': card_result,
-            'position_result': position_result,
-            'window_name': window_name,
-            'filename': captured_item['filename']
-        }
+            # Create combined result
+            result = {
+                'index': i,
+                'captured_item': captured_item,
+                'card_result': card_result,
+                'position_result': position_result,
+                'window_name': window_name,
+                'filename': captured_item['filename']
+            }
 
-        i = result['index']
-        captured_item = result['captured_item']
-        card_result = result['card_result']
-        position_result = result['position_result']
-        window_name = result['window_name']
-        filename = result['filename']
+            i = result['index']
+            captured_item = result['captured_item']
+            card_result = result['card_result']
+            position_result = result['position_result']
+            window_name = result['window_name']
+            filename = result['filename']
 
-        print(f"\n📷 Processing image {i + 1}: {window_name}")
-        print("-" * 40)
+            print(f"\n📷 Processing image {i + 1}: {window_name}")
+            print("-" * 40)
 
-        # Print detection results
-        if card_result:
-            print_detection_result(card_result)
-        else:
-            print(f"  🃏 No cards detected")
+            # Print detection results
+            if card_result:
+                print_detection_result(card_result)
+            else:
+                print(f"  🃏 No cards detected")
 
-        # Print position results
-        if position_result:
-            print_position_result(position_result)
+            # Print position results
+            if position_result:
+                print_position_result(position_result)
 
-        # Write result file
-        if write_detection_files:
-            result_filename = f"detection_{filename}.txt"
-            write_combined_result(card_result, position_result, timestamp_folder, result_filename)
+            # Write result file
+            if write_detection_files:
+                result_filename = f"detection_{filename}.txt"
+                write_combined_result(card_result, position_result, timestamp_folder, result_filename)
 
-        # Save result image
-        if save_result_images:
-            save_detection_result_image(
-                timestamp_folder,
-                captured_item,
-                card_result,
-                position_result
-            )
+            # Save result image
+            if save_result_images:
+                save_detection_result_image(
+                    timestamp_folder,
+                    captured_item,
+                    card_result,
+                    position_result
+                )
 
-        processed_results.append(result)
+            processed_results.append(result)
 
-        # Call callback if provided
-        if process_callback:
-            process_callback(i, captured_item, card_result, position_result)
+            # Call callback if provided
+            if process_callback:
+                process_callback(i, captured_item, card_result, position_result)
 
-    return processed_results
+        return processed_results
 
 
 def format_results_for_web(processed_results: List[Dict]) -> List[Dict]:

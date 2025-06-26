@@ -13,7 +13,7 @@ from flask_cors import CORS
 
 from src.utils.capture_utils import capture_and_save_windows
 from src.utils.opencv_utils import load_templates
-from src.utils.shared_processing import process_captured_images, format_results_for_web
+from src.utils.shared_processing import format_results_for_web, PokerGameProcessor
 
 app = Flask(__name__)
 CORS(app)
@@ -27,7 +27,7 @@ latest_results = {
 
 # Configuration
 WAIT_TIME = 5
-DEBUG_MODE = False  # Set to False for live capture
+DEBUG_MODE = True  # Set to False for live capture
 
 # Templates (loaded once)
 player_templates = None
@@ -38,6 +38,8 @@ position_templates = None
 def detection_worker():
     """Background worker that continuously captures and detects cards"""
     global latest_results
+
+    poker_game_processor = PokerGameProcessor()
 
     while True:
         try:
@@ -59,7 +61,7 @@ def detection_worker():
 
             if len(captured_images) > 1:
                 # Process all captured images using shared function
-                processed_results = process_captured_images(
+                processed_results = poker_game_processor.process_captured_images(
                     captured_images=captured_images,
                     player_templates=player_templates,
                     table_templates=table_templates,
