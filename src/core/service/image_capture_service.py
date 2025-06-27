@@ -25,20 +25,19 @@ class ImageCaptureService:
 
     def get_images_to_process(self, timestamp_folder) -> List[CapturedImage]:
         """Get images that need processing (changed or new windows)"""
-        # Capture windows
-        captured_windows = self.capture_windows(timestamp_folder)
+        captured_windows = self._capture_windows(timestamp_folder)
 
         if not captured_windows:
             print("🚫 No poker tables detected")
             return []
 
         # Filter to only changed images
-        changed_images = self.get_changed_images(captured_windows)
+        changed_images = self._get_changed_images(captured_windows)
         print(f"🔍 Processing {len(changed_images)} changed/new images out of {len(captured_windows)} total")
 
         return changed_images
 
-    def capture_windows(self, timestamp_folder: str) -> List[CapturedImage]:
+    def _capture_windows(self, timestamp_folder: str) -> List[CapturedImage]:
         """
         Capture poker windows and return CapturedImage objects
 
@@ -55,7 +54,7 @@ class ImageCaptureService:
         )
         return captured_windows
 
-    def get_changed_images(self, captured_images: List[CapturedImage]) -> List[CapturedImage]:
+    def _get_changed_images(self, captured_images: List[CapturedImage]) -> List[CapturedImage]:
         """
         Determine which captured images need processing based on hash comparison
 
@@ -118,7 +117,3 @@ class ImageCaptureService:
         with self._hash_lock:
             return self._window_hashes.copy()
 
-    def clear_window_hashes(self):
-        """Clear all stored window hashes (useful for testing or reset)"""
-        with self._hash_lock:
-            self._window_hashes.clear()

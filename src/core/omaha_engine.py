@@ -58,7 +58,7 @@ class OmahaEngine:
 
     def force_detect(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
-        captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
+        captured_windows = self.image_capture_service._capture_windows(timestamp_folder)
 
         if not captured_windows:
             print("🚫 No poker tables detected")
