@@ -10,7 +10,6 @@ class StateRepository:
 
     def __init__(self):
         self._current_state = None
-        self._previous_state = None
         self._lock = threading.Lock()
 
     def get_current_state(self):
@@ -22,7 +21,6 @@ class StateRepository:
             state_changed = self._current_state != new_state
 
             if state_changed:
-                self._previous_state = self._current_state
                 self._current_state = new_state
 
             return state_changed
@@ -54,7 +52,6 @@ class StateRepository:
             )
 
             if has_changed:
-                self._previous_state = self._current_state
                 self._current_state = updated_state
 
             return has_changed, old_game
@@ -77,7 +74,6 @@ class StateRepository:
                 return False
 
             updated_state = self._current_state.remove_game(window_name)
-            self._previous_state = self._current_state
             self._current_state = updated_state
 
             return True

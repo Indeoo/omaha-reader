@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""
-Web service that handles Flask routes and SSE management.
-Separated from detection service for better code organization.
-Updated to work with non-threading OmahaGameReader.
-"""
+
 import json
 import os
 
@@ -14,7 +10,6 @@ from src.core.service.sse_manager import SSEManager
 
 
 class WebService:
-    """Web service that provides Flask routes and handles SSE communication"""
 
     def __init__(self, detection_service, wait_time: int = 5, debug_mode: bool = True):
         self.detection_service = detection_service
@@ -40,20 +35,16 @@ class WebService:
         self._setup_routes()
 
     def _on_detection_update(self, data: dict):
-        """Handle detection updates from detection service"""
         self.sse_manager.broadcast(data)
 
     def _setup_routes(self):
-        """Setup Flask routes"""
 
         @self.app.route('/')
         def index():
-            """Main page"""
             return render_template('index.html')
 
         @self.app.route('/api/stream')
         def sse_stream():
-            """Server-Sent Events endpoint for real-time updates"""
             client_id, client_queue = self.sse_manager.add_client()
 
             def event_stream():
@@ -66,7 +57,7 @@ class WebService:
                     if latest_results['detections']:
                         initial_data = {
                             'type': 'detection_update',
-                            'timestamp': latest_results['timestamp'],
+                            'timestamp': latest_results.get('timestamp'),
                             'detections': latest_results['detections'],
                             'last_update': latest_results['last_update']
                         }
@@ -98,14 +89,12 @@ class WebService:
 
         @self.app.route('/api/config')
         def get_config():
-            """API endpoint to get configuration settings"""
             return jsonify({
                 'backend_capture_interval': self.wait_time
             })
 
         @self.app.route('/api/detect', methods=['POST'])
         def manual_detect():
-            """API endpoint to trigger manual detection"""
             try:
                 games = self.detection_service.detect_and_notify()
                 return jsonify({
@@ -121,7 +110,6 @@ class WebService:
 
         @self.app.route('/api/force-detect', methods=['POST'])
         def force_detect():
-            """API endpoint to force detection (ignore change detection)"""
             try:
                 games = self.detection_service.force_detect()
                 return jsonify({
@@ -137,7 +125,6 @@ class WebService:
 
         @self.app.route('/health')
         def health():
-            """Health check endpoint"""
             latest_results = self.detection_service.get_latest_results()
             return jsonify({
                 'status': 'ok',
@@ -149,7 +136,6 @@ class WebService:
             })
 
     def run(self, host: str = '0.0.0.0', port: int = 5001):
-        """Start the Flask web server"""
         print(f"\n✅ Web server starting...")
         print(f"📍 Open http://localhost:{port} in your browser")
         print(f"🔄 Real-time updates via Server-Sent Events")
