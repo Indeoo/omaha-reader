@@ -5,6 +5,7 @@ Shared image processing functions for both main.py and main_web3.py
 from typing import Dict, List, Callable
 
 from src.domain.game import Game
+from src.domain.captured_image import CapturedImage
 from src.omaha_card_reader import OmahaCardReader
 from src.player_position_reader import PlayerPositionReader
 from src.table_card_reader import TableCardReader
@@ -57,7 +58,7 @@ class PokerGameProcessor:
     @benchmark
     def process_images(
             self,
-            captured_images: List[Dict],
+            captured_images: List[CapturedImage],
             timestamp_folder: str,
             process_callback: Callable = None,
     ) -> List[DetectionResult]:
@@ -65,25 +66,25 @@ class PokerGameProcessor:
         Process a list of captured images to detect cards and optionally positions.
 
         Args:
-            captured_images: List of captured image dictionaries
+            captured_images: List of CapturedImage objects
             timestamp_folder: Folder to save results
             process_callback: Optional callback function called for each processed image
-                             with args (i, captured_item, result)
+                             with args (i, captured_image, result)
 
         Returns:
             List of DetectionResult objects containing processed results for each image
         """
         processed_results = []
 
-        for i, captured_item in enumerate(captured_images):
-            result = self._process_single_image(captured_item, i, process_callback, timestamp_folder)
+        for i, captured_image in enumerate(captured_images):
+            result = self._process_single_image(captured_image, i, process_callback, timestamp_folder)
             processed_results.append(result)
 
         return processed_results
 
     def _process_single_image(
             self,
-            captured_item: Dict,
+            captured_image: CapturedImage,
             index: int,
             process_callback: Callable,
             timestamp_folder: str
@@ -92,7 +93,7 @@ class PokerGameProcessor:
         Process a single captured image
 
         Args:
-            captured_item: Single captured image dictionary
+            captured_image: CapturedImage object
             index: Image index
             process_callback: Optional callback function
             timestamp_folder: Folder to save results
@@ -100,12 +101,12 @@ class PokerGameProcessor:
         Returns:
             DetectionResult object
         """
-        window_name = captured_item['window_name']
-        filename = captured_item['filename']
+        window_name = captured_image.window_name
+        filename = captured_image.filename
 
         # Convert image to OpenCV format once
         try:
-            cv2_image = pil_to_cv2(captured_item['image'])
+            cv2_image = pil_to_cv2(captured_image.image)
         except Exception as e:
             raise Exception(f"    ❌ Error converting image {window_name}: {str(e)}")
 
@@ -132,7 +133,7 @@ class PokerGameProcessor:
         result = DetectionResult(
             window_name=window_name,
             filename=filename,
-            captured_item=captured_item,
+            captured_image=captured_image,
             player_cards=player_cards,
             table_cards=table_cards,
             positions=positions
@@ -152,10 +153,10 @@ class PokerGameProcessor:
 
         # Save result image
         if self.save_result_images:
-            save_detection_result_image(timestamp_folder, captured_item, result)
+            save_detection_result_image(timestamp_folder, captured_image, result)
 
         # Call callback if provided
         if process_callback:
-            process_callback(index, captured_item, result)
+            process_callback(index, captured_image, result)
 
         return result

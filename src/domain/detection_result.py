@@ -1,5 +1,6 @@
 from typing import List, Dict, Any, Optional
 from src.domain.readed_card import ReadedCard
+from src.domain.captured_image import CapturedImage
 
 
 class DetectionResult:
@@ -12,7 +13,7 @@ class DetectionResult:
             self,
             window_name: str,
             filename: str,
-            captured_item: Dict[str, Any],
+            captured_image: CapturedImage,
             player_cards: Optional[List[ReadedCard]] = None,
             table_cards: Optional[List[ReadedCard]] = None,
             positions: Optional[List[Any]] = None
@@ -23,14 +24,14 @@ class DetectionResult:
         Args:
             window_name: Name of the window/table
             filename: Filename of the captured image
-            captured_item: Original captured item dictionary
+            captured_image: CapturedImage object
             player_cards: List of detected player cards
             table_cards: List of detected table cards
             positions: List of detected positions
         """
         self.window_name = window_name
         self.filename = filename
-        self.captured_item = captured_item
+        self.captured_image = captured_image
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.positions = positions or []
@@ -45,6 +46,11 @@ class DetectionResult:
         """Check if any positions were detected"""
         return bool(self.positions)
 
+    @property
+    def captured_item(self) -> Dict[str, Any]:
+        """Backward compatibility property - returns captured_image as dict"""
+        return self.captured_image.to_dict()
+
     def to_dict(self) -> Dict[str, Any]:
         """
         Convert back to dictionary format for backward compatibility.
@@ -55,7 +61,8 @@ class DetectionResult:
         return {
             'window_name': self.window_name,
             'filename': self.filename,
-            'captured_item': self.captured_item,
+            'captured_item': self.captured_image.to_dict(),  # For backward compatibility
+            'captured_image': self.captured_image,
             'player_cards': self.player_cards,
             'table_cards': self.table_cards,
             'positions': self.positions,
@@ -74,10 +81,16 @@ class DetectionResult:
         Returns:
             DetectionResult instance
         """
+        # Handle both old and new formats
+        captured_image = data.get('captured_image')
+        if captured_image is None:
+            # Old format - convert from captured_item
+            captured_image = CapturedImage.from_dict(data['captured_item'])
+
         return cls(
             window_name=data['window_name'],
             filename=data['filename'],
-            captured_item=data['captured_item'],
+            captured_image=captured_image,
             player_cards=data.get('player_cards', []),
             table_cards=data.get('table_cards', []),
             positions=data.get('positions', [])

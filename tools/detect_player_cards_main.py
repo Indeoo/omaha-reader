@@ -9,7 +9,7 @@ import os
 from typing import Dict, Any
 from datetime import datetime
 
-from src.player_card_reader import OmahaCardReader
+from src.omaha_card_reader import OmahaCardReader
 from src.utils.opencv_utils import load_templates, read_cv2_image
 
 
@@ -218,7 +218,6 @@ def main():
     output_dir = "resources/player_results"
     templates_dir = "../resources/templates/player_cards/"
     templates = load_templates(templates_dir)
-
 
     # Create base output directory
     os.makedirs(output_dir, exist_ok=True)

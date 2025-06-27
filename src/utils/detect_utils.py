@@ -5,23 +5,24 @@ import cv2
 
 from src.domain.readed_card import ReadedCard
 from src.domain.detection_result import DetectionResult
+from src.domain.captured_image import CapturedImage
 from src.utils.opencv_utils import pil_to_cv2, save_opencv_image, draw_detected_cards
 
 
-def save_detection_result_image(timestamp_folder: str, captured_item: Dict, result: Union[Dict, DetectionResult]):
+def save_detection_result_image(timestamp_folder: str, captured_image: CapturedImage, result: Union[Dict, DetectionResult]):
     """
     Draw and save result image for a single captured image with detected cards and positions
 
     Args:
         timestamp_folder: Folder to save result images
-        captured_item: Single captured image dictionary
+        captured_image: CapturedImage object
         result: DetectionResult object or dictionary containing all detection info
     """
-    window_name = captured_item['window_name']
-    filename = captured_item['filename']
+    window_name = captured_image.window_name
+    filename = captured_image.filename
 
     try:
-        cv2_image = pil_to_cv2(captured_item['image'])
+        cv2_image = pil_to_cv2(captured_image.image)
         result_image = cv2_image.copy()
 
         # Track what we're drawing for debugging

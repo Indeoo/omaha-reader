@@ -1,16 +1,17 @@
 import os
-from typing import List, Dict, Any
+from typing import List
 import ctypes
 
 from PIL import ImageGrab, Image
 
+from src.domain.captured_image import CapturedImage
 from src.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
-def _capture_windows(windows) -> List[Dict[str, Any]]:
+def _capture_windows(windows) -> List[CapturedImage]:
     print(f"Found {len(windows)} windows to capture")
 
-    # List to store all captured images with their metadata
+    # List to store all captured images
     captured_images = []
 
     # Capture each window and store in memory
@@ -40,12 +41,13 @@ def _capture_windows(windows) -> List[Dict[str, Any]]:
             capture_method = "Screen region (with overlap)"
 
         if img:
-            captured_images.append({
-                'image': img,
-                'filename': filename,
-                'description': f"{title} ({process}) - {capture_method}",
-                'window_name': title
-            })
+            captured_image = CapturedImage(
+                image=img,
+                filename=filename,
+                window_name=title,
+                description=f"{title} ({process}) - {capture_method}"
+            )
+            captured_images.append(captured_image)
             print(f"  ✓ Captured using {capture_method}")
         else:
             print(f"  ✗ Failed to capture")
@@ -60,7 +62,7 @@ def get_poker_window_info(poker_window_name):
 
 
 def save_images(
-        captured_images: List[Dict[str, Any]],
+        captured_images: List[CapturedImage],
         timestamp_folder: str = None
 ):
     print(f"\nSaving {len(captured_images)} captured images...")
@@ -68,14 +70,16 @@ def save_images(
 
     print(f"Screenshots will be saved to: {timestamp_folder}")
 
-    for i, captured_item in enumerate(captured_images, 1):
+    for i, captured_image in enumerate(captured_images, 1):
         try:
-            filepath = os.path.join(timestamp_folder, captured_item['filename'])
-            captured_item['image'].save(filepath)
-            print(f"  ✓ Saved {i}/{len(captured_images)}: {captured_item['filename']}")
-            successes += 1
+            filepath = os.path.join(timestamp_folder, captured_image.filename)
+            if captured_image.save(filepath):
+                print(f"  ✓ Saved {i}/{len(captured_images)}: {captured_image.filename}")
+                successes += 1
+            else:
+                print(f"  ✗ Failed to save {captured_image.filename}")
         except Exception as e:
-            print(f"  ✗ Failed to save {captured_item['filename']}: {e}")
+            print(f"  ✗ Failed to save {captured_image.filename}: {e}")
 
     # Print summary
     print("\n---- Capture Summary ----")
@@ -85,7 +89,7 @@ def save_images(
     print("Screenshot process completed.")
 
 
-def _load_images_from_folder(timestamp_folder: str) -> List[Dict[str, Any]]:
+def _load_images_from_folder(timestamp_folder: str) -> List[CapturedImage]:
     captured_images = []
 
     if not os.path.exists(timestamp_folder):
@@ -107,12 +111,13 @@ def _load_images_from_folder(timestamp_folder: str) -> List[Dict[str, Any]]:
 
             window_name = filename.replace('.png', '')  # Use full filename without extension
 
-            captured_images.append({
-                'image': image,
-                'filename': filename,
-                'description': f"Loaded from debug folder",
-                'window_name': window_name
-            })
+            captured_image = CapturedImage(
+                image=image,
+                filename=filename,
+                window_name=window_name,
+                description="Loaded from debug folder"
+            )
+            captured_images.append(captured_image)
             print(f"  ✓ Loaded: {filename} → window: {window_name}")
 
         except Exception as e:
@@ -121,7 +126,7 @@ def _load_images_from_folder(timestamp_folder: str) -> List[Dict[str, Any]]:
     return captured_images
 
 
-def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, debug=False) -> List[Dict[str, Any]]:
+def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, debug=False) -> List[CapturedImage]:
     if debug:
         # Debug mode: load images from existing folder
         captured_images = _load_images_from_folder(timestamp_folder)
@@ -152,12 +157,13 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
     if save_windows:
         try:
             full_screen = ImageGrab.grab()
-            captured_images.append({
-                'image': full_screen,
-                'filename': "full_screen.png",
-                'description': "Full screen",
-                'window_name': 'full_screen'
-            })
+            full_screen_captured = CapturedImage(
+                image=full_screen,
+                filename="full_screen.png",
+                window_name='full_screen',
+                description="Full screen"
+            )
+            captured_images.append(full_screen_captured)
             print(f"Captured full screen")
         except Exception as e:
             print(f"Error capturing full screen: {e}")
@@ -165,6 +171,8 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
         # Write the window list to windows.txt
         write_windows_list(windows, timestamp_folder)
         save_images(captured_images, timestamp_folder)
-        captured_images = [img for img in captured_images if img['window_name'] != 'full_screen']
+
+        # Remove full screen from the list before returning
+        captured_images = [img for img in captured_images if img.window_name != 'full_screen']
 
     return captured_images

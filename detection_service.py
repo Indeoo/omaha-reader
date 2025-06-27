@@ -6,12 +6,12 @@ Separated from web service for better code organization.
 import os
 import threading
 import time
-import hashlib
 from datetime import datetime
 from typing import List, Callable, Dict
 
 from src.domain.detection_result import DetectionResult
 from src.domain.game import Game
+from src.domain.captured_image import CapturedImage
 from src.utils.capture_utils import capture_and_save_windows
 from src.utils.poker_game_processor import PokerGameProcessor
 
@@ -84,32 +84,12 @@ class DetectionService:
                 'last_update': self._latest_results['last_update']
             }
 
-    def _calculate_image_hash(self, pil_image) -> str:
-        """
-        Calculate a hash of the image content to detect changes
-
-        Args:
-            pil_image: PIL Image object
-
-        Returns:
-            String hash of the image content
-        """
-        try:
-            # Convert image to bytes and calculate SHA256 hash
-            # Using a smaller image for faster hashing while maintaining uniqueness
-            resized_image = pil_image.resize((100, 100))  # Small size for fast hashing
-            image_bytes = resized_image.tobytes()
-            return hashlib.sha256(image_bytes).hexdigest()[:16]  # Use first 16 chars for efficiency
-        except Exception as e:
-            print(f"❌ Error calculating image hash: {str(e)}")
-            return ""
-
-    def _get_images_to_process(self, captured_images: List[Dict]) -> List[Dict]:
+    def _get_images_to_process(self, captured_images: List[CapturedImage]) -> List[CapturedImage]:
         """
         Determine which captured images need processing based on hash comparison
 
         Args:
-            captured_images: List of captured image dictionaries
+            captured_images: List of CapturedImage objects
 
         Returns:
             List of images that need processing (changed or new)
@@ -119,11 +99,11 @@ class DetectionService:
 
         with self._hash_lock:
             all_unchanged = True  # Track if all windows are unchanged
-            for captured_item in captured_images:
-                window_name = captured_item['window_name']
+            for captured_image in captured_images:
+                window_name = captured_image.window_name
 
                 # Calculate hash for current image
-                current_hash = self._calculate_image_hash(captured_item['image'])
+                current_hash = captured_image.calculate_hash()
                 current_window_hashes[window_name] = current_hash
 
                 # Check if this window is new or changed
@@ -132,12 +112,12 @@ class DetectionService:
                 if stored_hash is None:
                     # New window
                     print(f"🆕 New window detected: {window_name}")
-                    images_to_process.append(captured_item)
+                    images_to_process.append(captured_image)
                     all_unchanged = False
                 elif stored_hash != current_hash:
                     # Changed window
                     print(f"🔄 Window changed: {window_name}")
-                    images_to_process.append(captured_item)
+                    images_to_process.append(captured_image)
                     all_unchanged = False
                 else:
                     # Unchanged window
