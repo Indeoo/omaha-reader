@@ -41,58 +41,63 @@ class OmahaGameReader:
         return self.game_state_manager.get_latest_results()
 
     def detect_and_notify(self) -> List[Game]:
-        return self._execute_detection(use_change_detection=True, always_notify=False)
+        timestamp_folder = create_timestamp_folder(self.debug_mode)
+        images_to_process = self.image_capture_service.get_images_to_process(timestamp_folder)
+
+        if not images_to_process:
+            print("🚫 No poker tables detected or no changes")
+            return self._get_current_games()
+
+        all_games = []
+        any_changes = False
+
+        for i, captured_image in enumerate(images_to_process):
+            try:
+                detection_result = self._process_single_image(captured_image, i)
+                has_changed = self.game_state_manager.update_state(detection_result, timestamp_folder)
+
+                if has_changed:
+                    any_changes = True
+
+                game = self.game_state_manager._convert_result_to_game(detection_result)
+                if game:
+                    all_games.append(game)
+
+            except Exception as e:
+                print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
+
+        if any_changes:
+            self._notify_observers()
+
+        return all_games
 
     def force_detect(self) -> List[Game]:
-        return self._execute_detection(use_change_detection=False, always_notify=True)
+        timestamp_folder = create_timestamp_folder(self.debug_mode)
+        captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
 
-    def _execute_detection(self, use_change_detection: bool, always_notify: bool) -> List[Game]:
-        try:
-            timestamp_folder = create_timestamp_folder(self.debug_mode)
-
-            images_to_process = self._get_images_to_process(timestamp_folder, use_change_detection)
-
-            if not images_to_process:
-                if use_change_detection:
-                    print("🚫 No poker tables detected or no changes")
-                else:
-                    print("🚫 No poker tables detected")
-                return self._get_current_games()
-
-            all_games = []
-
-            for i, captured_image in enumerate(images_to_process):
-                try:
-                    detection_result = self._process_single_image(captured_image, i)
-
-                    should_notify = self._update_state_and_check_notification(
-                        detection_result, timestamp_folder, use_change_detection, always_notify
-                    )
-
-                    if should_notify:
-                        self._notify_observers(use_change_detection)
-
-                    game = self.game_state_manager._convert_result_to_game(detection_result)
-                    if game:
-                        all_games.append(game)
-
-                except Exception as e:
-                    print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
-
-            return all_games
-
-        except Exception as e:
-            print(f"❌ Error in detection: {str(e)}")
+        if not captured_windows:
+            print("🚫 No poker tables detected")
             return []
 
-    def _get_images_to_process(self, timestamp_folder: str, use_change_detection: bool) -> List[CapturedImage]:
-        if use_change_detection:
-            return self.image_capture_service.get_images_to_process(timestamp_folder)
-        else:
-            captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
-            if captured_windows:
-                print(f"🔍 Force processing {len(captured_windows)} images")
-            return captured_windows
+        print(f"🔍 Force processing {len(captured_windows)} images")
+        all_games = []
+
+        for i, captured_image in enumerate(captured_windows):
+            try:
+                detection_result = self._process_single_image(captured_image, i)
+                self.game_state_manager.update_state(detection_result, timestamp_folder)
+
+                game = self.game_state_manager._convert_result_to_game(detection_result)
+                if game:
+                    all_games.append(game)
+
+            except Exception as e:
+                print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
+
+        self._notify_observers()
+        print(f"🔄 Force detection completed - notified observers")
+
+        return all_games
 
     def _process_single_image(self, captured_image: CapturedImage, index: int) -> DetectionResult:
         window_name = captured_image.window_name
@@ -148,26 +153,10 @@ class OmahaGameReader:
         except Exception as e:
             raise Exception(f"❌ Error in detection for {window_name}: {str(e)}")
 
-    def _update_state_and_check_notification(self,
-                                             detection_result: DetectionResult,
-                                             timestamp_folder: str,
-                                             use_change_detection: bool,
-                                             always_notify: bool) -> bool:
-        if not use_change_detection:
-            self.game_state_manager.update_state(detection_result, timestamp_folder)
-            return always_notify
-        else:
-            has_changed = self.game_state_manager.update_state(detection_result, timestamp_folder)
-            return has_changed or always_notify
-
-    def _notify_observers(self, use_change_detection: bool):
+    def _notify_observers(self):
         notification_data = self.game_state_manager.get_notification_data()
         self.notifier.notify_observers(notification_data)
-
-        if not use_change_detection:
-            print(f"🔄 Force detection completed - notified observers")
-        else:
-            print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
+        print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
 
     def _get_current_games(self) -> List[Game]:
         latest_results = self.game_state_manager.get_latest_results()
