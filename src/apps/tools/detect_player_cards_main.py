@@ -9,7 +9,7 @@ import os
 from typing import Dict, Any
 from datetime import datetime
 
-from src.core.reader.omaha_card_reader import PlayerCardReader
+from src.core.reader.player_card_reader import PlayerCardReader
 from src.core.utils.opencv_utils import load_templates, read_cv2_image
 
 
@@ -216,7 +216,7 @@ def main():
     # Configuration
     screenshots_dir = "../../../resources/data_screenshots"
     output_dir = "resources/player_results"
-    templates_dir = "../../../resources/templates/player_cards/"
+    templates_dir = "../../../resources/templates/canada/player_cards/"
     templates = load_templates(templates_dir)
 
     # Create base output directory

@@ -1,0 +1,31 @@
+Combined Detection & Position Result - 2025-06-17 12:40:28
+============================================================
+
+Window:  2 50  5 Pot Limit Omaha
+Source File: 02_unknown__2_50__5_Pot_Limit_Omaha.png
+Image Index: 0
+------------------------------
+
+🃏 CARD DETECTION:
+==============================
+ 2 50  5 Pot Limit Omaha: Player:ASACTH9H Table:KC9CKH
+
+📊 CARD DETAILS:
+--------------------
+
+Player Cards (4 cards):
+  1. AS: score=1.000, center=(np.int64(353), np.int64(371))
+  2. AC: score=1.000, center=(np.int64(379), np.int64(371))
+  3. TH: score=1.000, center=(np.int64(404), np.int64(371))
+  4. 9H: score=1.000, center=(np.int64(430), np.int64(371))
+
+Table Cards (3 cards):
+  1. KC: score=1.000, center=(np.int64(276), np.int64(264))
+  2. 9C: score=0.986, center=(np.int64(332), np.int64(264))
+  3. KH: score=0.983, center=(np.int64(391), np.int64(264))
+
+🎯 POSITION DETECTION:
+==============================
+No position detection performed for this image.
+
+============================================================
