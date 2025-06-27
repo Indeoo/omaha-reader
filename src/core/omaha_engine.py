@@ -46,8 +46,6 @@ class OmahaEngine:
                 try:
                     detection_result = self._process_single_image(captured_image, i)
                     self.game_state_manager.manage(detection_result)
-
-
                 except Exception as e:
                     print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
@@ -55,7 +53,7 @@ class OmahaEngine:
 
     def force_detect(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
-        captured_windows = self.image_capture_service._capture_windows(timestamp_folder)
+        captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
 
         if captured_windows:
             print(f"🔍 Force processing {len(captured_windows)} images")
@@ -143,6 +141,3 @@ class OmahaEngine:
             games.append(game)
 
         return games
-
-    def get_window_hash_stats(self) -> dict:
-        return self.image_capture_service.get_window_hash_stats()

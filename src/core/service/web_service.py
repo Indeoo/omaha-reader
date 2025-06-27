@@ -115,7 +115,6 @@ class WebService:
                 'sse_clients': self.sse_manager.get_client_count(),
                 'last_update': latest_results['last_update'],
                 'detection_service_available': True,  # No longer has is_running()
-                'window_hashes': len(self.omaha_engine.get_window_hash_stats())
             })
 
     def run(self, host: str = '0.0.0.0', port: int = 5001):
