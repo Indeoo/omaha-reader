@@ -35,12 +35,6 @@ class GameStateManager:
     def get_notification_data(self) -> dict:
         return self.repository.get_notification_data()
 
-    def remove_game(self, window_name: str) -> bool:
-        removed = self.repository.remove_game(window_name)
-        if removed:
-            print(f"🗑️ Removed game: {window_name}")
-        return removed
-
     def _convert_result_to_game(self, result: DetectionResult) -> Optional[Game]:
         if result.has_cards or result.has_positions:
             return Game(

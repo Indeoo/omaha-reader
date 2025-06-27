@@ -50,19 +50,6 @@ class StateRepository:
 
             return has_changed, old_game
 
-    def remove_game(self, window_name: str) -> bool:
-        with self._lock:
-            if self._current_state is None:
-                return False
-
-            if self._current_state.find_game_by_window(window_name) is None:
-                return False
-
-            updated_state = self._current_state.remove_game(window_name)
-            self._current_state = updated_state
-
-            return True
-
     def get_latest_results_dict(self) -> dict:
         current_state = self.get_current_state()
         if current_state:
