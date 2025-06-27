@@ -10,7 +10,6 @@ from src.core.reader.player_card_reader import PlayerCardReader
 from src.core.reader.player_position_reader import PlayerPositionReader
 from src.core.reader.table_card_reader import TableCardReader
 from src.core.reader.player_move_reader import PlayerMoveReader
-from src.core.utils.benchmark_utils import benchmark
 from src.core.utils.detect_utils import save_detection_result_image
 from src.core.domain.detection_result import DetectionResult
 from src.core.utils.result_utils import print_detection_result, write_combined_result
@@ -155,33 +154,6 @@ class PokerGameProcessor:
             process_callback: Callable = None
     ) -> DetectionResult:
         """
-        Public method to process a single image
-
-        Args:
-            captured_image: CapturedImage object
-            index: Image index
-            timestamp_folder: Folder to save results
-            process_callback: Optional callback function
-
-        Returns:
-            DetectionResult object
-        """
-        return self._process_single_image(
-            captured_image=captured_image,
-            index=index,
-            process_callback=process_callback,
-            timestamp_folder=timestamp_folder
-        )
-
-    @benchmark
-    def _process_single_image(
-            self,
-            captured_image: CapturedImage,
-            index: int,
-            process_callback: Callable,
-            timestamp_folder: str
-    ) -> DetectionResult:
-        """
         Process a single captured image
 
         Args:
@@ -259,6 +231,7 @@ class PokerGameProcessor:
 
         return result
 
+
     def _check_player_move(self, cv2_image, window_name: str) -> bool:
         """
         Check if it's the player's turn to move by detecting move option buttons
@@ -291,23 +264,6 @@ class PokerGameProcessor:
             return False
 
     def detect_stake(self, captured_image, x: int, y: int, w: int, h: int) -> str:
-        """
-        Detects the bid (stake) in a poker table screenshot.
-
-        Parameters
-        ----------
-        img_path : str
-            Path to the poker-table image file.
-        x, y : int
-            Top-left corner of the ROI bubble.
-        w, h : int
-            Width and height of the ROI bubble.
-
-        Returns
-        -------
-        str
-            The OCR’d stake (e.g. "2.50") or an empty string if nothing was found.
-        """
         # 1. Load and convert to grayscale
         cv2_image = pil_to_cv2(captured_image.image)
 
