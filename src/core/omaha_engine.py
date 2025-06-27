@@ -10,6 +10,7 @@ from enum import Enum
 from src.core.service.detection_notifier import DetectionNotifier
 from src.core.service.game_state_manager import GameStateManager
 from src.core.service.image_capture_service import ImageCaptureService
+from src.core.utils.fs_utils import create_timestamp_folder
 from src.core.utils.poker_game_processor import PokerGameProcessor
 from src.core.domain.game import Game
 from src.core.domain.captured_image import CapturedImage
@@ -103,7 +104,7 @@ class OmahaGameReader:
         """
         try:
             # Step 1: Create timestamp folder
-            timestamp_folder = self.image_capture_service.create_timestamp_folder()
+            timestamp_folder = create_timestamp_folder(self.debug_mode)
 
             # Step 2: Get images to process based on strategy
             images_to_process = self._get_images_by_strategy(strategy, timestamp_folder)

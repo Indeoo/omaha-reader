@@ -110,3 +110,33 @@ def draw_detected_cards(
                         cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.7, (255, 255, 0), 1)
 
     return result
+
+
+def coords_to_search_region(x: int, y: int, w: int, h: int,
+                            image_width: int, image_height: int) -> tuple[float, float, float, float]:
+    """
+    Convert pixel coordinates to search region ratios.
+
+    Args:
+        x: Left coordinate of the region
+        y: Top coordinate of the region
+        w: Width of the region
+        h: Height of the region
+        image_width: Total image width
+        image_height: Total image height
+
+    Returns:
+        Tuple of (left, top, right, bottom) as ratios (0.0 to 1.0)
+    """
+    left = x / image_width
+    top = y / image_height
+    right = (x + w) / image_width
+    bottom = (y + h) / image_height
+
+    # Clamp values between 0 and 1
+    left = max(0.0, min(1.0, left))
+    top = max(0.0, min(1.0, top))
+    right = max(0.0, min(1.0, right))
+    bottom = max(0.0, min(1.0, bottom))
+
+    return (left, top, right, bottom)

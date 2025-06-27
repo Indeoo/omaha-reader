@@ -3,10 +3,8 @@
 Image capture service that handles window capture and change detection.
 Extracted from DetectionService for better separation of concerns.
 """
-import os
 import threading
 from typing import List, Dict
-from datetime import datetime
 
 from src.core.domain.captured_image import CapturedImage
 from src.core.utils.capture_utils import capture_and_save_windows
@@ -124,22 +122,3 @@ class ImageCaptureService:
         """Clear all stored window hashes (useful for testing or reset)"""
         with self._hash_lock:
             self._window_hashes.clear()
-
-    def create_timestamp_folder(self) -> str:
-        """
-        Create timestamp folder path for current session
-
-        Returns:
-            String path to timestamp folder
-        """
-        session_timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
-
-        if self.debug_mode:
-            # Debug mode - use existing folder
-            timestamp_folder = os.path.join(os.getcwd(),
-                                            "Dropbox/data_screenshots/_20250610_023049/_20250610_025342")
-        else:
-            # Live mode - create new folder
-            timestamp_folder = os.path.join(os.getcwd(), f"Dropbox/data_screenshots/{session_timestamp}")
-
-        return timestamp_folder
