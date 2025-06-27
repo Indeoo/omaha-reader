@@ -8,6 +8,7 @@ from src.core.domain.captured_image import CapturedImage
 from src.core.reader.player_card_reader import PlayerCardReader
 from src.core.reader.player_position_reader import PlayerPositionReader
 from src.core.reader.table_card_reader import TableCardReader
+from src.core.reader.player_move_reader import PlayerMoveReader
 from src.core.utils.benchmark_utils import benchmark
 from src.core.utils.detect_utils import save_detection_result_image
 from src.core.domain.detection_result import DetectionResult
@@ -21,10 +22,12 @@ class PokerGameProcessor:
             player_templates_dir: str = None,
             table_templates_dir: str = None,
             position_templates_dir: str = None,
+            move_templates_dir: str = None,
             player_templates: Dict = None,
             table_templates: Dict = None,
             position_templates: Dict = None,
-            detect_positions: bool = True,  # Changed to True
+            move_templates: Dict = None,
+            detect_positions: bool = True,
             save_result_images=True,
             write_detection_files=True,
     ):
@@ -50,9 +53,21 @@ class PokerGameProcessor:
         else:
             self.position_templates = {}
 
+        if move_templates_dir:
+            self.move_templates = load_templates(move_templates_dir)
+        elif move_templates:
+            self.move_templates = move_templates
+        else:
+            self.move_templates = {}
+
         self.detect_positions = detect_positions
         self.save_result_images = save_result_images
         self.write_detection_files = write_detection_files
+
+        # Initialize move reader if templates available
+        self._player_move_reader = None
+        if self.move_templates:
+            self._player_move_reader = PlayerMoveReader(self.move_templates)
 
     def process_images(
             self,
@@ -129,6 +144,9 @@ class PokerGameProcessor:
                 print(f"    ⚠️ Warning: Error detecting positions in {window_name}: {str(e)}")
                 # Don't fail on position detection errors, just continue without positions
 
+        # Check if it's player's move
+        is_player_move = self._check_player_move(cv2_image, window_name)
+
         # Create DetectionResult object
         result = DetectionResult(
             window_name=window_name,
@@ -136,7 +154,8 @@ class PokerGameProcessor:
             captured_image=captured_image,
             player_cards=player_cards,
             table_cards=table_cards,
-            positions=positions
+            positions=positions,
+            is_player_move=is_player_move
         )
 
         # Print processing info
@@ -160,3 +179,34 @@ class PokerGameProcessor:
             process_callback(index, captured_image, result)
 
         return result
+
+    def _check_player_move(self, cv2_image, window_name: str) -> bool:
+        """
+        Check if it's the player's turn to move by detecting move option buttons
+
+        Args:
+            cv2_image: OpenCV format image
+            window_name: Name of the window for logging
+
+        Returns:
+            True if move options are detected, False otherwise
+        """
+        if not self._player_move_reader:
+            return False
+
+        try:
+            # Read move options
+            detected_moves = self._player_move_reader.read(cv2_image)
+
+            # Log the result
+            if detected_moves:
+                move_types = [move.move_type for move in detected_moves]
+                print(f"🎯 Player's move detected in {window_name}! Options: {', '.join(move_types)}")
+                return True
+            else:
+                print(f"⏸️ Not player's move in {window_name} - no action buttons detected")
+                return False
+
+        except Exception as e:
+            print(f"❌ Error checking player move in {window_name}: {str(e)}")
+            return False

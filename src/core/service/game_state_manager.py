@@ -5,11 +5,11 @@ Extracted from DetectionService for better separation of concerns.
 """
 import threading
 from datetime import datetime
-from typing import List
+from typing import List, Optional, Tuple
 
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.game import Game
-from src.core.reader.player_move_reader import PlayerMoveReader
+from src.core.reader.player_position_reader import PlayerPositionReader
 from src.core.utils.opencv_utils import load_templates, pil_to_cv2
 
 
@@ -29,62 +29,113 @@ class GameStateManager:
         self._state_lock = threading.Lock()
         self._previous_games = []
 
-        # Initialize player move reader
-        self._player_move_reader = None
-        self._init_player_move_reader()
+        # Initialize main player position reader
+        self._main_player_position_reader = None
+        self._init_main_player_position_reader()
 
-    def _init_player_move_reader(self):
-        """Initialize the player move reader with templates"""
+    def _init_main_player_position_reader(self):
+        """Initialize the main player position reader with templates"""
         try:
             import os
             current_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.abspath(os.path.join(current_dir, '..', '..', '..'))
-            move_templates_dir = os.path.join(project_root, "resources", "templates", "turn_options")
+            position_templates_dir = os.path.join(project_root, "resources", "templates", "positions")
 
-            if os.path.exists(move_templates_dir):
-                move_templates = load_templates(move_templates_dir)
-                if move_templates:
-                    self._player_move_reader = PlayerMoveReader(move_templates)
-                    print(f"✅ PlayerMoveReader initialized with {len(move_templates)} templates")
+            if os.path.exists(position_templates_dir):
+                position_templates = load_templates(position_templates_dir)
+                if position_templates:
+                    # Create reader with search region for main player position
+                    # Main player position: 300, 375, 40, 40 on 784x584 screen
+                    # Add small margin (10 pixels each side)
+                    search_region = (
+                        (300 - 10) / 784,  # left: ~0.369
+                        (375 - 10) / 584,  # top: ~0.625
+                        (300 + 40 + 10) / 784,  # right: ~0.446
+                        (375 + 40 + 10) / 584  # bottom: ~0.710
+                    )
+
+                    self._main_player_position_reader = PlayerPositionReader(position_templates)
+                    self._main_player_position_reader.search_region = search_region
+                    print(f"✅ Main player position reader initialized with search region: {search_region}")
                 else:
-                    print("⚠️ No turn option templates found")
+                    print("⚠️ No position templates found for main player")
             else:
-                print(f"⚠️ Turn options template directory not found: {move_templates_dir}")
+                print(f"⚠️ Position template directory not found: {position_templates_dir}")
         except Exception as e:
-            print(f"❌ Error initializing PlayerMoveReader: {str(e)}")
+            print(f"❌ Error initializing main player position reader: {str(e)}")
 
-    def is_move(self, captured_image) -> bool:
+    def is_new_game(self, new_game: Game, old_game: Optional[Game]) -> bool:
         """
-        Check if it's the player's turn to move by detecting move option buttons
+        Check if this is a new game based on player cards changing
+
+        Args:
+            new_game: Current game state
+            old_game: Previous game state (can be None)
+
+        Returns:
+            True if player cards have changed (new game), False otherwise
+        """
+        if old_game is None:
+            # First detection is always a new game
+            return True
+
+        new_player_cards = new_game.get_player_cards_string()
+        old_player_cards = old_game.get_player_cards_string()
+
+        # New game if player cards changed
+        return new_player_cards != old_player_cards
+
+    def is_new_street(self, new_game: Game, old_game: Optional[Game]) -> bool:
+        """
+        Check if this is a new street based on table cards changing
+
+        Args:
+            new_game: Current game state
+            old_game: Previous game state (can be None)
+
+        Returns:
+            True if table cards have changed (new street), False otherwise
+        """
+        if old_game is None:
+            # Can't determine street change without previous state
+            return False
+
+        new_table_cards = new_game.get_table_cards_string()
+        old_table_cards = old_game.get_table_cards_string()
+
+        # New street if table cards changed
+        return new_table_cards != old_table_cards
+
+    def _check_main_player_position(self, captured_image) -> Optional[str]:
+        """
+        Check main player position in the captured image
 
         Args:
             captured_image: CapturedImage object to check
 
         Returns:
-            True if move options are detected, False otherwise
+            Position name if detected, None otherwise
         """
-        if not self._player_move_reader:
-            return False
+        if not self._main_player_position_reader:
+            return None
 
         try:
             # Convert PIL image to OpenCV format
             cv2_image = pil_to_cv2(captured_image.image)
 
-            # Read move options
-            detected_moves = self._player_move_reader.read(cv2_image)
+            # Read positions in main player area
+            detected_positions = self._main_player_position_reader.read(cv2_image)
 
-            # Log the result
-            if detected_moves:
-                move_types = [move.move_type for move in detected_moves]
-                print(f"🎯 Player's move detected! Options: {', '.join(move_types)}")
-                return True
-            else:
-                print(f"⏸️ Not player's move - no action buttons detected")
-                return False
+            if detected_positions:
+                # Take the highest confidence position
+                main_position = detected_positions[0]  # Already sorted by score
+                return main_position.position_name
+
+            return None
 
         except Exception as e:
-            print(f"❌ Error checking player move: {str(e)}")
-            return False
+            print(f"❌ Error checking main player position: {str(e)}")
+            return None
 
     def update_state(self, processed_results: List[DetectionResult], timestamp_folder: str) -> bool:
         """
@@ -103,13 +154,41 @@ class GameStateManager:
         # Check if results have changed
         has_changed = self._has_detection_changed(new_games, self._previous_games)
 
-        # Check player move status for each game
-        for i, (game, result) in enumerate(zip(new_games, processed_results)):
-            is_player_move = self.is_move(result.captured_image)
-            # You can store this information in the game object if needed
-            # For now, just logging it
-            if is_player_move:
-                print(f"  ↳ Table '{game.window_name}' - IT'S YOUR TURN!")
+        # Check game state changes and player positions
+        for i, (new_game, result) in enumerate(zip(new_games, processed_results)):
+            # Find corresponding old game
+            old_game = None
+            if i < len(self._previous_games):
+                # Match by window name if possible
+                for og in self._previous_games:
+                    if og.window_name == new_game.window_name:
+                        old_game = og
+                        break
+
+            # Check if new game
+            if self.is_new_game(new_game, old_game):
+                print(
+                    f"  🆕 NEW GAME detected at '{new_game.window_name}' - Player cards: {new_game.get_player_cards_string()}")
+
+            # Check if new street
+            if self.is_new_street(new_game, old_game):
+                old_street = old_game.get_street() if old_game else None
+                new_street = new_game.get_street()
+                print(
+                    f"  🔄 NEW STREET at '{new_game.window_name}' - {old_street.value if old_street else 'Unknown'} → {new_street.value if new_street else 'Unknown'}")
+
+            # Check main player position
+            main_player_position = self._check_main_player_position(result.captured_image)
+            if main_player_position:
+                print(f"  👤 Main player position at '{new_game.window_name}': {main_player_position}")
+            else:
+                print(f"  👤 Main player position at '{new_game.window_name}': Not detected")
+
+            # Log player move status
+            if result.is_player_move:
+                print(f"  ↳ Table '{new_game.window_name}' - IT'S YOUR TURN!")
+            else:
+                print(f"  ↳ Table '{new_game.window_name}' - Waiting for action...")
 
         if has_changed:
             # Update state with Game instances
@@ -176,6 +255,8 @@ class GameStateManager:
                     table_cards=result.table_cards,
                     positions=result.positions
                 )
+                # Store move status in game if needed (you might want to add this field to Game class)
+                # game.is_player_move = result.is_player_move
                 games.append(game)
 
         return games

@@ -44,7 +44,8 @@ class OmahaGameReader:
             player_templates_dir=os.path.join(project_root, "resources", "templates", "player_cards"),
             table_templates_dir=os.path.join(project_root, "resources", "templates", "table_cards"),
             position_templates_dir=os.path.join(project_root, "resources", "templates", "positions"),
-            detect_positions=True,  # Changed to True
+            move_templates_dir=os.path.join(project_root, "resources", "templates", "turn_options"),
+            detect_positions=True,
             save_result_images=False,
             write_detection_files=False
         )

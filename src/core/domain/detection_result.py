@@ -16,7 +16,8 @@ class DetectionResult:
             captured_image: CapturedImage,
             player_cards: Optional[List[ReadedCard]] = None,
             table_cards: Optional[List[ReadedCard]] = None,
-            positions: Optional[List[Any]] = None
+            positions: Optional[List[Any]] = None,
+            is_player_move: bool = False
     ):
         """
         Initialize a detection result.
@@ -28,6 +29,7 @@ class DetectionResult:
             player_cards: List of detected player cards
             table_cards: List of detected table cards
             positions: List of detected positions
+            is_player_move: Whether it's player's turn to move
         """
         self.window_name = window_name
         self.filename = filename
@@ -35,6 +37,7 @@ class DetectionResult:
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.positions = positions or []
+        self.is_player_move = is_player_move
 
     @property
     def has_cards(self) -> bool:
@@ -67,7 +70,8 @@ class DetectionResult:
             'table_cards': self.table_cards,
             'positions': self.positions,
             'has_cards': self.has_cards,
-            'has_positions': self.has_positions
+            'has_positions': self.has_positions,
+            'is_player_move': self.is_player_move
         }
 
     @classmethod
@@ -93,7 +97,8 @@ class DetectionResult:
             captured_image=captured_image,
             player_cards=data.get('player_cards', []),
             table_cards=data.get('table_cards', []),
-            positions=data.get('positions', [])
+            positions=data.get('positions', []),
+            is_player_move=data.get('is_player_move', False)
         )
 
     def get_all_cards(self) -> List[ReadedCard]:
@@ -104,6 +109,7 @@ class DetectionResult:
         player_count = len(self.player_cards)
         table_count = len(self.table_cards)
         position_count = len(self.positions)
+        move_status = "MOVE" if self.is_player_move else "WAIT"
         return (f"DetectionResult(window='{self.window_name}', "
                 f"player_cards={player_count}, table_cards={table_count}, "
-                f"positions={position_count})")
+                f"positions={position_count}, status={move_status})")
