@@ -1,17 +1,17 @@
-#!/usr/bin/env python3
+from typing import List, Dict, Optional
 
-from typing import Dict, Optional, List
 import cv2
 import pytesseract
 
 from src.core.domain.captured_image import CapturedImage
-from src.core.reader.player_card_reader import PlayerCardReader
-from src.core.reader.player_position_reader import PlayerPositionReader
-from src.core.reader.table_card_reader import TableCardReader
-from src.core.reader.player_move_reader import PlayerMoveReader
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.readed_card import ReadedCard
-from src.core.utils.opencv_utils import load_templates, coords_to_search_region
+from src.core.reader.player_card_reader import PlayerCardReader
+from src.core.reader.player_move_reader import PlayerMoveReader
+from src.core.reader.player_position_reader import PlayerPositionReader
+from src.core.reader.table_card_reader import TableCardReader
+from src.core.service.template_registry import TemplateRegistry
+from src.core.utils.opencv_utils import coords_to_search_region
 
 
 class CardDetectionResult:
@@ -44,7 +44,7 @@ class StakeDetectionResult:
         self.stakes = stakes
 
 
-class PokerGameProcessor:
+class GameConfiguration:
     PLAYER_POSITIONS = {
         1: {'x': 300, 'y': 375, 'w': 40, 'h': 40},
         2: {'x': 35, 'y': 330, 'w': 40, 'h': 40},
@@ -65,76 +65,49 @@ class PokerGameProcessor:
         'POSITION1': (386, 334, 45, 15)
     }
 
+    IMAGE_WIDTH = 784
+    IMAGE_HEIGHT = 584
+
+
+class PokerGameProcessor:
     def __init__(
             self,
-            player_templates_dir: str = None,
-            table_templates_dir: str = None,
-            position_templates_dir: str = None,
-            move_templates_dir: str = None,
-            player_templates: Dict = None,
-            table_templates: Dict = None,
-            position_templates: Dict = None,
-            move_templates: Dict = None,
+            country: str = "canada",
+            project_root: str = None,
             save_result_images=True,
             write_detection_files=True,
     ):
-        if player_templates_dir:
-            self.player_templates = load_templates(player_templates_dir)
-        elif player_templates:
-            self.player_templates = player_templates
-        else:
-            self.player_templates = {}
-
-        if table_templates_dir:
-            self.table_templates = load_templates(table_templates_dir)
-        elif table_templates:
-            self.table_templates = table_templates
-        else:
-            self.table_templates = {}
-
-        if position_templates_dir:
-            self.position_templates = load_templates(position_templates_dir)
-        elif position_templates:
-            self.position_templates = position_templates
-        else:
-            self.position_templates = {}
-
-        if move_templates_dir:
-            self.move_templates = load_templates(move_templates_dir)
-        elif move_templates:
-            self.move_templates = move_templates
-        else:
-            self.move_templates = {}
-
         self.save_result_images = save_result_images
         self.write_detection_files = write_detection_files
+        self.config = GameConfiguration()
 
+        self.template_registry = TemplateRegistry(country, project_root)
         self._init_readers()
 
     def _init_readers(self):
         self._player_move_reader = None
-        if self.move_templates:
-            self._player_move_reader = PlayerMoveReader(self.move_templates)
+        if self.template_registry.has_move_templates():
+            self._player_move_reader = PlayerMoveReader(self.template_registry.move_templates)
 
         self._player_position_readers = {}
         self._init_all_player_position_readers()
 
     def _init_all_player_position_readers(self):
-        if not self.position_templates:
+        if not self.template_registry.has_position_templates():
             return
 
         try:
-            for player_num, coords in self.PLAYER_POSITIONS.items():
+            for player_num, coords in self.config.PLAYER_POSITIONS.items():
                 search_region = coords_to_search_region(
-                    x=coords['x'] - self.POSITION_MARGIN,
-                    y=coords['y'] - self.POSITION_MARGIN,
-                    w=coords['w'] + 2 * self.POSITION_MARGIN,
-                    h=coords['h'] + 2 * self.POSITION_MARGIN,
-                    image_width=784,
-                    image_height=584
+                    x=coords['x'] - self.config.POSITION_MARGIN,
+                    y=coords['y'] - self.config.POSITION_MARGIN,
+                    w=coords['w'] + 2 * self.config.POSITION_MARGIN,
+                    h=coords['h'] + 2 * self.config.POSITION_MARGIN,
+                    image_width=self.config.IMAGE_WIDTH,
+                    image_height=self.config.IMAGE_HEIGHT
                 )
 
-                reader = PlayerPositionReader(self.position_templates)
+                reader = PlayerPositionReader(self.template_registry.position_templates)
                 reader.search_region = search_region
                 self._player_position_readers[player_num] = reader
 
@@ -145,11 +118,11 @@ class PokerGameProcessor:
     def detect_cards(self, cv2_image) -> CardDetectionResult:
         try:
             player_cards = PlayerCardReader(
-                self.player_templates,
+                self.template_registry.player_templates,
                 PlayerCardReader.DEFAULT_SEARCH_REGION
             ).read(cv2_image)
 
-            table_cards = TableCardReader(self.table_templates, None).read(cv2_image)
+            table_cards = TableCardReader(self.template_registry.table_templates, None).read(cv2_image)
 
             return CardDetectionResult(player_cards, table_cards)
 
@@ -158,7 +131,7 @@ class PokerGameProcessor:
             return CardDetectionResult([], [])
 
     def detect_positions(self, cv2_image) -> PositionDetectionResult:
-        if not self.position_templates or not self._player_position_readers:
+        if not self.template_registry.has_position_templates() or not self._player_position_readers:
             return PositionDetectionResult({})
 
         try:
@@ -206,8 +179,8 @@ class PokerGameProcessor:
         stakes = {}
 
         try:
-            for position_name, (x, y, w, h) in self.STAKE_POSITIONS.items():
-                stake = self._detect_single_stake(captured_image, x, y, w, h)
+            for position_name, (x, y, w, h) in self.config.STAKE_POSITIONS.items():
+                stake = self.detect_single_stake(captured_image, x, y, w, h)
                 if stake:
                     stakes[position_name] = stake
 
@@ -217,7 +190,7 @@ class PokerGameProcessor:
             print(f"❌ Error detecting stakes: {str(e)}")
             return StakeDetectionResult({})
 
-    def _detect_single_stake(self, captured_image: CapturedImage, x: int, y: int, w: int, h: int) -> str:
+    def detect_single_stake(self, captured_image: CapturedImage, x: int, y: int, w: int, h: int) -> str:
         try:
             cv2_image = captured_image.get_cv2_image()
             gray = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
@@ -249,10 +222,10 @@ class PokerGameProcessor:
             return ""
 
     def should_detect_positions(self, cards_result: CardDetectionResult) -> bool:
-        return cards_result.has_cards and bool(self.position_templates)
+        return cards_result.has_cards and self.template_registry.has_position_templates()
 
     def should_detect_moves(self, cards_result: CardDetectionResult) -> bool:
-        return bool(cards_result.player_cards) and bool(self.move_templates)
+        return bool(cards_result.player_cards) and self.template_registry.has_move_templates()
 
     def should_detect_stakes(self, cards_result: CardDetectionResult) -> bool:
         return cards_result.has_cards

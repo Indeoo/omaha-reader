@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-from typing import Dict, List
-from enum import Enum
+from typing import List
 
 from src.core.domain.detection_result import DetectionResult
 from src.core.service.detection_notifier import DetectionNotifier
@@ -12,11 +11,6 @@ from src.core.utils.fs_utils import create_timestamp_folder
 from src.core.utils.poker_game_processor import PokerGameProcessor
 from src.core.domain.game import Game
 from src.core.domain.captured_image import CapturedImage
-
-
-class ImageAcquisitionStrategy(Enum):
-    CHANGED_ONLY = "changed_only"
-    FORCE_ALL = "force_all"
 
 
 class OmahaGameReader:
@@ -31,10 +25,8 @@ class OmahaGameReader:
         project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
 
         self._poker_game_processor = PokerGameProcessor(
-            player_templates_dir=os.path.join(project_root, "resources", "templates", country, "player_cards"),
-            table_templates_dir=os.path.join(project_root, "resources", "templates", country, "table_cards"),
-            position_templates_dir=os.path.join(project_root, "resources", "templates", country, "positions"),
-            move_templates_dir=os.path.join(project_root, "resources", "templates", country, "turn_options"),
+            country=country,
+            project_root=project_root,
             save_result_images=False,
             write_detection_files=False
         )
@@ -49,47 +41,36 @@ class OmahaGameReader:
         return self.game_state_manager.get_latest_results()
 
     def detect_and_notify(self) -> List[Game]:
-        return self._execute_detection_cycle(
-            strategy=ImageAcquisitionStrategy.CHANGED_ONLY,
-            always_notify=False
-        )
+        return self._execute_detection(use_change_detection=True, always_notify=False)
 
     def force_detect(self) -> List[Game]:
-        return self._execute_detection_cycle(
-            strategy=ImageAcquisitionStrategy.FORCE_ALL,
-            always_notify=True
-        )
+        return self._execute_detection(use_change_detection=False, always_notify=True)
 
-    def _execute_detection_cycle(self,
-                                 strategy: ImageAcquisitionStrategy,
-                                 always_notify: bool) -> List[Game]:
+    def _execute_detection(self, use_change_detection: bool, always_notify: bool) -> List[Game]:
         try:
             timestamp_folder = create_timestamp_folder(self.debug_mode)
 
-            images_to_process = self._get_images_by_strategy(strategy, timestamp_folder)
+            images_to_process = self._get_images_to_process(timestamp_folder, use_change_detection)
 
             if not images_to_process:
-                print("🚫 No poker tables detected or no changes")
+                if use_change_detection:
+                    print("🚫 No poker tables detected or no changes")
+                else:
+                    print("🚫 No poker tables detected")
                 return self._get_current_games()
 
             all_games = []
 
             for i, captured_image in enumerate(images_to_process):
                 try:
-                    detection_result = self._process_single_image_granular(
-                        captured_image=captured_image,
-                        index=i,
-                    )
+                    detection_result = self._process_single_image(captured_image, i)
 
                     should_notify = self._update_state_and_check_notification(
-                        detection_result,
-                        timestamp_folder,
-                        strategy,
-                        always_notify
+                        detection_result, timestamp_folder, use_change_detection, always_notify
                     )
 
                     if should_notify:
-                        self._notify_observers(strategy)
+                        self._notify_observers(use_change_detection)
 
                     game = self.game_state_manager._convert_result_to_game(detection_result)
                     if game:
@@ -104,11 +85,16 @@ class OmahaGameReader:
             print(f"❌ Error in detection: {str(e)}")
             return []
 
-    def _process_single_image_granular(
-            self,
-            captured_image: CapturedImage,
-            index: int
-    ) -> DetectionResult:
+    def _get_images_to_process(self, timestamp_folder: str, use_change_detection: bool) -> List[CapturedImage]:
+        if use_change_detection:
+            return self.image_capture_service.get_images_to_process(timestamp_folder)
+        else:
+            captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
+            if captured_windows:
+                print(f"🔍 Force processing {len(captured_windows)} images")
+            return captured_windows
+
+    def _process_single_image(self, captured_image: CapturedImage, index: int) -> DetectionResult:
         window_name = captured_image.window_name
 
         print(f"\n📷 Processing image {index + 1}: {window_name}")
@@ -160,38 +146,25 @@ class OmahaGameReader:
             return result
 
         except Exception as e:
-            raise Exception(f"❌ Error in granular detection for {window_name}: {str(e)}")
-
-    def _get_images_by_strategy(self,
-                                strategy: ImageAcquisitionStrategy,
-                                timestamp_folder: str) -> List[CapturedImage]:
-        if strategy == ImageAcquisitionStrategy.CHANGED_ONLY:
-            return self.image_capture_service.get_images_to_process(timestamp_folder)
-        elif strategy == ImageAcquisitionStrategy.FORCE_ALL:
-            captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
-            if captured_windows:
-                print(f"🔍 Force processing {len(captured_windows)} images")
-            return captured_windows
-        else:
-            raise ValueError(f"Unknown image acquisition strategy: {strategy}")
+            raise Exception(f"❌ Error in detection for {window_name}: {str(e)}")
 
     def _update_state_and_check_notification(self,
-                                             detection_result,
+                                             detection_result: DetectionResult,
                                              timestamp_folder: str,
-                                             strategy: ImageAcquisitionStrategy,
+                                             use_change_detection: bool,
                                              always_notify: bool) -> bool:
-        if strategy == ImageAcquisitionStrategy.FORCE_ALL:
+        if not use_change_detection:
             self.game_state_manager.update_state([detection_result], timestamp_folder)
             return always_notify
         else:
             has_changed = self.game_state_manager.update_state([detection_result], timestamp_folder)
             return has_changed or always_notify
 
-    def _notify_observers(self, strategy: ImageAcquisitionStrategy):
+    def _notify_observers(self, use_change_detection: bool):
         notification_data = self.game_state_manager.get_notification_data()
         self.notifier.notify_observers(notification_data)
 
-        if strategy == ImageAcquisitionStrategy.FORCE_ALL:
+        if not use_change_detection:
             print(f"🔄 Force detection completed - notified observers")
         else:
             print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
@@ -210,5 +183,5 @@ class OmahaGameReader:
 
         return games
 
-    def get_window_hash_stats(self) -> Dict[str, str]:
+    def get_window_hash_stats(self) -> dict:
         return self.image_capture_service.get_window_hash_stats()
