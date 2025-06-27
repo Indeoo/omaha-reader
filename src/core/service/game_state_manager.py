@@ -9,6 +9,8 @@ from typing import List
 
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.game import Game
+from src.core.reader.player_move_reader import PlayerMoveReader
+from src.core.utils.opencv_utils import load_templates, pil_to_cv2
 
 
 class GameStateManager:
@@ -27,6 +29,63 @@ class GameStateManager:
         self._state_lock = threading.Lock()
         self._previous_games = []
 
+        # Initialize player move reader
+        self._player_move_reader = None
+        self._init_player_move_reader()
+
+    def _init_player_move_reader(self):
+        """Initialize the player move reader with templates"""
+        try:
+            import os
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.abspath(os.path.join(current_dir, '..', '..', '..'))
+            move_templates_dir = os.path.join(project_root, "resources", "templates", "turn_options")
+
+            if os.path.exists(move_templates_dir):
+                move_templates = load_templates(move_templates_dir)
+                if move_templates:
+                    self._player_move_reader = PlayerMoveReader(move_templates)
+                    print(f"✅ PlayerMoveReader initialized with {len(move_templates)} templates")
+                else:
+                    print("⚠️ No turn option templates found")
+            else:
+                print(f"⚠️ Turn options template directory not found: {move_templates_dir}")
+        except Exception as e:
+            print(f"❌ Error initializing PlayerMoveReader: {str(e)}")
+
+    def is_move(self, captured_image) -> bool:
+        """
+        Check if it's the player's turn to move by detecting move option buttons
+
+        Args:
+            captured_image: CapturedImage object to check
+
+        Returns:
+            True if move options are detected, False otherwise
+        """
+        if not self._player_move_reader:
+            return False
+
+        try:
+            # Convert PIL image to OpenCV format
+            cv2_image = pil_to_cv2(captured_image.image)
+
+            # Read move options
+            detected_moves = self._player_move_reader.read(cv2_image)
+
+            # Log the result
+            if detected_moves:
+                move_types = [move.move_type for move in detected_moves]
+                print(f"🎯 Player's move detected! Options: {', '.join(move_types)}")
+                return True
+            else:
+                print(f"⏸️ Not player's move - no action buttons detected")
+                return False
+
+        except Exception as e:
+            print(f"❌ Error checking player move: {str(e)}")
+            return False
+
     def update_state(self, processed_results: List[DetectionResult], timestamp_folder: str) -> bool:
         """
         Update game state with new detection results.
@@ -43,6 +102,14 @@ class GameStateManager:
 
         # Check if results have changed
         has_changed = self._has_detection_changed(new_games, self._previous_games)
+
+        # Check player move status for each game
+        for i, (game, result) in enumerate(zip(new_games, processed_results)):
+            is_player_move = self.is_move(result.captured_image)
+            # You can store this information in the game object if needed
+            # For now, just logging it
+            if is_player_move:
+                print(f"  ↳ Table '{game.window_name}' - IT'S YOUR TURN!")
 
         if has_changed:
             # Update state with Game instances

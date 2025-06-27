@@ -5,7 +5,7 @@ Shared image processing functions for both main.py and main_web3.py
 from typing import Dict, List, Callable
 
 from src.core.domain.captured_image import CapturedImage
-from src.core.reader.omaha_card_reader import PlayerCardReader
+from src.core.reader.player_card_reader import PlayerCardReader
 from src.core.reader.player_position_reader import PlayerPositionReader
 from src.core.reader.table_card_reader import TableCardReader
 from src.core.utils.benchmark_utils import benchmark
