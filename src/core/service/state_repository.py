@@ -1,79 +1,71 @@
 import threading
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
 
 from src.core.domain.game import Game
-from src.core.domain.game_state import GameState
 
 
 class StateRepository:
 
     def __init__(self):
-        self._current_state = None
+        self.games: List[Game] = []
+        self.last_update: Optional[str] = None
+        self.timestamp: Optional[str] = None
         self._lock = threading.Lock()
 
-    def get_current_state(self):
-        with self._lock:
-            return self._current_state
+    def find_game_by_window(self, window_name: str) -> Optional[Game]:
+        for game in self.games:
+            if game.window_name == window_name:
+                return game
+        return None
 
-    def update_state(self, new_state) -> bool:
-        with self._lock:
-            state_changed = self._current_state != new_state
-
-            if state_changed:
-                self._current_state = new_state
-
-            return state_changed
+    def get_game_index(self, window_name: str) -> Optional[int]:
+        for i, game in enumerate(self.games):
+            if game.window_name == window_name:
+                return i
+        return None
 
     def update_single_game(self, new_game: Game, timestamp_folder: str) -> tuple[bool, Optional[Game]]:
         with self._lock:
-            if self._current_state is None:
-                self._current_state = GameState(
-                    games=[],
-                    last_update=datetime.now().isoformat()
-                )
+            old_game = self.find_game_by_window(new_game.window_name)
+            game_index = self.get_game_index(new_game.window_name)
 
-            old_game = self._current_state.find_game_by_window(new_game.window_name)
-            updated_state = self._current_state.update_game(new_game)
-            updated_state.timestamp = timestamp_folder.split('/')[-1]
+            if game_index is not None:
+                self.games[game_index] = new_game
+            else:
+                self.games.append(new_game)
 
             # Check if state actually changed
             has_changed = (
-                    old_game is None or
-                    new_game.get_player_cards_string() != old_game.get_player_cards_string() or
-                    new_game.get_table_cards_string() != old_game.get_table_cards_string() or
-                    new_game.get_positions_string() != old_game.get_positions_string()
+                old_game is None or
+                new_game.get_player_cards_string() != old_game.get_player_cards_string() or
+                new_game.get_table_cards_string() != old_game.get_table_cards_string() or
+                new_game.get_positions_string() != old_game.get_positions_string()
             )
 
             if has_changed:
-                self._current_state = updated_state
+                self.last_update = datetime.now().isoformat()
+                self.timestamp = timestamp_folder.split('/')[-1]
 
             return has_changed, old_game
 
     def get_latest_results_dict(self) -> dict:
-        current_state = self.get_current_state()
-        if current_state:
-            return current_state.to_dict()
-
-        return {
-            'timestamp': None,
-            'detections': [],
-            'last_update': None
-        }
-
-    def get_notification_data(self) -> dict:
-        current_state = self.get_current_state()
-        if current_state:
+        with self._lock:
             return {
-                'type': 'detection_update',
-                'timestamp': current_state.timestamp,
-                'detections': [game.to_dict() for game in current_state.games],
-                'last_update': current_state.last_update
+                'timestamp': self.timestamp,
+                'detections': [game.to_dict() for game in self.games],
+                'last_update': self.last_update
             }
 
-        return {
-            'type': 'detection_update',
-            'timestamp': None,
-            'detections': [],
-            'last_update': None
-        }
+    def get_notification_data(self) -> dict:
+        with self._lock:
+            return {
+                'type': 'detection_update',
+                'timestamp': self.timestamp,
+                'detections': [game.to_dict() for game in self.games],
+                'last_update': self.last_update
+            }
+
+    def is_empty(self) -> bool:
+        with self._lock:
+            return len(self.games) == 0
