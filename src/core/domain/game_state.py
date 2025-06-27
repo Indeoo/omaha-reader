@@ -7,12 +7,10 @@ from src.core.domain.game import Game
 
 @dataclass
 class GameState:
-    timestamp: Optional[str]
     games: List[Game]
     last_update: Optional[str]
 
-    def __init__(self, timestamp: str = None, games: List[Game] = None, last_update: str = None):
-        self.timestamp = timestamp
+    def __init__(self, games: List[Game] = None, last_update: str = None):
         self.games = games or []
         self.last_update = last_update or datetime.now().isoformat()
 
@@ -38,7 +36,6 @@ class GameState:
             updated_games.append(new_game)
 
         return GameState(
-            timestamp=self.timestamp,
             games=updated_games,
             last_update=datetime.now().isoformat()
         )
@@ -46,14 +43,12 @@ class GameState:
     def remove_game(self, window_name: str) -> 'GameState':
         updated_games = [game for game in self.games if game.window_name != window_name]
         return GameState(
-            timestamp=self.timestamp,
             games=updated_games,
             last_update=datetime.now().isoformat()
         )
 
     def to_dict(self) -> dict:
         return {
-            'timestamp': self.timestamp,
             'detections': [game.to_dict() for game in self.games],
             'last_update': self.last_update
         }

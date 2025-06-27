@@ -23,7 +23,7 @@ class GameStateManager:
             return self._handle_single_game_update(new_games[0], timestamp_folder)
         else:
             # Handle batch update
-            return self._handle_batch_update(new_games, timestamp_folder)
+            return self._handle_batch_update(new_games)
 
     def _handle_single_game_update(self, new_game: Game, timestamp_folder: str) -> bool:
         has_changed, old_game = self.repository.update_single_game(new_game, timestamp_folder)
@@ -37,14 +37,14 @@ class GameStateManager:
 
         return has_changed
 
-    def _handle_batch_update(self, new_games: List[Game], timestamp_folder: str) -> bool:
+    def _handle_batch_update(self, new_games: List[Game]) -> bool:
         current_state = self.repository.get_current_state()
         old_games = current_state.games if current_state else []
 
         has_changed = self.change_detector.detect_batch_changes(new_games, old_games)
 
         if has_changed:
-            self.repository.update_batch_games(new_games, timestamp_folder)
+            self.repository.update_batch_games(new_games)
 
         return has_changed
 

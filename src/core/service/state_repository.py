@@ -41,7 +41,6 @@ class StateRepository:
         with self._lock:
             if self._current_state is None:
                 self._current_state = GameState(
-                    timestamp=timestamp_folder.split('/')[-1],
                     games=[],
                     last_update=datetime.now().isoformat()
                 )
@@ -64,10 +63,9 @@ class StateRepository:
 
             return has_changed, old_game
 
-    def update_batch_games(self, new_games: List[Game], timestamp_folder: str) -> bool:
+    def update_batch_games(self, new_games: List[Game]) -> bool:
 
         new_state = GameState(
-            timestamp=timestamp_folder.split('/')[-1],
             games=new_games,
             last_update=datetime.now().isoformat()
         )
