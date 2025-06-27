@@ -1,6 +1,7 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime
 from src.core.domain.readed_card import ReadedCard
+from src.core.domain.street import Street
 
 
 class Game:
@@ -26,6 +27,39 @@ class Game:
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.timestamp = datetime.now()
+
+    def get_street(self) -> Optional[Street]:
+        """
+        Get the current poker street based on table cards count
+
+        Returns:
+            Street enum value or None if invalid card count
+        """
+        card_count = len(self.table_cards)
+
+        if card_count == 0:
+            return Street.PREFLOP
+        elif card_count == 3:
+            return Street.FLOP
+        elif card_count == 4:
+            return Street.TURN
+        elif card_count == 5:
+            return Street.RIVER
+        else:
+            print(f"❌ Invalid table card count for street detection: {card_count} cards in {self.window_name}")
+            return None
+
+    def get_street_display(self) -> str:
+        """
+        Get street as display string for UI
+
+        Returns:
+            Street name or error message
+        """
+        street = self.get_street()
+        if street is None:
+            return f"ERROR ({len(self.table_cards)} cards)"
+        return street.value
 
     def get_player_cards_string(self) -> str:
         """Get formatted string of player cards (simple template names)"""
@@ -69,5 +103,6 @@ class Game:
             'player_cards': self.get_player_cards_for_web(),
             'table_cards': self.get_table_cards_for_web(),
             'player_cards_string': self.get_player_cards_string(),
-            'table_cards_string': self.get_table_cards_string()
+            'table_cards_string': self.get_table_cards_string(),
+            'street': self.get_street_display()
         }
