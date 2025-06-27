@@ -1,30 +1,33 @@
 #!/usr/bin/env python3
 """
 Detection service that handles card detection and state management.
-Separated from web service for better code organization.
+Refactored to use ImageCaptureService and DetectionNotifier for better separation of concerns.
 """
-import os
 import threading
 import time
 from datetime import datetime
-from typing import List, Callable, Dict
+from typing import List, Dict
 
+from src.detection_notifier import DetectionNotifier
 from src.domain.detection_result import DetectionResult
 from src.domain.game import Game
-from src.domain.captured_image import CapturedImage
-from src.utils.capture_utils import capture_and_save_windows
+from src.image_capture_service import ImageCaptureService
 from src.utils.poker_game_processor import PokerGameProcessor
 
 
 class DetectionService:
     """
-    Service responsible for capturing windows, detecting cards, and managing state.
+    Service responsible for detecting cards and managing state.
     Runs in a background thread and notifies observers when detection results change.
     """
 
     def __init__(self, wait_time: int = 5, debug_mode: bool = True):
         self.wait_time = wait_time
         self.debug_mode = debug_mode
+
+        # Initialize services
+        self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
+        self.notifier = DetectionNotifier()
 
         # State management
         self._latest_results = {
@@ -34,16 +37,9 @@ class DetectionService:
         }
         self._state_lock = threading.Lock()
 
-        # Window hash tracking - maps window_name to image hash
-        self._window_hashes: Dict[str, str] = {}
-        self._hash_lock = threading.Lock()
-
         # Thread management
         self._worker_thread = None
         self._running = False
-
-        # Observer pattern for notifications
-        self._observers: List[Callable] = []
 
         # Initialize poker game processor
         self._poker_game_processor = PokerGameProcessor(
@@ -57,22 +53,13 @@ class DetectionService:
 
         self._previous_games = []
 
-    def add_observer(self, callback: Callable[[dict], None]):
+    def add_observer(self, callback):
         """Add an observer that will be notified when detection results change"""
-        self._observers.append(callback)
+        self.notifier.add_observer(callback)
 
-    def remove_observer(self, callback: Callable[[dict], None]):
+    def remove_observer(self, callback):
         """Remove an observer"""
-        if callback in self._observers:
-            self._observers.remove(callback)
-
-    def _notify_observers(self, data: dict):
-        """Notify all observers of detection changes"""
-        for observer in self._observers:
-            try:
-                observer(data)
-            except Exception as e:
-                print(f"❌ Error notifying observer: {str(e)}")
+        self.notifier.remove_observer(callback)
 
     def get_latest_results(self) -> dict:
         """Get the latest detection results (thread-safe)"""
@@ -83,63 +70,6 @@ class DetectionService:
                 'detections': [game.to_dict() for game in self._latest_results['detections']],
                 'last_update': self._latest_results['last_update']
             }
-
-    def _get_images_to_process(self, captured_images: List[CapturedImage]) -> List[CapturedImage]:
-        """
-        Determine which captured images need processing based on hash comparison
-
-        Args:
-            captured_images: List of CapturedImage objects
-
-        Returns:
-            List of images that need processing (changed or new)
-        """
-        images_to_process = []
-        current_window_hashes = {}
-
-        with self._hash_lock:
-            all_unchanged = True  # Track if all windows are unchanged
-            for captured_image in captured_images:
-                window_name = captured_image.window_name
-
-                # Calculate hash for current image
-                current_hash = captured_image.calculate_hash()
-                current_window_hashes[window_name] = current_hash
-
-                # Check if this window is new or changed
-                stored_hash = self._window_hashes.get(window_name)
-
-                if stored_hash is None:
-                    # New window
-                    print(f"🆕 New window detected: {window_name}")
-                    images_to_process.append(captured_image)
-                    all_unchanged = False
-                elif stored_hash != current_hash:
-                    # Changed window
-                    print(f"🔄 Window changed: {window_name}")
-                    images_to_process.append(captured_image)
-                    all_unchanged = False
-                else:
-                    # Unchanged window
-                    if not all_unchanged:
-                        print(f"📊 Window unchanged: {window_name}")
-
-            if all_unchanged:
-                print("📊 All windows were unchanged")
-
-            # Update stored hashes with current ones
-            self._window_hashes.update(current_window_hashes)
-
-            # Clean up hashes for windows that no longer exist
-            current_window_names = set(current_window_hashes.keys())
-            stored_window_names = set(self._window_hashes.keys())
-            removed_windows = stored_window_names - current_window_names
-
-            for removed_window in removed_windows:
-                del self._window_hashes[removed_window]
-                print(f"🗑️ Removed hash for closed window: {removed_window}")
-
-        return images_to_process
 
     def _has_detection_changed(self, new_games: List[Game], old_games: List[Game]) -> bool:
         """Check if detection results have actually changed"""
@@ -183,26 +113,15 @@ class DetectionService:
 
         while self._running:
             try:
-                session_timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
-
-                if self.debug_mode:
-                    # Debug mode - use existing folder
-                    timestamp_folder = os.path.join(os.getcwd(),
-                                                    "Dropbox/data_screenshots/_20250610_023049/_20250610_025342")
-                else:
-                    # Live mode - create new folder
-                    timestamp_folder = os.path.join(os.getcwd(), f"Dropbox/data_screenshots/{session_timestamp}")
+                # Create timestamp folder
+                timestamp_folder = self.image_capture_service.create_timestamp_folder()
 
                 # Capture windows
-                captured_windows = capture_and_save_windows(
-                    timestamp_folder=timestamp_folder,
-                    save_windows=not self.debug_mode,
-                    debug=self.debug_mode
-                )
+                captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
 
                 if captured_windows:
                     # Determine which images need processing based on hash comparison
-                    images_to_process = self._get_images_to_process(captured_windows)
+                    images_to_process = self.image_capture_service.get_changed_images(captured_windows)
 
                     if images_to_process:
                         print(
@@ -221,7 +140,7 @@ class DetectionService:
                             # Update state with Game instances
                             with self._state_lock:
                                 self._latest_results = {
-                                    'timestamp': session_timestamp,
+                                    'timestamp': timestamp_folder.split('/')[-1],  # Extract timestamp from path
                                     'detections': games,  # Store Game instances
                                     'last_update': datetime.now().isoformat()
                                 }
@@ -229,11 +148,11 @@ class DetectionService:
                             # Notify observers
                             notification_data = {
                                 'type': 'detection_update',
-                                'timestamp': session_timestamp,
+                                'timestamp': self._latest_results['timestamp'],
                                 'detections': [game.to_dict() for game in games],
                                 'last_update': self._latest_results['last_update']
                             }
-                            self._notify_observers(notification_data)
+                            self.notifier.notify_observers(notification_data)
 
                             print(f"🔄 Detection changed - notified observers at {self._latest_results['last_update']}")
                             self._previous_games = games
@@ -281,5 +200,4 @@ class DetectionService:
 
     def get_window_hash_stats(self) -> Dict[str, str]:
         """Get current window hash statistics for debugging"""
-        with self._hash_lock:
-            return self._window_hashes.copy()
+        return self.image_capture_service.get_window_hash_stats()
