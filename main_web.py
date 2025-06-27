@@ -6,7 +6,7 @@ Cards can be copied to clipboard by clicking.
 
 Refactored version with separated detection and web services.
 """
-from detection_service import OmahaGameReader
+from omaha_game import OmahaGameReader
 from web_service import WebService
 
 # Configuration
