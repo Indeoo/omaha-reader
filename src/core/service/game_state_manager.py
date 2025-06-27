@@ -12,7 +12,7 @@ class GameStateManager:
         self.repository = StateRepository()
         self.change_detector = StateChangeDetector()
 
-    def update_state(self, detection_result: DetectionResult, timestamp_folder: str) -> bool:
+    def update_state(self, detection_result: DetectionResult, timestamp_folder: str):
         new_game = self._convert_result_to_game(detection_result)
 
         if not new_game:
@@ -26,8 +26,6 @@ class GameStateManager:
 
             if change_result.old_game is None:
                 print(f"  🆕 New table detected: '{new_game.window_name}'")
-
-        return has_changed
 
     def get_latest_results(self) -> dict:
         return self.repository.get_latest_results_dict()

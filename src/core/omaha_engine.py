@@ -49,15 +49,11 @@ class OmahaEngine:
             return self._get_current_games()
 
         all_games = []
-        any_changes = False
 
         for i, captured_image in enumerate(images_to_process):
             try:
                 detection_result = self._process_single_image(captured_image, i)
-                has_changed = self.game_state_manager.update_state(detection_result, timestamp_folder)
-
-                if has_changed:
-                    any_changes = True
+                self.game_state_manager.update_state(detection_result, timestamp_folder)
 
                 game = self.game_state_manager._convert_result_to_game(detection_result)
                 if game:
@@ -66,8 +62,7 @@ class OmahaEngine:
             except Exception as e:
                 print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
-        if any_changes:
-            self._notify_observers()
+        self._notify_observers()
 
         return all_games
 
