@@ -152,14 +152,18 @@ class GameStateManager:
         games = []
         for result in processed_results:
             if result.has_cards or result.has_positions:
-                game = Game(
-                    window_name=result.window_name,
-                    player_cards=result.player_cards,
-                    table_cards=result.table_cards,
-                    positions=result.positions  # Now expecting dict
-                )
-                games.append(game)
+                games.append(self._convert_result_to_game(result))
         return games
+
+    def _convert_result_to_game(self, result: DetectionResult) -> Optional[Game]:
+        if result.has_cards or result.has_positions:
+            return Game(
+                window_name=result.window_name,
+                player_cards=result.player_cards,
+                table_cards=result.table_cards,
+                positions=result.positions
+            )
+        return None
 
     def _has_detection_changed(self, new_games: List[Game], old_games: List[Game]) -> bool:
         """Check if detection results have actually changed"""
@@ -173,13 +177,3 @@ class GameStateManager:
                 return True
 
         return False
-
-    def clear_state(self):
-        """Clear all stored state (useful for testing or reset)"""
-        with self._state_lock:
-            self._latest_results = {
-                'timestamp': None,
-                'detections': [],
-                'last_update': None
-            }
-            self._previous_games = []

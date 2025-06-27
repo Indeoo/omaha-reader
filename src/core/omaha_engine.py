@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List
 from enum import Enum
 
 from src.core.domain.detection_result import DetectionResult
@@ -76,24 +76,22 @@ class OmahaGameReader:
 
             for i, captured_image in enumerate(images_to_process):
                 try:
-                    result = self._process_single_image_granular(
+                    detection_result = self._process_single_image_granular(
                         captured_image=captured_image,
                         index=i,
-                        timestamp_folder=timestamp_folder
                     )
 
                     should_notify = self._update_state_and_check_notification(
-                        [result],
+                        detection_result,
                         timestamp_folder,
                         strategy,
                         always_notify
                     )
 
                     if should_notify:
-                        any_changes_detected = True
                         self._notify_observers(strategy)
 
-                    game = self._convert_single_result_to_game(result)
+                    game = self.game_state_manager._convert_result_to_game(detection_result)
                     if game:
                         all_games.append(game)
 
@@ -106,10 +104,11 @@ class OmahaGameReader:
             print(f"❌ Error in detection: {str(e)}")
             return []
 
-    def _process_single_image_granular(self,
-                                       captured_image: CapturedImage,
-                                       index: int,
-                                       timestamp_folder: str) -> DetectionResult:
+    def _process_single_image_granular(
+            self,
+            captured_image: CapturedImage,
+            index: int
+    ) -> DetectionResult:
         window_name = captured_image.window_name
 
         print(f"\n📷 Processing image {index + 1}: {window_name}")
@@ -163,16 +162,6 @@ class OmahaGameReader:
         except Exception as e:
             raise Exception(f"❌ Error in granular detection for {window_name}: {str(e)}")
 
-    def _convert_single_result_to_game(self, result: DetectionResult) -> Optional[Game]:
-        if result.has_cards or result.has_positions:
-            return Game(
-                window_name=result.window_name,
-                player_cards=result.player_cards,
-                table_cards=result.table_cards,
-                positions=result.positions
-            )
-        return None
-
     def _get_images_by_strategy(self,
                                 strategy: ImageAcquisitionStrategy,
                                 timestamp_folder: str) -> List[CapturedImage]:
@@ -187,15 +176,15 @@ class OmahaGameReader:
             raise ValueError(f"Unknown image acquisition strategy: {strategy}")
 
     def _update_state_and_check_notification(self,
-                                             processed_results,
+                                             detection_result,
                                              timestamp_folder: str,
                                              strategy: ImageAcquisitionStrategy,
                                              always_notify: bool) -> bool:
         if strategy == ImageAcquisitionStrategy.FORCE_ALL:
-            self.game_state_manager.update_state(processed_results, timestamp_folder)
+            self.game_state_manager.update_state([detection_result], timestamp_folder)
             return always_notify
         else:
-            has_changed = self.game_state_manager.update_state(processed_results, timestamp_folder)
+            has_changed = self.game_state_manager.update_state([detection_result], timestamp_folder)
             return has_changed or always_notify
 
     def _notify_observers(self, strategy: ImageAcquisitionStrategy):
@@ -223,22 +212,3 @@ class OmahaGameReader:
 
     def get_window_hash_stats(self) -> Dict[str, str]:
         return self.image_capture_service.get_window_hash_stats()
-
-    def clear_state(self):
-        self.game_state_manager.clear_state()
-        self.image_capture_service.clear_window_hashes()
-
-    def detect_cards_only(self, captured_image: CapturedImage):
-        cv2_image = captured_image.get_cv2_image()
-        return self._poker_game_processor.detect_cards(cv2_image)
-
-    def detect_positions_only(self, captured_image: CapturedImage):
-        cv2_image = captured_image.get_cv2_image()
-        return self._poker_game_processor.detect_positions(cv2_image)
-
-    def detect_moves_only(self, captured_image: CapturedImage):
-        cv2_image = captured_image.get_cv2_image()
-        return self._poker_game_processor.detect_moves(cv2_image, captured_image.window_name)
-
-    def detect_stakes_only(self, captured_image: CapturedImage):
-        return self._poker_game_processor.detect_stakes(captured_image)
