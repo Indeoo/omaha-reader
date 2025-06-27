@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Detection service that handles card detection and state management.
-Refactored to remove threading - detection is triggered by external callers.
+Refactored to use granular detection methods instead of monolithic processing.
 """
 import os
 from typing import Dict, List, Optional
@@ -13,6 +13,7 @@ from src.core.service.game_state_manager import GameStateManager
 from src.core.service.image_capture_service import ImageCaptureService
 from src.core.utils.fs_utils import create_timestamp_folder
 from src.core.utils.poker_game_processor import PokerGameProcessor
+from src.core.utils.opencv_utils import pil_to_cv2
 from src.core.domain.game import Game
 from src.core.domain.captured_image import CapturedImage
 
@@ -30,7 +31,7 @@ class OmahaGameReader:
     External callers control timing by calling detect_and_notify().
     """
 
-    def __init__(self, country = "canada", debug_mode: bool = True):
+    def __init__(self, country="canada", debug_mode: bool = True):
         self.debug_mode = debug_mode
 
         # Initialize services
@@ -47,7 +48,6 @@ class OmahaGameReader:
             table_templates_dir=os.path.join(project_root, "resources", "templates", country, "table_cards"),
             position_templates_dir=os.path.join(project_root, "resources", "templates", country, "positions"),
             move_templates_dir=os.path.join(project_root, "resources", "templates", country, "turn_options"),
-            detect_positions=True,
             save_result_images=False,
             write_detection_files=False
         )
@@ -94,7 +94,7 @@ class OmahaGameReader:
                                  strategy: ImageAcquisitionStrategy,
                                  always_notify: bool) -> List[Game]:
         """
-        Core detection logic shared between detect_and_notify and force_detect.
+        Core detection logic with granular detection approach.
 
         Args:
             strategy: Image acquisition strategy (changed only vs all images)
@@ -114,31 +114,17 @@ class OmahaGameReader:
                 print("🚫 No poker tables detected or no changes")
                 return self._get_current_games()
 
-            # Step 3: Process images one by one and update state incrementally
+            # Step 3: Process images one by one using granular detection
             all_games = []
-            any_changes_detected = False
 
             for i, captured_image in enumerate(images_to_process):
                 try:
-                    # Process single image
-                    result = self._poker_game_processor.process_single_image_public(
+                    # Process single image with granular detection
+                    result = self._process_single_image_granular(
                         captured_image=captured_image,
                         index=i,
                         timestamp_folder=timestamp_folder
                     )
-
-                    position_coords = {
-                        'POSITION6': (562, 310, 45, 20),
-                        'POSITION5': (572, 207, 40, 25),
-                        'POSITION4': (450, 165, 45, 15),
-                        'POSITION3': (185, 215, 45, 15),
-                        'POSITION2': (195, 310, 45, 15),  # 215 + 95
-                        'POSITION1': (386, 334, 45, 15)  # 214 + 120
-                    }
-
-                    for pos, (x, y, w, h) in position_coords.items():
-                        stake = self._poker_game_processor.detect_stake(captured_image, x, y, w, h)
-                        print(f"{pos}: {stake}")
 
                     # Update state for this single result
                     should_notify = self._update_state_and_check_notification(
@@ -168,6 +154,82 @@ class OmahaGameReader:
         except Exception as e:
             print(f"❌ Error in detection: {str(e)}")
             return []
+
+    def _process_single_image_granular(self,
+                                       captured_image: CapturedImage,
+                                       index: int,
+                                       timestamp_folder: str) -> DetectionResult:
+        """
+        Process a single image using granular detection approach
+
+        Args:
+            captured_image: CapturedImage object
+            index: Image index
+            timestamp_folder: Folder to save results
+
+        Returns:
+            DetectionResult object
+        """
+        window_name = captured_image.window_name
+
+        # Print processing info
+        print(f"\n📷 Processing image {index + 1}: {window_name}")
+        print("-" * 40)
+
+        try:
+            # Convert image to OpenCV format once
+            cv2_image = pil_to_cv2(captured_image.image)
+        except Exception as e:
+            raise Exception(f"❌ Error converting image {window_name}: {str(e)}")
+
+        try:
+            # Step 1: Always detect cards first
+            print(f"🃏 Detecting cards in {window_name}...")
+            cards_result = self._poker_game_processor.detect_cards(cv2_image)
+
+            if cards_result.has_cards:
+                player_count = len(cards_result.player_cards)
+                table_count = len(cards_result.table_cards)
+                print(f"    ✅ Found {player_count} player cards, {table_count} table cards")
+            else:
+                print(f"    ℹ️  No cards detected")
+
+            # Step 2: Conditional detection based on card results
+            positions_result = None
+            if self._poker_game_processor.should_detect_positions(cards_result):
+                print(f"👤 Detecting positions in {window_name}...")
+                positions_result = self._poker_game_processor.detect_positions(cv2_image)
+
+                if positions_result.has_positions:
+                    print(f"    ✅ Found positions:")
+                    for player_num, position in sorted(positions_result.player_positions.items()):
+                        position_type = "Main player" if player_num == 1 else f"Player {player_num}"
+                        print(f"        {position_type}: {position}")
+                else:
+                    print(f"    ℹ️  No positions detected")
+
+            moves_result = None
+            if self._poker_game_processor.should_detect_moves(cards_result):
+                print(f"🎯 Detecting moves in {window_name}...")
+                moves_result = self._poker_game_processor.detect_moves(cv2_image, window_name)
+
+            stakes_result = None
+            if self._poker_game_processor.should_detect_stakes(cards_result):
+                print(f"💰 Detecting stakes in {window_name}...")
+                stakes_result = self._poker_game_processor.detect_stakes(captured_image)
+
+            # Step 3: Combine all results
+            result = self._poker_game_processor.combine_detection_results(
+                captured_image, cards_result, positions_result, moves_result, stakes_result
+            )
+
+            # Step 4: Save files if enabled (but skip for this simplified version)
+            # The processor can handle this if needed via process_and_save_results()
+
+            return result
+
+        except Exception as e:
+            raise Exception(f"❌ Error in granular detection for {window_name}: {str(e)}")
 
     def _convert_single_result_to_game(self, result: DetectionResult) -> Optional[Game]:
         """
@@ -283,3 +345,55 @@ class OmahaGameReader:
         """Clear all stored state (useful for testing or reset)"""
         self.game_state_manager.clear_state()
         self.image_capture_service.clear_window_hashes()
+
+    # Convenience methods for external access to granular detection
+    def detect_cards_only(self, captured_image: CapturedImage):
+        """
+        Convenience method to detect only cards in an image
+
+        Args:
+            captured_image: CapturedImage object
+
+        Returns:
+            CardDetectionResult
+        """
+        cv2_image = pil_to_cv2(captured_image.image)
+        return self._poker_game_processor.detect_cards(cv2_image)
+
+    def detect_positions_only(self, captured_image: CapturedImage):
+        """
+        Convenience method to detect only positions in an image
+
+        Args:
+            captured_image: CapturedImage object
+
+        Returns:
+            PositionDetectionResult
+        """
+        cv2_image = pil_to_cv2(captured_image.image)
+        return self._poker_game_processor.detect_positions(cv2_image)
+
+    def detect_moves_only(self, captured_image: CapturedImage):
+        """
+        Convenience method to detect only moves in an image
+
+        Args:
+            captured_image: CapturedImage object
+
+        Returns:
+            MoveDetectionResult
+        """
+        cv2_image = pil_to_cv2(captured_image.image)
+        return self._poker_game_processor.detect_moves(cv2_image, captured_image.window_name)
+
+    def detect_stakes_only(self, captured_image: CapturedImage):
+        """
+        Convenience method to detect only stakes in an image
+
+        Args:
+            captured_image: CapturedImage object
+
+        Returns:
+            StakeDetectionResult
+        """
+        return self._poker_game_processor.detect_stakes(captured_image)
