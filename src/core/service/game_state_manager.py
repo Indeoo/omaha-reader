@@ -63,10 +63,6 @@ class GameStateManager:
             print(f"🗑️ Removed game: {window_name}")
         return removed
 
-    def clear_state(self):
-        self.repository.clear_state()
-        print("🗑️ Game state cleared")
-
     def _convert_results_to_games(self, processed_results: List[DetectionResult]) -> List[Game]:
         games = []
         for result in processed_results:

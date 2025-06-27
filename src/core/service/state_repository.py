@@ -17,10 +17,6 @@ class StateRepository:
         with self._lock:
             return self._current_state
 
-    def get_previous_state(self):
-        with self._lock:
-            return self._previous_state
-
     def update_state(self, new_state) -> bool:
         with self._lock:
             state_changed = self._current_state != new_state
@@ -113,8 +109,3 @@ class StateRepository:
             'detections': [],
             'last_update': None
         }
-
-    def clear_state(self):
-        with self._lock:
-            self._current_state = None
-            self._previous_state = None
