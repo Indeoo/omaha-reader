@@ -30,7 +30,7 @@ class OmahaGameReader:
     External callers control timing by calling detect_and_notify().
     """
 
-    def __init__(self, debug_mode: bool = True):
+    def __init__(self, country = "canada", debug_mode: bool = True):
         self.debug_mode = debug_mode
 
         # Initialize services
@@ -43,10 +43,10 @@ class OmahaGameReader:
 
         # Build absolute paths
         self._poker_game_processor = PokerGameProcessor(
-            player_templates_dir=os.path.join(project_root, "resources", "templates", "canada", "player_cards"),
-            table_templates_dir=os.path.join(project_root, "resources", "templates", "canada", "table_cards"),
-            position_templates_dir=os.path.join(project_root, "resources", "templates", "canada", "positions"),
-            move_templates_dir=os.path.join(project_root, "resources", "templates", "canada", "turn_options"),
+            player_templates_dir=os.path.join(project_root, "resources", "templates", country, "player_cards"),
+            table_templates_dir=os.path.join(project_root, "resources", "templates", country, "table_cards"),
+            position_templates_dir=os.path.join(project_root, "resources", "templates", country, "positions"),
+            move_templates_dir=os.path.join(project_root, "resources", "templates", country, "turn_options"),
             detect_positions=True,
             save_result_images=False,
             write_detection_files=False
