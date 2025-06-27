@@ -43,10 +43,10 @@ class OmahaGameReader:
 
         # Build absolute paths
         self._poker_game_processor = PokerGameProcessor(
-            player_templates_dir=os.path.join(project_root, "resources", "templates", "player_cards"),
-            table_templates_dir=os.path.join(project_root, "resources", "templates", "table_cards"),
-            position_templates_dir=os.path.join(project_root, "resources", "templates", "positions"),
-            move_templates_dir=os.path.join(project_root, "resources", "templates", "turn_options"),
+            player_templates_dir=os.path.join(project_root, "resources", "templates", "canada", "player_cards"),
+            table_templates_dir=os.path.join(project_root, "resources", "templates", "canada", "table_cards"),
+            position_templates_dir=os.path.join(project_root, "resources", "templates", "canada", "positions"),
+            move_templates_dir=os.path.join(project_root, "resources", "templates", "canada", "turn_options"),
             detect_positions=True,
             save_result_images=False,
             write_detection_files=False
