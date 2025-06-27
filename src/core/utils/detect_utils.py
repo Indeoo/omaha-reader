@@ -4,11 +4,11 @@ import numpy as np
 
 from src.core.domain.readed_card import ReadedCard
 from src.core.domain.detection_result import DetectionResult
-from src.core.domain.captured_image import CapturedImage
+from src.core.domain.captured_image import CapturedWindow
 from src.core.utils.opencv_utils import save_opencv_image, draw_detected_cards, draw_detected_positions
 
 
-def save_detection_result_image(timestamp_folder: str, captured_image: CapturedImage, result: Union[Dict, DetectionResult]):
+def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, result: Union[Dict, DetectionResult]):
     window_name = captured_image.window_name
     filename = captured_image.filename
 

@@ -4,11 +4,11 @@ import ctypes
 
 from PIL import ImageGrab, Image
 
-from src.core.domain.captured_image import CapturedImage
+from src.core.domain.captured_image import CapturedWindow
 from src.core.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
-def _capture_windows(windows) -> List[CapturedImage]:
+def _capture_windows(windows) -> List[CapturedWindow]:
     print(f"Found {len(windows)} windows to capture")
 
     # List to store all captured images
@@ -41,7 +41,7 @@ def _capture_windows(windows) -> List[CapturedImage]:
             capture_method = "Screen region (with overlap)"
 
         if img:
-            captured_image = CapturedImage(
+            captured_image = CapturedWindow(
                 image=img,
                 filename=filename,
                 window_name=title,
@@ -62,7 +62,7 @@ def get_poker_window_info(poker_window_name):
 
 
 def save_images(
-        captured_images: List[CapturedImage],
+        captured_images: List[CapturedWindow],
         timestamp_folder: str = None
 ):
     print(f"\nSaving {len(captured_images)} captured images...")
@@ -89,7 +89,7 @@ def save_images(
     print("Screenshot process completed.")
 
 
-def _load_images_from_folder(timestamp_folder: str) -> List[CapturedImage]:
+def _load_images_from_folder(timestamp_folder: str) -> List[CapturedWindow]:
     captured_images = []
 
     if not os.path.exists(timestamp_folder):
@@ -111,7 +111,7 @@ def _load_images_from_folder(timestamp_folder: str) -> List[CapturedImage]:
 
             window_name = filename.replace('.png', '')  # Use full filename without extension
 
-            captured_image = CapturedImage(
+            captured_image = CapturedWindow(
                 image=image,
                 filename=filename,
                 window_name=window_name,
@@ -126,7 +126,7 @@ def _load_images_from_folder(timestamp_folder: str) -> List[CapturedImage]:
     return captured_images
 
 
-def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, debug=False) -> List[CapturedImage]:
+def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, debug=False) -> List[CapturedWindow]:
     if debug:
         # Debug mode: load images from existing folder
         captured_images = _load_images_from_folder(timestamp_folder)
@@ -157,7 +157,7 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
     if save_windows:
         try:
             full_screen = ImageGrab.grab()
-            full_screen_captured = CapturedImage(
+            full_screen_captured = CapturedWindow(
                 image=full_screen,
                 filename="full_screen.png",
                 window_name='full_screen',

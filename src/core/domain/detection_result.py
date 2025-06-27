@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
 from src.core.domain.readed_card import ReadedCard
-from src.core.domain.captured_image import CapturedImage
+from src.core.domain.captured_image import CapturedWindow
 
 
 class DetectionResult:
@@ -13,7 +13,7 @@ class DetectionResult:
             self,
             window_name: str,
             filename: str,
-            captured_image: CapturedImage,
+            captured_image: CapturedWindow,
             player_cards: Optional[List[ReadedCard]] = None,
             table_cards: Optional[List[ReadedCard]] = None,
             positions: Optional[List[Any]] = None,
@@ -89,7 +89,7 @@ class DetectionResult:
         captured_image = data.get('captured_image')
         if captured_image is None:
             # Old format - convert from captured_item
-            captured_image = CapturedImage.from_dict(data['captured_item'])
+            captured_image = CapturedWindow.from_dict(data['captured_item'])
 
         return cls(
             window_name=data['window_name'],

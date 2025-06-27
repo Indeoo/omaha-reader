@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 import cv2
 import pytesseract
 
-from src.core.domain.captured_image import CapturedImage
+from src.core.domain.captured_image import CapturedWindow
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.readed_card import ReadedCard
 from src.core.reader.player_card_reader import PlayerCardReader
@@ -175,7 +175,7 @@ class PokerGameProcessor:
             print(f"❌ Error detecting moves: {str(e)}")
             return MoveDetectionResult([], False)
 
-    def detect_stakes(self, captured_image: CapturedImage) -> StakeDetectionResult:
+    def detect_stakes(self, captured_image: CapturedWindow) -> StakeDetectionResult:
         stakes = {}
 
         try:
@@ -190,7 +190,7 @@ class PokerGameProcessor:
             print(f"❌ Error detecting stakes: {str(e)}")
             return StakeDetectionResult({})
 
-    def detect_single_stake(self, captured_image: CapturedImage, x: int, y: int, w: int, h: int) -> str:
+    def detect_single_stake(self, captured_image: CapturedWindow, x: int, y: int, w: int, h: int) -> str:
         try:
             cv2_image = captured_image.get_cv2_image()
             gray = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
@@ -231,7 +231,7 @@ class PokerGameProcessor:
         return cards_result.has_cards
 
     def combine_detection_results(self,
-                                  captured_image: CapturedImage,
+                                  captured_image: CapturedWindow,
                                   cards_result: CardDetectionResult,
                                   positions_result: Optional[PositionDetectionResult] = None,
                                   moves_result: Optional[MoveDetectionResult] = None,

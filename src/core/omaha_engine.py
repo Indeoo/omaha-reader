@@ -10,7 +10,7 @@ from src.core.service.image_capture_service import ImageCaptureService
 from src.core.utils.fs_utils import create_timestamp_folder
 from src.core.utils.poker_game_processor import PokerGameProcessor
 from src.core.domain.game import Game
-from src.core.domain.captured_image import CapturedImage
+from src.core.domain.captured_image import CapturedWindow
 
 
 class OmahaEngine:
@@ -77,7 +77,7 @@ class OmahaEngine:
         self._notify_observers()
         print(f"🔄 Force detection completed - notified observers")
 
-    def _process_single_image(self, captured_image: CapturedImage, index: int) -> DetectionResult:
+    def _process_single_image(self, captured_image: CapturedWindow, index: int) -> DetectionResult:
         window_name = captured_image.window_name
 
         print(f"\n📷 Processing image {index + 1}: {window_name}")

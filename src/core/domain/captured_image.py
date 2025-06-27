@@ -6,7 +6,7 @@ import numpy as np
 from src.core.utils.opencv_utils import pil_to_cv2
 
 
-class CapturedImage:
+class CapturedWindow:
     def __init__(
             self,
             image: Image.Image,
@@ -55,7 +55,7 @@ class CapturedImage:
         }
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'CapturedImage':
+    def from_dict(cls, data: dict) -> 'CapturedWindow':
         return cls(
             image=data['image'],
             filename=data['filename'],

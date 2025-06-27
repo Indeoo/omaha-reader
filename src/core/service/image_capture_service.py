@@ -6,7 +6,7 @@ Extracted from DetectionService for better separation of concerns.
 import threading
 from typing import List, Dict
 
-from src.core.domain.captured_image import CapturedImage
+from src.core.domain.captured_image import CapturedWindow
 from src.core.utils.capture_utils import capture_and_save_windows
 
 
@@ -23,7 +23,7 @@ class ImageCaptureService:
         self._window_hashes: Dict[str, str] = {}
         self._hash_lock = threading.Lock()
 
-    def get_images_to_process(self, timestamp_folder) -> List[CapturedImage]:
+    def get_images_to_process(self, timestamp_folder) -> List[CapturedWindow]:
         """Get images that need processing (changed or new windows)"""
         captured_windows = self._capture_windows(timestamp_folder)
 
@@ -37,7 +37,7 @@ class ImageCaptureService:
 
         return changed_images
 
-    def _capture_windows(self, timestamp_folder: str) -> List[CapturedImage]:
+    def _capture_windows(self, timestamp_folder: str) -> List[CapturedWindow]:
         """
         Capture poker windows and return CapturedImage objects
 
@@ -54,12 +54,12 @@ class ImageCaptureService:
         )
         return captured_windows
 
-    def _get_changed_images(self, captured_images: List[CapturedImage]) -> List[CapturedImage]:
+    def _get_changed_images(self, captured_windows: List[CapturedWindow]) -> List[CapturedWindow]:
         """
         Determine which captured images need processing based on hash comparison
 
         Args:
-            captured_images: List of CapturedImage objects
+            captured_windows: List of CapturedImage objects
 
         Returns:
             List of images that need processing (changed or new)
@@ -70,11 +70,11 @@ class ImageCaptureService:
         with self._hash_lock:
             all_unchanged = True  # Track if all windows are unchanged
 
-            for captured_image in captured_images:
-                window_name = captured_image.window_name
+            for captured_window in captured_windows:
+                window_name = captured_window.window_name
 
                 # Calculate hash for current image
-                current_hash = captured_image.calculate_hash()
+                current_hash = captured_window.calculate_hash()
                 current_window_hashes[window_name] = current_hash
 
                 # Check if this window is new or changed
@@ -83,12 +83,12 @@ class ImageCaptureService:
                 if stored_hash is None:
                     # New window
                     print(f"🆕 New window detected: {window_name}")
-                    images_to_process.append(captured_image)
+                    images_to_process.append(captured_window)
                     all_unchanged = False
                 elif stored_hash != current_hash:
                     # Changed window
                     print(f"🔄 Window changed: {window_name}")
-                    images_to_process.append(captured_image)
+                    images_to_process.append(captured_window)
                     all_unchanged = False
                 else:
                     # Unchanged window
