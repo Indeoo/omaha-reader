@@ -1,0 +1,1 @@
+Every poker table screen is 784x584

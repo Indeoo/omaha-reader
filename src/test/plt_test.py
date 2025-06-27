@@ -19,7 +19,7 @@ class PltTest(unittest.TestCase):
         print("Image shape (h, w, c):", img.shape)
 
         # Initial guess for bubble ROI (tweak these values as needed)
-        x, y, w, h = 310, 460, 50, 30
+        x, y, w, h = 565, 332, 40, 40
         roi = img_rgb[y:y + h, x:x + w]
 
         # Draw rectangle on the original image for context
@@ -37,3 +37,13 @@ class PltTest(unittest.TestCase):
         axes[1].axis("off")
 
         plt.show()
+
+
+        # 1 player position is 300, 375, 40, 40
+        # 2 player position is 35, 330, 40, 40
+        # 3 player position is 35, 173, 40, 40
+        # 4 player position is 297, 120, 40, 40
+        # 5 player position is 562, 168, 40, 40
+        # 6 player position is 565, 332, 40, 40
+
+        #FOLD coordinates 310, 460, 50, 30
