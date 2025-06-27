@@ -69,31 +69,31 @@ class PokerGameProcessor:
         if self.move_templates:
             self._player_move_reader = PlayerMoveReader(self.move_templates)
 
-    def process_images(
+    def process_single_image_public(
             self,
-            captured_images: List[CapturedImage],
+            captured_image: CapturedImage,
+            index: int,
             timestamp_folder: str,
-            process_callback: Callable = None,
-    ) -> List[DetectionResult]:
+            process_callback: Callable = None
+    ) -> DetectionResult:
         """
-        Process a list of captured images to detect cards and optionally positions.
+        Public method to process a single image
 
         Args:
-            captured_images: List of CapturedImage objects
+            captured_image: CapturedImage object
+            index: Image index
             timestamp_folder: Folder to save results
-            process_callback: Optional callback function called for each processed image
-                             with args (i, captured_image, result)
+            process_callback: Optional callback function
 
         Returns:
-            List of DetectionResult objects containing processed results for each image
+            DetectionResult object
         """
-        processed_results = []
-
-        for i, captured_image in enumerate(captured_images):
-            result = self._process_single_image(captured_image, i, process_callback, timestamp_folder)
-            processed_results.append(result)
-
-        return processed_results
+        return self._process_single_image(
+            captured_image=captured_image,
+            index=index,
+            process_callback=process_callback,
+            timestamp_folder=timestamp_folder
+        )
 
     @benchmark
     def _process_single_image(

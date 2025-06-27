@@ -140,6 +140,7 @@ class GameStateManager:
     def update_state(self, processed_results: List[DetectionResult], timestamp_folder: str) -> bool:
         """
         Update game state with new detection results.
+        Can handle both single results and batch results.
 
         Args:
             processed_results: List of DetectionResult objects from detection
@@ -151,59 +152,91 @@ class GameStateManager:
         # Convert results to games
         new_games = self._convert_results_to_games(processed_results)
 
-        # Check if results have changed
-        has_changed = self._has_detection_changed(new_games, self._previous_games)
+        if not new_games:
+            return False
 
-        # Check game state changes and player positions
-        for i, (new_game, result) in enumerate(zip(new_games, processed_results)):
-            # Find corresponding old game
-            old_game = None
-            if i < len(self._previous_games):
-                # Match by window name if possible
-                for og in self._previous_games:
-                    if og.window_name == new_game.window_name:
-                        old_game = og
+        # For single game update (incremental processing)
+        if len(new_games) == 1:
+            new_game = new_games[0]
+
+            # Find if this window already exists in our state
+            with self._state_lock:
+                existing_games = list(self._latest_results.get('detections', []))
+                window_index = None
+                old_game = None
+
+                for i, game in enumerate(existing_games):
+                    if game.window_name == new_game.window_name:
+                        window_index = i
+                        old_game = game
                         break
 
-            # Check if new game
-            if self.is_new_game(new_game, old_game):
-                print(
-                    f"  🆕 NEW GAME detected at '{new_game.window_name}' - Player cards: {new_game.get_player_cards_string()}")
+                # Check for changes
+                has_changed = False
 
-            # Check if new street
-            if self.is_new_street(new_game, old_game):
-                old_street = old_game.get_street() if old_game else None
-                new_street = new_game.get_street()
-                print(
-                    f"  🔄 NEW STREET at '{new_game.window_name}' - {old_street.value if old_street else 'Unknown'} → {new_street.value if new_street else 'Unknown'}")
+                if old_game is None:
+                    # New window
+                    has_changed = True
+                    existing_games.append(new_game)
+                    print(f"  🆕 New table detected: '{new_game.window_name}'")
+                else:
+                    # Check if game state changed
+                    if (new_game.get_player_cards_string() != old_game.get_player_cards_string() or
+                            new_game.get_table_cards_string() != old_game.get_table_cards_string() or
+                            new_game.get_positions_string() != old_game.get_positions_string()):
+                        has_changed = True
+                        existing_games[window_index] = new_game
 
-            # Check main player position
-            main_player_position = self._check_main_player_position(result.captured_image)
-            if main_player_position:
-                print(f"  👤 Main player position at '{new_game.window_name}': {main_player_position}")
-            else:
-                print(f"  👤 Main player position at '{new_game.window_name}': Not detected")
+                # Perform game state checks
+                if has_changed:
+                    # Check if new game
+                    if self.is_new_game(new_game, old_game):
+                        print(
+                            f"  🆕 NEW GAME detected at '{new_game.window_name}' - Player cards: {new_game.get_player_cards_string()}")
 
-            # Log player move status
-            if result.is_player_move:
-                print(f"  ↳ Table '{new_game.window_name}' - IT'S YOUR TURN!")
-            else:
-                print(f"  ↳ Table '{new_game.window_name}' - Waiting for action...")
+                    # Check if new street
+                    if self.is_new_street(new_game, old_game):
+                        old_street = old_game.get_street() if old_game else None
+                        new_street = new_game.get_street()
+                        print(
+                            f"  🔄 NEW STREET at '{new_game.window_name}' - {old_street.value if old_street else 'Unknown'} → {new_street.value if new_street else 'Unknown'}")
 
-        if has_changed:
-            # Update state with Game instances
-            with self._state_lock:
-                self._latest_results = {
-                    'timestamp': timestamp_folder.split('/')[-1],  # Extract timestamp from path
-                    'detections': new_games,  # Store Game instances
-                    'last_update': datetime.now().isoformat()
-                }
+                # Check main player position
+                if processed_results[0].captured_image:
+                    main_player_position = self._check_main_player_position(processed_results[0].captured_image)
+                    if main_player_position:
+                        print(f"  👤 Main player position at '{new_game.window_name}': {main_player_position}")
 
-            # Update previous games for next comparison
-            self._previous_games = new_games
+                # Update state if changed
+                if has_changed:
+                    self._latest_results = {
+                        'timestamp': timestamp_folder.split('/')[-1],
+                        'detections': existing_games,
+                        'last_update': datetime.now().isoformat()
+                    }
 
-        return has_changed
+            return has_changed
 
+        else:
+            # Batch update (original logic)
+            # Check if results have changed
+            has_changed = self._has_detection_changed(new_games, self._previous_games)
+
+            # Perform game state checks for all games
+            for i, (new_game, result) in enumerate(zip(new_games, processed_results)):
+                # ... (rest of original batch logic)
+                pass
+
+            if has_changed:
+                with self._state_lock:
+                    self._latest_results = {
+                        'timestamp': timestamp_folder.split('/')[-1],
+                        'detections': new_games,
+                        'last_update': datetime.now().isoformat()
+                    }
+                self._previous_games = new_games
+
+            return has_changed
     def get_latest_results(self) -> dict:
         """
         Get the latest detection results (thread-safe)

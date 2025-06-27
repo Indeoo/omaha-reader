@@ -4,9 +4,10 @@ Detection service that handles card detection and state management.
 Refactored to remove threading - detection is triggered by external callers.
 """
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 from enum import Enum
 
+from src.core.domain.detection_result import DetectionResult
 from src.core.service.detection_notifier import DetectionNotifier
 from src.core.service.game_state_manager import GameStateManager
 from src.core.service.image_capture_service import ImageCaptureService
@@ -113,30 +114,66 @@ class OmahaGameReader:
                 print("🚫 No poker tables detected or no changes")
                 return self._get_current_games()
 
-            # Step 3: Process images
-            processed_results = self._poker_game_processor.process_images(
-                captured_images=images_to_process,
-                timestamp_folder=timestamp_folder,
-            )
+            # Step 3: Process images one by one and update state incrementally
+            all_games = []
+            any_changes_detected = False
 
-            # Step 4: Update state and determine if notification needed
-            should_notify = self._update_state_and_check_notification(
-                processed_results,
-                timestamp_folder,
-                strategy,
-                always_notify
-            )
+            for i, captured_image in enumerate(images_to_process):
+                try:
+                    # Process single image
+                    result = self._poker_game_processor.process_single_image_public(
+                        captured_image=captured_image,
+                        index=i,
+                        timestamp_folder=timestamp_folder
+                    )
 
-            # Step 5: Notify observers if needed
-            if should_notify:
-                self._notify_observers(strategy)
+                    # Update state for this single result
+                    should_notify = self._update_state_and_check_notification(
+                        [result],  # Pass as list with single item
+                        timestamp_folder,
+                        strategy,
+                        always_notify
+                    )
 
-            # Step 6: Return current games
-            return self._get_current_games()
+                    if should_notify:
+                        any_changes_detected = True
+                        # Notify observers immediately for this table
+                        self._notify_observers(strategy)
+
+                    # Add to all games list
+                    game = self._convert_single_result_to_game(result)
+                    if game:
+                        all_games.append(game)
+
+                except Exception as e:
+                    print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
+                    # Continue with next image even if this one fails
+
+            # Return all processed games
+            return all_games
 
         except Exception as e:
             print(f"❌ Error in detection: {str(e)}")
             return []
+
+    def _convert_single_result_to_game(self, result: DetectionResult) -> Optional[Game]:
+        """
+        Convert a single DetectionResult to a Game instance
+
+        Args:
+            result: DetectionResult object
+
+        Returns:
+            Game instance or None if no cards/positions detected
+        """
+        if result.has_cards or result.has_positions:
+            return Game(
+                window_name=result.window_name,
+                player_cards=result.player_cards,
+                table_cards=result.table_cards,
+                positions=result.positions
+            )
+        return None
 
     def _get_images_by_strategy(self,
                                 strategy: ImageAcquisitionStrategy,
