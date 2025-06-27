@@ -1,12 +1,11 @@
 from typing import List, Dict, Union
 
 import numpy as np
-import cv2
 
 from src.core.domain.readed_card import ReadedCard
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.captured_image import CapturedImage
-from src.core.utils.opencv_utils import pil_to_cv2, save_opencv_image, draw_detected_cards
+from src.core.utils.opencv_utils import pil_to_cv2, save_opencv_image, draw_detected_cards, draw_detected_positions
 
 
 def save_detection_result_image(timestamp_folder: str, captured_image: CapturedImage, result: Union[Dict, DetectionResult]):
@@ -68,36 +67,6 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedI
 
     except Exception as e:
         print(f"    ❌ Error saving result image for {window_name}: {str(e)}")
-
-
-def draw_detected_positions(image, positions):
-    """
-    Draw detected positions on the image
-
-    Args:
-        image: OpenCV image
-        positions: List of DetectedPosition objects
-
-    Returns:
-        Image with drawn positions
-    """
-    result = image.copy()
-
-    for pos in positions:
-        x, y, w, h = pos.bounding_rect
-
-        # Draw bounding rectangle in yellow
-        cv2.rectangle(result, (x, y), (x + w, y + h), (0, 255, 255), 2)
-
-        # Draw center point in red
-        cv2.circle(result, pos.center, 5, (0, 0, 255), -1)
-
-        # Add label with position name and confidence
-        label = f"{pos.position_name} ({pos.match_score:.2f})"
-        cv2.putText(result, label, (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
-
-    return result
 
 
 def draw_cards(image: np.ndarray, readed_cards: List[ReadedCard], color=(0, 255, 0)) -> np.ndarray:

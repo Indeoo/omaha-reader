@@ -112,6 +112,36 @@ def draw_detected_cards(
     return result
 
 
+def draw_detected_positions(image, positions):
+    """
+    Draw detected positions on the image
+
+    Args:
+        image: OpenCV image
+        positions: List of DetectedPosition objects
+
+    Returns:
+        Image with drawn positions
+    """
+    result = image.copy()
+
+    for pos in positions:
+        x, y, w, h = pos.bounding_rect
+
+        # Draw bounding rectangle in yellow
+        cv2.rectangle(result, (x, y), (x + w, y + h), (0, 255, 255), 2)
+
+        # Draw center point in red
+        cv2.circle(result, pos.center, 5, (0, 0, 255), -1)
+
+        # Add label with position name and confidence
+        label = f"{pos.position_name} ({pos.match_score:.2f})"
+        cv2.putText(result, label, (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+
+    return result
+
+
 def coords_to_search_region(x: int, y: int, w: int, h: int,
                             image_width: int, image_height: int) -> tuple[float, float, float, float]:
     """
