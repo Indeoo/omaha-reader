@@ -21,7 +21,10 @@ class CapturedWindow:
         self._image_hash: Optional[str] = None
 
     def get_cv2_image(self) -> np.ndarray:
-        return pil_to_cv2(self.image)
+        try:
+            return pil_to_cv2(self.image)
+        except Exception as e:
+            raise Exception(f"❌ Error converting image {self.window_name}: {str(e)}")
 
     def calculate_hash(self) -> str:
         if self._image_hash is None:

@@ -42,13 +42,7 @@ class OmahaEngine:
         changed_images = self.image_capture_service.get_changed_images(timestamp_folder)
 
         if changed_images:
-            for i, captured_image in enumerate(changed_images):
-                try:
-                    detection_result = self._process_single_image(captured_image, i)
-                    self.game_state_manager.manage(detection_result)
-                except Exception as e:
-                    print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
-
+            self.process_windows(changed_images)
             self._notify_observers()
 
     def force_detect(self):
@@ -57,28 +51,24 @@ class OmahaEngine:
 
         if captured_windows:
             print(f"🔍 Force processing {len(captured_windows)} images")
-
-            for i, captured_image in enumerate(captured_windows):
-                try:
-                    detection_result = self._process_single_image(captured_image, i)
-                    self.game_state_manager.manage(detection_result)
-
-                except Exception as e:
-                    print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
-
+            self.process_windows(captured_windows)
             self._notify_observers()
             print(f"🔄 Force detection completed - notified observers")
 
-    def _process_single_image(self, captured_image: CapturedWindow, index: int) -> DetectionResult:
+    def process_windows(self, captured_windows):
+        for i, captured_image in enumerate(captured_windows):
+            try:
+                print(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
+                print("-" * 40)
+                detection_result = self._process_single_image(captured_image)
+                self.game_state_manager.manage(detection_result)
+
+            except Exception as e:
+                print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
+
+    def _process_single_image(self, captured_image: CapturedWindow) -> DetectionResult:
         window_name = captured_image.window_name
-
-        print(f"\n📷 Processing image {index + 1}: {window_name}")
-        print("-" * 40)
-
-        try:
-            cv2_image = captured_image.get_cv2_image()
-        except Exception as e:
-            raise Exception(f"❌ Error converting image {window_name}: {str(e)}")
+        cv2_image = captured_image.get_cv2_image()
 
         try:
             print(f"🃏 Detecting cards in {window_name}...")
