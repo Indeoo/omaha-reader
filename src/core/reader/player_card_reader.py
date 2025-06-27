@@ -5,7 +5,7 @@ from src.core.reader.table_reader import TableReader
 from src.core.domain.readed_card import ReadedCard
 
 
-class OmahaCardReader(TableReader):
+class PlayerCardReader(TableReader):
     """Player card reader for Omaha poker using template matching"""
 
     # Default configuration for Omaha player cards

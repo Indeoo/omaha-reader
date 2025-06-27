@@ -5,7 +5,7 @@ Shared image processing functions for both main.py and main_web3.py
 from typing import Dict, List, Callable
 
 from src.core.domain.captured_image import CapturedImage
-from src.core.reader.omaha_card_reader import OmahaCardReader
+from src.core.reader.omaha_card_reader import PlayerCardReader
 from src.core.reader.player_position_reader import PlayerPositionReader
 from src.core.reader.table_card_reader import TableCardReader
 from src.core.utils.benchmark_utils import benchmark
@@ -111,9 +111,9 @@ class PokerGameProcessor:
 
         # Detect cards
         try:
-            player_cards = OmahaCardReader(
+            player_cards = PlayerCardReader(
                 self.player_templates,
-                OmahaCardReader.DEFAULT_SEARCH_REGION
+                PlayerCardReader.DEFAULT_SEARCH_REGION
             ).read(cv2_image)
 
             table_cards = TableCardReader(self.table_templates, None).read(cv2_image)
