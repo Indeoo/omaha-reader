@@ -42,7 +42,7 @@ class OmahaEngine:
         changed_images = self.image_capture_service.get_changed_images(timestamp_folder)
 
         if changed_images:
-            self.process_windows(changed_images)
+            self._process_windows(changed_images)
             self._notify_observers()
 
     def force_detect(self):
@@ -51,22 +51,22 @@ class OmahaEngine:
 
         if captured_windows:
             print(f"🔍 Force processing {len(captured_windows)} images")
-            self.process_windows(captured_windows)
+            self._process_windows(captured_windows)
             self._notify_observers()
             print(f"🔄 Force detection completed - notified observers")
 
-    def process_windows(self, captured_windows):
+    def _process_windows(self, captured_windows):
         for i, captured_image in enumerate(captured_windows):
             try:
                 print(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
                 print("-" * 40)
-                detection_result = self._process_single_image(captured_image)
+                detection_result = self._process_window(captured_image)
                 self.game_state_manager.manage(detection_result)
 
             except Exception as e:
                 print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
-    def _process_single_image(self, captured_image: CapturedWindow) -> DetectionResult:
+    def _process_window(self, captured_image: CapturedWindow) -> DetectionResult:
         window_name = captured_image.window_name
         cv2_image = captured_image.get_cv2_image()
 
