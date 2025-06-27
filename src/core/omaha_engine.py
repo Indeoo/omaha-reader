@@ -64,40 +64,30 @@ class OmahaGameReader:
         try:
             # Create timestamp folder
             timestamp_folder = self.image_capture_service.create_timestamp_folder()
+            images_to_process = self.image_capture_service.get_images_to_process(timestamp_folder)
 
-            # Capture windows
-            captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
+            if images_to_process:
 
-            if captured_windows:
-                # Determine which images need processing based on hash comparison
-                images_to_process = self.image_capture_service.get_changed_images(captured_windows)
+                # Process only the changed/new images
+                processed_results = self._poker_game_processor.process_images(
+                    captured_images=images_to_process,
+                    timestamp_folder=timestamp_folder,
+                )
 
-                if images_to_process:
-                    print(
-                        f"🔍 Processing {len(images_to_process)} changed/new images out of {len(captured_windows)} total")
+                # Update game state and check if notification is needed
+                has_changed = self.game_state_manager.update_state(processed_results, timestamp_folder)
 
-                    # Process only the changed/new images
-                    processed_results = self._poker_game_processor.process_images(
-                        captured_images=images_to_process,
-                        timestamp_folder=timestamp_folder,
-                    )
+                if has_changed:
+                    # Notify observers
+                    notification_data = self.game_state_manager.get_notification_data()
+                    self.notifier.notify_observers(notification_data)
 
-                    # Update game state and check if notification is needed
-                    has_changed = self.game_state_manager.update_state(processed_results, timestamp_folder)
-
-                    if has_changed:
-                        # Notify observers
-                        notification_data = self.game_state_manager.get_notification_data()
-                        self.notifier.notify_observers(notification_data)
-
-                        print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
-                        return self._get_current_games()
-                    else:
-                        print(f"📊 Detection results unchanged - skipping notification")
-                        return self._get_current_games()
-                else:
-                    print(f"📊 No image changes detected - skipping processing")
+                    print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
                     return self._get_current_games()
+                else:
+                    print(f"📊 Detection results unchanged - skipping notification")
+                    return self._get_current_games()
+
             else:
                 print("🚫 No poker tables detected")
                 return []

@@ -25,6 +25,25 @@ class ImageCaptureService:
         self._window_hashes: Dict[str, str] = {}
         self._hash_lock = threading.Lock()
 
+
+    def get_images_to_process(self, timestamp_folder) -> List[CapturedImage]:
+        # Capture windows
+        captured_windows = self.capture_windows(timestamp_folder)
+
+
+
+        if captured_windows:
+            # Determine which images need processing based on hash comparison
+            result = self.get_changed_images(captured_windows)
+        else:
+            print("🚫 No poker tables detected")
+            result = []
+
+        print(
+            f"🔍 Processing {len(result)} changed/new images out of {len(captured_windows)} total")
+
+        return result
+
     def capture_windows(self, timestamp_folder: str) -> List[CapturedImage]:
         """
         Capture poker windows and return CapturedImage objects
