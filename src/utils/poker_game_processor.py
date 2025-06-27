@@ -55,7 +55,6 @@ class PokerGameProcessor:
         self.save_result_images = save_result_images
         self.write_detection_files = write_detection_files
 
-    @benchmark
     def process_images(
             self,
             captured_images: List[CapturedImage],
@@ -82,6 +81,7 @@ class PokerGameProcessor:
 
         return processed_results
 
+    @benchmark
     def _process_single_image(
             self,
             captured_image: CapturedImage,

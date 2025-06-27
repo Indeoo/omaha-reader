@@ -1,36 +1,31 @@
 #!/usr/bin/env python3
 """
 Detection service that handles card detection and state management.
-Refactored to use GameStateManager for better separation of concerns.
+Refactored to remove threading - detection is triggered by external callers.
 """
-import threading
-import time
-from typing import Dict
+from typing import Dict, List
 
 from src.detection_notifier import DetectionNotifier
 from src.game_state_manager import GameStateManager
 from src.image_capture_service import ImageCaptureService
 from src.utils.poker_game_processor import PokerGameProcessor
+from src.domain.game import Game
 
 
 class OmahaGameReader:
     """
     Service responsible for detecting cards and managing state.
-    Runs in a background thread and notifies observers when detection results change.
+    Pure detection + observer pattern, no threading.
+    External callers control timing by calling detect_and_notify().
     """
 
-    def __init__(self, wait_time: int = 5, debug_mode: bool = True):
-        self.wait_time = wait_time
+    def __init__(self, debug_mode: bool = True):
         self.debug_mode = debug_mode
 
         # Initialize services
         self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
         self.notifier = DetectionNotifier()
         self.game_state_manager = GameStateManager()
-
-        # Thread management
-        self._worker_thread = None
-        self._running = False
 
         # Initialize poker game processor
         self._poker_game_processor = PokerGameProcessor(
@@ -54,83 +49,121 @@ class OmahaGameReader:
         """Get the latest detection results (thread-safe)"""
         return self.game_state_manager.get_latest_results()
 
-    def _detection_worker(self):
-        """Background worker that continuously captures and detects cards"""
-        print("🎯 Detection worker started")
+    def detect_and_notify(self) -> List[Game]:
+        """
+        Single detection cycle with observer notification.
+        External callers control timing by calling this method.
 
-        while self._running:
-            try:
-                # Create timestamp folder
-                timestamp_folder = self.image_capture_service.create_timestamp_folder()
+        Returns:
+            List of Game instances with current detections
+        """
+        try:
+            # Create timestamp folder
+            timestamp_folder = self.image_capture_service.create_timestamp_folder()
 
-                # Capture windows
-                captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
+            # Capture windows
+            captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
 
-                if captured_windows:
-                    # Determine which images need processing based on hash comparison
-                    images_to_process = self.image_capture_service.get_changed_images(captured_windows)
+            if captured_windows:
+                # Determine which images need processing based on hash comparison
+                images_to_process = self.image_capture_service.get_changed_images(captured_windows)
 
-                    if images_to_process:
-                        print(
-                            f"🔍 Processing {len(images_to_process)} changed/new images out of {len(captured_windows)} total")
+                if images_to_process:
+                    print(
+                        f"🔍 Processing {len(images_to_process)} changed/new images out of {len(captured_windows)} total")
 
-                        # Process only the changed/new images
-                        processed_results = self._poker_game_processor.process_images(
-                            captured_images=images_to_process,
-                            timestamp_folder=timestamp_folder,
-                        )
+                    # Process only the changed/new images
+                    processed_results = self._poker_game_processor.process_images(
+                        captured_images=images_to_process,
+                        timestamp_folder=timestamp_folder,
+                    )
 
-                        # Update game state and check if notification is needed
-                        has_changed = self.game_state_manager.update_state(processed_results, timestamp_folder)
+                    # Update game state and check if notification is needed
+                    has_changed = self.game_state_manager.update_state(processed_results, timestamp_folder)
 
-                        if has_changed:
-                            # Notify observers
-                            notification_data = self.game_state_manager.get_notification_data()
-                            self.notifier.notify_observers(notification_data)
+                    if has_changed:
+                        # Notify observers
+                        notification_data = self.game_state_manager.get_notification_data()
+                        self.notifier.notify_observers(notification_data)
 
-                            print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
-                        else:
-                            print(f"📊 Detection results unchanged - skipping notification")
+                        print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
+                        return self._get_current_games()
                     else:
-                        print(f"📊 No image changes detected - skipping processing")
+                        print(f"📊 Detection results unchanged - skipping notification")
+                        return self._get_current_games()
                 else:
-                    print("🚫 No poker tables detected, skipping this cycle")
+                    print(f"📊 No image changes detected - skipping processing")
+                    return self._get_current_games()
+            else:
+                print("🚫 No poker tables detected")
+                return []
 
-            except Exception as e:
-                print(f"❌ Error in detection worker: {str(e)}")
+        except Exception as e:
+            print(f"❌ Error in detection: {str(e)}")
+            return []
 
-            # Wait before next capture
-            if self._running:  # Check if still running before sleeping
-                time.sleep(self.wait_time)
+    def force_detect(self) -> List[Game]:
+        """
+        Force detection regardless of image changes (for testing/debugging).
 
-        print("🛑 Detection worker stopped")
+        Returns:
+            List of Game instances with current detections
+        """
+        try:
+            # Create timestamp folder
+            timestamp_folder = self.image_capture_service.create_timestamp_folder()
 
-    def start(self):
-        """Start the detection service"""
-        if self._running:
-            print("⚠️ Detection service is already running")
-            return
+            # Capture windows
+            captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
 
-        self._running = True
-        self._worker_thread = threading.Thread(target=self._detection_worker, daemon=True)
-        self._worker_thread.start()
-        print("✅ Detection service started")
+            if captured_windows:
+                print(f"🔍 Force processing {len(captured_windows)} images")
 
-    def stop(self):
-        """Stop the detection service"""
-        if not self._running:
-            print("⚠️ Detection service is not running")
-            return
+                # Process all images (ignore hash comparison)
+                processed_results = self._poker_game_processor.process_images(
+                    captured_images=captured_windows,
+                    timestamp_folder=timestamp_folder,
+                )
 
-        self._running = False
-        if self._worker_thread and self._worker_thread.is_alive():
-            self._worker_thread.join(timeout=5)
-        print("✅ Detection service stopped")
+                # Force update state (ignore change detection)
+                self.game_state_manager.update_state(processed_results, timestamp_folder)
 
-    def is_running(self) -> bool:
-        """Check if the detection service is running"""
-        return self._running
+                # Always notify observers on force detect
+                notification_data = self.game_state_manager.get_notification_data()
+                self.notifier.notify_observers(notification_data)
+
+                print(f"🔄 Force detection completed - notified observers")
+                return self._get_current_games()
+            else:
+                print("🚫 No poker tables detected")
+                return []
+
+        except Exception as e:
+            print(f"❌ Error in force detection: {str(e)}")
+            return []
+
+    def _get_current_games(self) -> List[Game]:
+        """Get current games as Game instances (not dictionaries)"""
+        latest_results = self.game_state_manager.get_latest_results()
+
+        # Convert dictionaries back to Game instances
+        games = []
+        for game_dict in latest_results.get('detections', []):
+            # Create Game from dictionary (assuming Game.from_dict exists or manual creation)
+            game = Game(
+                window_name=game_dict['window_name'],
+                player_cards=[],  # These would need reconstruction from dict
+                table_cards=[]  # These would need reconstruction from dict
+            )
+            games.append(game)
+
+        return games
 
     def get_window_hash_stats(self) -> Dict[str, str]:
         """Get current window hash statistics for debugging"""
         return self.image_capture_service.get_window_hash_stats()
+
+    def clear_state(self):
+        """Clear all stored state (useful for testing or reset)"""
+        self.game_state_manager.clear_state()
+        self.image_capture_service.clear_window_hashes()

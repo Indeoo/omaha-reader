@@ -2,6 +2,7 @@
 """
 Web service that handles Flask routes and SSE management.
 Separated from detection service for better code organization.
+Updated to work with non-threading OmahaGameReader.
 """
 import json
 import threading
@@ -150,6 +151,38 @@ class WebService:
                 'backend_capture_interval': self.wait_time
             })
 
+        @self.app.route('/api/detect', methods=['POST'])
+        def manual_detect():
+            """API endpoint to trigger manual detection"""
+            try:
+                games = self.detection_service.detect_and_notify()
+                return jsonify({
+                    'status': 'success',
+                    'games_detected': len(games),
+                    'message': f'Detected {len(games)} games'
+                })
+            except Exception as e:
+                return jsonify({
+                    'status': 'error',
+                    'message': str(e)
+                }), 500
+
+        @self.app.route('/api/force-detect', methods=['POST'])
+        def force_detect():
+            """API endpoint to force detection (ignore change detection)"""
+            try:
+                games = self.detection_service.force_detect()
+                return jsonify({
+                    'status': 'success',
+                    'games_detected': len(games),
+                    'message': f'Force detected {len(games)} games'
+                })
+            except Exception as e:
+                return jsonify({
+                    'status': 'error',
+                    'message': str(e)
+                }), 500
+
         @self.app.route('/health')
         def health():
             """Health check endpoint"""
@@ -159,7 +192,8 @@ class WebService:
                 'debug_mode': self.debug_mode,
                 'sse_clients': self.sse_manager.get_client_count(),
                 'last_update': latest_results['last_update'],
-                'detection_service_running': self.detection_service.is_running()
+                'detection_service_available': True,  # No longer has is_running()
+                'window_hashes': len(self.detection_service.get_window_hash_stats())
             })
 
     def run(self, host: str = '0.0.0.0', port: int = 5001):
@@ -168,6 +202,8 @@ class WebService:
         print(f"📍 Open http://localhost:{port} in your browser")
         print(f"🔄 Real-time updates via Server-Sent Events")
         print(f"📡 SSE endpoint: http://localhost:{port}/api/stream")
+        print(f"🔧 Manual detection: POST to http://localhost:{port}/api/detect")
+        print(f"⚡ Force detection: POST to http://localhost:{port}/api/force-detect")
         print(f"📋 Click any card to copy to clipboard")
         print(f"🐛 Debug mode: {'ON' if self.debug_mode else 'OFF'}")
         print("\nPress Ctrl+C to stop the server\n")
