@@ -7,9 +7,9 @@ Cards can be copied to clipboard by clicking.
 Refactored version with separated detection and web services.
 Uses scheduling instead of internal threading.
 """
-from omaha_game import OmahaGameReader
-from src.detection_scheduler import DetectionScheduler
-from web_service import WebService
+from src.core.service.detection_scheduler import DetectionScheduler
+from src.core.omaha_engine import OmahaGameReader
+from src.core.service.web_service import WebService
 
 # Configuration
 WAIT_TIME = 3

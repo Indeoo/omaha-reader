@@ -4,8 +4,8 @@ import ctypes
 
 from PIL import ImageGrab, Image
 
-from src.domain.captured_image import CapturedImage
-from src.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
+from src.core.domain.captured_image import CapturedImage
+from src.core.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
 def _capture_windows(windows) -> List[CapturedImage]:

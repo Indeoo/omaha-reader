@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
-from src.domain.readed_card import ReadedCard
-from src.domain.detection_result import DetectionResult
+from src.core.domain.readed_card import ReadedCard
+from src.core.domain.detection_result import DetectionResult
 
 
 def print_detection_result(result: DetectionResult):

@@ -3,10 +3,10 @@ from typing import List, Dict, Union
 import numpy as np
 import cv2
 
-from src.domain.readed_card import ReadedCard
-from src.domain.detection_result import DetectionResult
-from src.domain.captured_image import CapturedImage
-from src.utils.opencv_utils import pil_to_cv2, save_opencv_image, draw_detected_cards
+from src.core.domain.readed_card import ReadedCard
+from src.core.domain.detection_result import DetectionResult
+from src.core.domain.captured_image import CapturedImage
+from src.core.utils.opencv_utils import pil_to_cv2, save_opencv_image, draw_detected_cards
 
 
 def save_detection_result_image(timestamp_folder: str, captured_image: CapturedImage, result: Union[Dict, DetectionResult]):

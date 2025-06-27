@@ -4,16 +4,15 @@ Shared image processing functions for both main.py and main_web3.py
 """
 from typing import Dict, List, Callable
 
-from src.domain.game import Game
-from src.domain.captured_image import CapturedImage
-from src.omaha_card_reader import OmahaCardReader
-from src.player_position_reader import PlayerPositionReader
-from src.table_card_reader import TableCardReader
-from src.utils.benchmark_utils import benchmark
-from src.utils.detect_utils import save_detection_result_image
-from src.domain.detection_result import DetectionResult
-from src.utils.result_utils import print_detection_result, write_combined_result
-from src.utils.opencv_utils import load_templates, pil_to_cv2
+from src.core.domain.captured_image import CapturedImage
+from src.core.reader.omaha_card_reader import OmahaCardReader
+from src.core.reader.player_position_reader import PlayerPositionReader
+from src.core.reader.table_card_reader import TableCardReader
+from src.core.utils.benchmark_utils import benchmark
+from src.core.utils.detect_utils import save_detection_result_image
+from src.core.domain.detection_result import DetectionResult
+from src.core.utils.result_utils import print_detection_result, write_combined_result
+from src.core.utils.opencv_utils import load_templates, pil_to_cv2
 
 
 class PokerGameProcessor:

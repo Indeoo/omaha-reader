@@ -3,7 +3,7 @@ import multiprocessing
 from typing import List, Dict, Tuple, Optional, Any
 import numpy as np
 
-from src.utils.template_matching_utils import (
+from src.core.utils.template_matching_utils import (
     find_template_matches_parallel,
     filter_overlapping_detections,
     sort_detections_by_position,

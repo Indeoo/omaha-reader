@@ -9,8 +9,8 @@ import os
 from typing import Dict, Any
 from datetime import datetime
 
-from src.omaha_card_reader import OmahaCardReader
-from src.utils.opencv_utils import load_templates, read_cv2_image
+from src.core.reader.omaha_card_reader import OmahaCardReader
+from src.core.utils.opencv_utils import load_templates, read_cv2_image
 
 
 def process_single_image(image_path: str, image_name: str, player_card_reader: OmahaCardReader) -> Dict[str, Any]:
@@ -214,9 +214,9 @@ def main():
     Main function to process all timestamp folders
     """
     # Configuration
-    screenshots_dir = "../resources/data_screenshots"
+    screenshots_dir = "../../../resources/data_screenshots"
     output_dir = "resources/player_results"
-    templates_dir = "../resources/templates/player_cards/"
+    templates_dir = "../../../resources/templates/player_cards/"
     templates = load_templates(templates_dir)
 
     # Create base output directory

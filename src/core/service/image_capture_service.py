@@ -8,8 +8,8 @@ import threading
 from typing import List, Dict
 from datetime import datetime
 
-from src.domain.captured_image import CapturedImage
-from src.utils.capture_utils import capture_and_save_windows
+from src.core.domain.captured_image import CapturedImage
+from src.core.utils.capture_utils import capture_and_save_windows
 
 
 class ImageCaptureService:

@@ -1,7 +1,7 @@
 import threading
 import time
 
-from omaha_game import OmahaGameReader
+from src.core.omaha_engine import OmahaGameReader
 
 
 class DetectionScheduler:

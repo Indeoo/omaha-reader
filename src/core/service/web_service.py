@@ -5,6 +5,7 @@ Separated from detection service for better code organization.
 Updated to work with non-threading OmahaGameReader.
 """
 import json
+import os
 import threading
 import uuid
 from queue import Queue
@@ -74,8 +75,13 @@ class WebService:
         self.wait_time = wait_time
         self.debug_mode = debug_mode
 
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+
+        # Navigate to src/templates
+        template_dir = os.path.abspath(os.path.join(current_dir, '..', '..', 'templates'))
+
         # Initialize Flask app
-        self.app = Flask(__name__)
+        self.app = Flask(__name__, template_folder=template_dir)
         CORS(self.app)
 
         # Initialize SSE manager

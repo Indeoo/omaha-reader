@@ -3,13 +3,14 @@
 Detection service that handles card detection and state management.
 Refactored to remove threading - detection is triggered by external callers.
 """
+import os
 from typing import Dict, List
 
-from src.detection_notifier import DetectionNotifier
-from src.game_state_manager import GameStateManager
-from src.image_capture_service import ImageCaptureService
-from src.utils.poker_game_processor import PokerGameProcessor
-from src.domain.game import Game
+from src.core.service.detection_notifier import DetectionNotifier
+from src.core.service.game_state_manager import GameStateManager
+from src.core.service.image_capture_service import ImageCaptureService
+from src.core.utils.poker_game_processor import PokerGameProcessor
+from src.core.domain.game import Game
 
 
 class OmahaGameReader:
@@ -27,14 +28,17 @@ class OmahaGameReader:
         self.notifier = DetectionNotifier()
         self.game_state_manager = GameStateManager()
 
-        # Initialize poker game processor
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
+
+        # Build absolute paths
         self._poker_game_processor = PokerGameProcessor(
-            player_templates_dir="resources/templates/player_cards/",
-            table_templates_dir="resources/templates/table_cards/",
-            position_templates_dir="resources/templates/positions/",
-            detect_positions=False,  # Web version doesn't need positions
-            save_result_images=False,  # Don't save result images in web mode
-            write_detection_files=False  # Don't write files in web mode
+            player_templates_dir=os.path.join(project_root, "resources", "templates", "player_cards"),
+            table_templates_dir=os.path.join(project_root, "resources", "templates", "table_cards"),
+            position_templates_dir=os.path.join(project_root, "resources", "templates", "positions"),
+            detect_positions=False,
+            save_result_images=False,
+            write_detection_files=False
         )
 
     def add_observer(self, callback):

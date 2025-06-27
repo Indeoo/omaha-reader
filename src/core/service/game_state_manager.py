@@ -5,10 +5,10 @@ Extracted from DetectionService for better separation of concerns.
 """
 import threading
 from datetime import datetime
-from typing import List, Dict
+from typing import List
 
-from src.domain.detection_result import DetectionResult
-from src.domain.game import Game
+from src.core.domain.detection_result import DetectionResult
+from src.core.domain.game import Game
 
 
 class GameStateManager:

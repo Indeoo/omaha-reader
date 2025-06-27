@@ -1,8 +1,8 @@
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Tuple
 import numpy as np
 
-from src.domain.card_reader import TableReader
-from src.utils.benchmark_utils import benchmark
+from src.core.reader.table_reader import TableReader
+from src.core.utils.benchmark_utils import benchmark
 
 
 class DetectedPosition:

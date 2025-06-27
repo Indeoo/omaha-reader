@@ -1,6 +1,6 @@
-from typing import List, Optional, Dict
+from typing import List, Dict
 from datetime import datetime
-from src.domain.readed_card import ReadedCard
+from src.core.domain.readed_card import ReadedCard
 
 
 class Game:

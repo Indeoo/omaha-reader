@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
-from src.domain.readed_card import ReadedCard
-from src.domain.captured_image import CapturedImage
+from src.core.domain.readed_card import ReadedCard
+from src.core.domain.captured_image import CapturedImage
 
 
 class DetectionResult:
