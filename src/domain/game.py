@@ -28,12 +28,12 @@ class Game:
         self.timestamp = datetime.now()
 
     def get_player_cards_string(self) -> str:
-        """Get formatted string of player cards"""
-        return ReadedCard.format_cards(self.player_cards)
+        """Get formatted string of player cards (simple template names)"""
+        return ReadedCard.format_cards_simple(self.player_cards)
 
     def get_table_cards_string(self) -> str:
-        """Get formatted string of table cards"""
-        return ReadedCard.format_cards(self.table_cards)
+        """Get formatted string of table cards (simple template names)"""
+        return ReadedCard.format_cards_simple(self.table_cards)
 
     def get_player_cards_for_web(self) -> List[Dict]:
         """Format player cards for web display with suit symbols"""
@@ -53,32 +53,10 @@ class Game:
             if card.template_name:
                 formatted.append({
                     'name': card.template_name,
-                    'display': self._format_card_with_unicode(card.template_name),
+                    'display': card.format_with_unicode(),
                     'score': round(card.match_score, 3) if card.match_score else 0
                 })
         return formatted
-
-    def _format_card_with_unicode(self, card_name: str) -> str:
-        """Convert card name to include Unicode suit symbols"""
-        if not card_name or len(card_name) < 2:
-            return card_name
-
-        # Unicode suit symbols mapping
-        suit_unicode = {
-            'S': '♠',  # Spades
-            'H': '♥',  # Hearts
-            'D': '♦',  # Diamonds
-            'C': '♣'  # Clubs
-        }
-
-        # Get the last character as suit
-        suit = card_name[-1].upper()
-        rank = card_name[:-1]
-
-        if suit in suit_unicode:
-            return f"{rank}{suit_unicode[suit]}"
-        else:
-            return card_name
 
     def has_cards(self) -> bool:
         """Check if any cards were detected"""

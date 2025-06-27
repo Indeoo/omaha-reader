@@ -76,25 +76,50 @@ class PokerGameProcessor:
         processed_results = []
 
         for i, captured_item in enumerate(captured_images):
-            result = self.process_image(captured_item, i, process_callback, timestamp_folder)
+            result = self._process_single_image(captured_item, i, process_callback, timestamp_folder)
             processed_results.append(result)
-
 
         return processed_results
 
-    def process_image(self, captured_item, i, process_callback, timestamp_folder):
+    def _process_single_image(
+            self,
+            captured_item: Dict,
+            index: int,
+            process_callback: Callable,
+            timestamp_folder: str
+    ) -> DetectionResult:
+        """
+        Process a single captured image
+
+        Args:
+            captured_item: Single captured image dictionary
+            index: Image index
+            process_callback: Optional callback function
+            timestamp_folder: Folder to save results
+
+        Returns:
+            DetectionResult object
+        """
         window_name = captured_item['window_name']
         filename = captured_item['filename']
+
         # Convert image to OpenCV format once
         try:
             cv2_image = pil_to_cv2(captured_item['image'])
         except Exception as e:
             raise Exception(f"    ❌ Error converting image {window_name}: {str(e)}")
+
+        # Detect cards
         try:
-            player_cards = OmahaCardReader(self.player_templates, OmahaCardReader.DEFAULT_SEARCH_REGION).read(cv2_image)
+            player_cards = OmahaCardReader(
+                self.player_templates,
+                OmahaCardReader.DEFAULT_SEARCH_REGION
+            ).read(cv2_image)
+
             table_cards = TableCardReader(self.table_templates, None).read(cv2_image)
         except Exception as e:
             raise Exception(f"    ❌ Error detecting cards in {window_name}: {str(e)}")
+
         # Detect positions if enabled
         positions = []
         if self.detect_positions and self.position_templates and window_name:
@@ -102,7 +127,8 @@ class PokerGameProcessor:
                 positions = PlayerPositionReader(self.position_templates).read(cv2_image)
             except Exception as e:
                 raise Exception(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
-        # Create DetectionResult object instead of dictionary
+
+        # Create DetectionResult object
         result = DetectionResult(
             window_name=window_name,
             filename=filename,
@@ -111,23 +137,25 @@ class PokerGameProcessor:
             table_cards=table_cards,
             positions=positions
         )
+
         # Print processing info
-        print(f"\n📷 Processing image {i + 1}: {window_name}")
+        print(f"\n📷 Processing image {index + 1}: {window_name}")
         print("-" * 40)
-        # Print detection results using the new format
+
+        # Print detection results
         print_detection_result(result)
+
         # Write result file
         if self.write_detection_files:
             result_filename = f"detection_{filename}.txt"
-            write_combined_result(result, timestamp_folder, result_filename, i)
+            write_combined_result(result, timestamp_folder, result_filename, index)
+
         # Save result image
         if self.save_result_images:
-            save_detection_result_image(
-                timestamp_folder,
-                captured_item,
-                result
-            )
+            save_detection_result_image(timestamp_folder, captured_item, result)
+
         # Call callback if provided
         if process_callback:
-            process_callback(i, captured_item, result)
+            process_callback(index, captured_item, result)
+
         return result

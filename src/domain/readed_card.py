@@ -47,6 +47,114 @@ class ReadedCard:
         self.rotated_rect = rotated_rect
         self.box_points = box_points
 
+    @staticmethod
+    def get_suit_unicode(suit: str) -> str:
+        """
+        Get Unicode symbol for card suit
+
+        Args:
+            suit: Single character suit ('S', 'H', 'D', 'C')
+
+        Returns:
+            Unicode suit symbol
+        """
+        suit_unicode = {
+            'S': '♠',  # Spades
+            'H': '♥',  # Hearts
+            'D': '♦',  # Diamonds
+            'C': '♣'  # Clubs
+        }
+        return suit_unicode.get(suit.upper(), suit)
+
+    @staticmethod
+    def get_suit_color_class(suit: str) -> str:
+        """
+        Get CSS color class for card suit (for web display)
+
+        Args:
+            suit: Single character suit ('S', 'H', 'D', 'C')
+
+        Returns:
+            Color class name
+        """
+        suit_colors = {
+            'S': 'black',  # Spades
+            'H': 'red',  # Hearts
+            'D': 'blue',  # Diamonds
+            'C': 'green'  # Clubs
+        }
+        return suit_colors.get(suit.upper(), 'black')
+
+    @staticmethod
+    def get_suit_ansi_color(suit: str) -> str:
+        """
+        Get ANSI color code for card suit (for console display)
+
+        Args:
+            suit: Single character suit ('S', 'H', 'D', 'C')
+
+        Returns:
+            ANSI color code
+        """
+        suit_colors = {
+            'S': '\033[90m',  # Dark Gray for Spades
+            'H': '\033[91m',  # Red for Hearts
+            'D': '\033[94m',  # Blue for Diamonds
+            'C': '\033[92m'  # Green for Clubs
+        }
+        return suit_colors.get(suit.upper(), '\033[0m')
+
+    def format_with_unicode(self) -> str:
+        """
+        Format card with Unicode suit symbol
+
+        Returns:
+            Formatted string like "4♠", "J♥", "A♣", "10♦"
+        """
+        if not self.template_name or len(self.template_name) < 2:
+            return self.template_name or "UNKNOWN"
+
+        # Get rank and suit
+        rank = self.template_name[:-1]
+        suit = self.template_name[-1].upper()
+
+        return f"{rank}{self.get_suit_unicode(suit)}"
+
+    def format_with_score(self, include_score: bool = True) -> str:
+        """
+        Format card with Unicode symbol and optional match score
+
+        Args:
+            include_score: Whether to include match score in brackets
+
+        Returns:
+            Formatted string like "4♠[0.85]" or just "4♠"
+        """
+        card_with_unicode = self.format_with_unicode()
+        if include_score and self.match_score is not None:
+            card_with_unicode += f"[{self.match_score:.2f}]"
+        return card_with_unicode
+
+    def format_with_ansi_color(self, include_score: bool = False) -> str:
+        """
+        Format card with ANSI color codes for console display
+
+        Args:
+            include_score: Whether to include match score
+
+        Returns:
+            Colored string for console output
+        """
+        if not self.template_name or len(self.template_name) < 2:
+            return self.template_name or "UNKNOWN"
+
+        suit = self.template_name[-1].upper()
+        color_code = self.get_suit_ansi_color(suit)
+        reset_code = '\033[0m'
+
+        formatted = self.format_with_score(include_score)
+        return f"{color_code}{formatted}{reset_code}"
+
     def get_summary(self) -> str:
         """
         Get a concise summary of the card information
@@ -91,68 +199,67 @@ class ReadedCard:
 
         return f"{basic_summary} - {position_info}"
 
-    def format_card_with_unicode(self, card_name: str) -> str:
-        """
-        Convert card name to include Unicode suit symbols
-
-        Args:
-            card_name: Card name like "4S", "JH", "AC", "10D"
-
-        Returns:
-            Formatted string like "4S(♤)", "JH(♡)", "AC(♧)", "10D(♢)"
-        """
-        if not card_name or len(card_name) < 2:
-            return card_name
-
-        # Unicode suit symbols mapping
-        suit_unicode = {
-            'S': '♤',  # Spades (black spade suit)
-            'H': '♡',  # Hearts (white heart suit)
-            'D': '♢',  # Diamonds (white diamond suit)
-            'C': '♧'  # Clubs (white club suit)
-        }
-
-        # Get the last character as suit
-        suit = card_name[-1].upper()
-
-        if suit in suit_unicode:
-            return f"{card_name}({suit_unicode[suit]})"
-        else:
-            return card_name
-
-    def format_single_card(self, show_probabilities: bool) -> str:
-        """
-        Format a single ReadedCard with Unicode suit symbol and optional probability
-
-        Args:
-            show_probabilities: Whether to include match score/probability in the output
-
-        Returns:
-            Formatted string like "4S(♤)[0.85]" or just "4S(♤)"
-        """
-        card_with_unicode = self.format_card_with_unicode(self.template_name)
-        if show_probabilities and self.match_score is not None:
-            card_with_unicode += f"[{self.match_score:.2f}]"
-
-        return card_with_unicode
-
     @staticmethod
-    def format_cards(cards: List['ReadedCard'], show_probabilities: bool = True) -> str:
+    def format_cards_simple(cards: List['ReadedCard']) -> str:
         """
-        Format a list of ReadedCard objects with Unicode suit symbols and optionally include probabilities
+        Format a list of ReadedCard objects as simple concatenated template names
 
         Args:
             cards: List of ReadedCard objects
-            show_probabilities: Whether to include match scores/probabilities in the output
 
         Returns:
             Formatted string like "4S6DJH" (just template names concatenated)
         """
         if not cards:
             return ""
+        return ''.join(card.template_name for card in cards if card.template_name)
 
-        res = ''.join(card.template_name for card in cards if card.template_name)
-        return res
+    @staticmethod
+    def format_cards_unicode(cards: List['ReadedCard'], include_scores: bool = False) -> str:
+        """
+        Format a list of ReadedCard objects with Unicode suit symbols
+
+        Args:
+            cards: List of ReadedCard objects
+            include_scores: Whether to include match scores
+
+        Returns:
+            Formatted string like "4♠ 6♦ J♥" or "4♠[0.85] 6♦[0.92] J♥[0.78]"
+        """
+        if not cards:
+            return ""
+        return " ".join(card.format_with_score(include_scores) for card in cards)
+
+    @staticmethod
+    def format_cards_ansi(cards: List['ReadedCard'], include_scores: bool = False) -> str:
+        """
+        Format a list of ReadedCard objects with ANSI colors for console
+
+        Args:
+            cards: List of ReadedCard objects
+            include_scores: Whether to include match scores
+
+        Returns:
+            ANSI colored string for console output
+        """
+        if not cards:
+            return ""
+        return " ".join(card.format_with_ansi_color(include_scores) for card in cards)
+
+    # Legacy method for backward compatibility
+    @staticmethod
+    def format_cards(cards: List['ReadedCard'], show_probabilities: bool = True) -> str:
+        """
+        Legacy format method - returns simple concatenated template names
+
+        Args:
+            cards: List of ReadedCard objects
+            show_probabilities: Ignored for backward compatibility
+
+        Returns:
+            Formatted string like "4S6DJH"
+        """
+        return ReadedCard.format_cards_simple(cards)
 
     def __str__(self) -> str:
         """String representation using the summary"""

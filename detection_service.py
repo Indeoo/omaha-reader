@@ -13,7 +13,7 @@ from typing import List, Callable, Dict
 from src.domain.detection_result import DetectionResult
 from src.domain.game import Game
 from src.utils.capture_utils import capture_and_save_windows
-from src.utils.poker_game_processor import PokerGameProcessor, format_results_to_games
+from src.utils.poker_game_processor import PokerGameProcessor
 
 
 class DetectionService:
@@ -161,21 +161,21 @@ class DetectionService:
 
         return images_to_process
 
-    def _has_detection_changed(self, new_games, old_games) -> bool:
+    def _has_detection_changed(self, new_games: List[Game], old_games: List[Game]) -> bool:
         """Check if detection results have actually changed"""
         if len(new_games) != len(old_games):
             return True
 
         for new_game, old_game in zip(new_games, old_games):
-            if (new_game.player_cards_string != old_game.player_cards_string or
-                    new_game.table_cards_string != old_game.table_cards_string):
+            if (new_game.get_player_cards_string() != old_game.get_player_cards_string() or
+                    new_game.get_table_cards_string() != old_game.get_table_cards_string()):
                 return True
 
         return False
 
-    def format_results_to_games(self, processed_results: List[DetectionResult]) -> List[Game]:
+    def _convert_results_to_games(self, processed_results: List[DetectionResult]) -> List[Game]:
         """
-        Convert DetectionResult objects directly to Game instances
+        Convert DetectionResult objects to Game instances
 
         Args:
             processed_results: List of DetectionResult objects
@@ -234,7 +234,7 @@ class DetectionService:
                             timestamp_folder=timestamp_folder,
                         )
 
-                        games = self.format_results_to_games(processed_results)
+                        games = self._convert_results_to_games(processed_results)
 
                         # Check if results have changed
                         if self._has_detection_changed(games, self._previous_games):
