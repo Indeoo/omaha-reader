@@ -55,42 +55,38 @@ class OmahaGameReader:
 
     def detect_and_notify(self) -> List[Game]:
         """
-        Single detection cycle with observer notification.
+        Simplified detection cycle with observer notification.
         External callers control timing by calling this method.
 
         Returns:
             List of Game instances with current detections
         """
         try:
-            # Create timestamp folder
+            # Get timestamp folder and capture changed images
             timestamp_folder = self.image_capture_service.create_timestamp_folder()
             images_to_process = self.image_capture_service.get_images_to_process(timestamp_folder)
 
-            if images_to_process:
+            if not images_to_process:
+                print("🚫 No poker tables detected or no changes")
+                return self._get_current_games()
 
-                # Process only the changed/new images
-                processed_results = self._poker_game_processor.process_images(
-                    captured_images=images_to_process,
-                    timestamp_folder=timestamp_folder,
-                )
+            # Process changed images
+            processed_results = self._poker_game_processor.process_images(
+                captured_images=images_to_process,
+                timestamp_folder=timestamp_folder,
+            )
 
-                # Update game state and check if notification is needed
-                has_changed = self.game_state_manager.update_state(processed_results, timestamp_folder)
+            # Update state and notify if changed
+            has_changed = self.game_state_manager.update_state(processed_results, timestamp_folder)
 
-                if has_changed:
-                    # Notify observers
-                    notification_data = self.game_state_manager.get_notification_data()
-                    self.notifier.notify_observers(notification_data)
-
-                    print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
-                    return self._get_current_games()
-                else:
-                    print(f"📊 Detection results unchanged - skipping notification")
-                    return self._get_current_games()
-
+            if has_changed:
+                notification_data = self.game_state_manager.get_notification_data()
+                self.notifier.notify_observers(notification_data)
+                print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
             else:
-                print("🚫 No poker tables detected")
-                return []
+                print(f"📊 Detection results unchanged - skipping notification")
+
+            return self._get_current_games()
 
         except Exception as e:
             print(f"❌ Error in detection: {str(e)}")
