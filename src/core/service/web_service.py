@@ -93,29 +93,12 @@ class WebService:
                 'backend_capture_interval': self.wait_time
             })
 
-        @self.app.route('/api/detect', methods=['POST'])
-        def manual_detect():
-            try:
-                games = self.detection_service.detect_and_notify()
-                return jsonify({
-                    'status': 'success',
-                    'games_detected': len(games),
-                    'message': f'Detected {len(games)} games'
-                })
-            except Exception as e:
-                return jsonify({
-                    'status': 'error',
-                    'message': str(e)
-                }), 500
-
         @self.app.route('/api/force-detect', methods=['POST'])
         def force_detect():
             try:
-                games = self.detection_service.force_detect()
+                self.detection_service.force_detect()
                 return jsonify({
                     'status': 'success',
-                    'games_detected': len(games),
-                    'message': f'Force detected {len(games)} games'
                 })
             except Exception as e:
                 return jsonify({

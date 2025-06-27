@@ -40,7 +40,7 @@ class OmahaEngine:
     def get_latest_results(self) -> dict:
         return self.game_state_manager.get_latest_results()
 
-    def detect_and_notify(self) -> List[Game]:
+    def detect_and_notify(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
         images_to_process = self.image_capture_service.get_images_to_process(timestamp_folder)
 
@@ -48,25 +48,18 @@ class OmahaEngine:
             print("🚫 No poker tables detected or no changes")
             return self._get_current_games()
 
-        all_games = []
-
         for i, captured_image in enumerate(images_to_process):
             try:
                 detection_result = self._process_single_image(captured_image, i)
                 self.game_state_manager.update_state(detection_result, timestamp_folder)
 
-                game = self.game_state_manager._convert_result_to_game(detection_result)
-                if game:
-                    all_games.append(game)
 
             except Exception as e:
                 print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
         self._notify_observers()
 
-        return all_games
-
-    def force_detect(self) -> List[Game]:
+    def force_detect(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
         captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
 
@@ -75,24 +68,17 @@ class OmahaEngine:
             return []
 
         print(f"🔍 Force processing {len(captured_windows)} images")
-        all_games = []
 
         for i, captured_image in enumerate(captured_windows):
             try:
                 detection_result = self._process_single_image(captured_image, i)
                 self.game_state_manager.update_state(detection_result, timestamp_folder)
 
-                game = self.game_state_manager._convert_result_to_game(detection_result)
-                if game:
-                    all_games.append(game)
-
             except Exception as e:
                 print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
         self._notify_observers()
         print(f"🔄 Force detection completed - notified observers")
-
-        return all_games
 
     def _process_single_image(self, captured_image: CapturedImage, index: int) -> DetectionResult:
         window_name = captured_image.window_name
