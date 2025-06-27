@@ -1,5 +1,5 @@
 import threading
-from typing import Optional, List
+from typing import Optional
 from datetime import datetime
 
 from src.core.domain.game import Game

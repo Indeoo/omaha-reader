@@ -154,10 +154,10 @@ class OmahaGameReader:
                                              use_change_detection: bool,
                                              always_notify: bool) -> bool:
         if not use_change_detection:
-            self.game_state_manager.update_state([detection_result], timestamp_folder)
+            self.game_state_manager.update_state(detection_result, timestamp_folder)
             return always_notify
         else:
-            has_changed = self.game_state_manager.update_state([detection_result], timestamp_folder)
+            has_changed = self.game_state_manager.update_state(detection_result, timestamp_folder)
             return has_changed or always_notify
 
     def _notify_observers(self, use_change_detection: bool):
