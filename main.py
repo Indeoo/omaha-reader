@@ -4,7 +4,7 @@ Console-based version of the poker card detector using DetectionService.
 Outputs detection results to console and saves files locally.
 """
 import time
-from detection_service import DetectionService
+from detection_service import OmahaGameReader
 
 
 class ConsoleObserver:
@@ -118,7 +118,7 @@ def main():
         console_observer = ConsoleObserver()
 
         # Initialize detection service
-        detection_service = DetectionService(
+        detection_service = OmahaGameReader(
             wait_time=WAIT_TIME,
             debug_mode=DEBUG_MODE
         )

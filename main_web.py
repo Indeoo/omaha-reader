@@ -6,7 +6,7 @@ Cards can be copied to clipboard by clicking.
 
 Refactored version with separated detection and web services.
 """
-from detection_service import DetectionService
+from detection_service import OmahaGameReader
 from web_service import WebService
 
 # Configuration
@@ -21,7 +21,7 @@ def main():
 
     try:
         # Initialize detection service
-        detection_service = DetectionService(
+        detection_service = OmahaGameReader(
             wait_time=WAIT_TIME,
             debug_mode=DEBUG_MODE
         )

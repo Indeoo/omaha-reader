@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 """
 Detection service that handles card detection and state management.
-Refactored to use ImageCaptureService and DetectionNotifier for better separation of concerns.
+Refactored to use GameStateManager for better separation of concerns.
 """
 import threading
 import time
-from datetime import datetime
-from typing import List, Dict
+from typing import Dict
 
 from src.detection_notifier import DetectionNotifier
-from src.domain.detection_result import DetectionResult
-from src.domain.game import Game
+from src.game_state_manager import GameStateManager
 from src.image_capture_service import ImageCaptureService
 from src.utils.poker_game_processor import PokerGameProcessor
 
 
-class DetectionService:
+class OmahaGameReader:
     """
     Service responsible for detecting cards and managing state.
     Runs in a background thread and notifies observers when detection results change.
@@ -28,14 +26,7 @@ class DetectionService:
         # Initialize services
         self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
         self.notifier = DetectionNotifier()
-
-        # State management
-        self._latest_results = {
-            'timestamp': None,
-            'detections': [],  # List of Game instances
-            'last_update': None
-        }
-        self._state_lock = threading.Lock()
+        self.game_state_manager = GameStateManager()
 
         # Thread management
         self._worker_thread = None
@@ -51,8 +42,6 @@ class DetectionService:
             write_detection_files=False  # Don't write files in web mode
         )
 
-        self._previous_games = []
-
     def add_observer(self, callback):
         """Add an observer that will be notified when detection results change"""
         self.notifier.add_observer(callback)
@@ -63,49 +52,7 @@ class DetectionService:
 
     def get_latest_results(self) -> dict:
         """Get the latest detection results (thread-safe)"""
-        with self._state_lock:
-            # Convert Game instances to dictionaries for JSON serialization
-            return {
-                'timestamp': self._latest_results['timestamp'],
-                'detections': [game.to_dict() for game in self._latest_results['detections']],
-                'last_update': self._latest_results['last_update']
-            }
-
-    def _has_detection_changed(self, new_games: List[Game], old_games: List[Game]) -> bool:
-        """Check if detection results have actually changed"""
-        if len(new_games) != len(old_games):
-            return True
-
-        for new_game, old_game in zip(new_games, old_games):
-            if (new_game.get_player_cards_string() != old_game.get_player_cards_string() or
-                    new_game.get_table_cards_string() != old_game.get_table_cards_string()):
-                return True
-
-        return False
-
-    def _convert_results_to_games(self, processed_results: List[DetectionResult]) -> List[Game]:
-        """
-        Convert DetectionResult objects to Game instances
-
-        Args:
-            processed_results: List of DetectionResult objects
-
-        Returns:
-            List of Game instances
-        """
-        games = []
-
-        for result in processed_results:
-            if result.has_cards:
-                # Create game with raw ReadedCard objects
-                game = Game(
-                    window_name=result.window_name,
-                    player_cards=result.player_cards,
-                    table_cards=result.table_cards
-                )
-                games.append(game)
-
-        return games
+        return self.game_state_manager.get_latest_results()
 
     def _detection_worker(self):
         """Background worker that continuously captures and detects cards"""
@@ -133,29 +80,15 @@ class DetectionService:
                             timestamp_folder=timestamp_folder,
                         )
 
-                        games = self._convert_results_to_games(processed_results)
+                        # Update game state and check if notification is needed
+                        has_changed = self.game_state_manager.update_state(processed_results, timestamp_folder)
 
-                        # Check if results have changed
-                        if self._has_detection_changed(games, self._previous_games):
-                            # Update state with Game instances
-                            with self._state_lock:
-                                self._latest_results = {
-                                    'timestamp': timestamp_folder.split('/')[-1],  # Extract timestamp from path
-                                    'detections': games,  # Store Game instances
-                                    'last_update': datetime.now().isoformat()
-                                }
-
+                        if has_changed:
                             # Notify observers
-                            notification_data = {
-                                'type': 'detection_update',
-                                'timestamp': self._latest_results['timestamp'],
-                                'detections': [game.to_dict() for game in games],
-                                'last_update': self._latest_results['last_update']
-                            }
+                            notification_data = self.game_state_manager.get_notification_data()
                             self.notifier.notify_observers(notification_data)
 
-                            print(f"🔄 Detection changed - notified observers at {self._latest_results['last_update']}")
-                            self._previous_games = games
+                            print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
                         else:
                             print(f"📊 Detection results unchanged - skipping notification")
                     else:
