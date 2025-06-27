@@ -2,7 +2,7 @@
 """
 Shared image processing functions for both main.py and main_web3.py
 """
-from typing import Dict, List, Callable
+from typing import Dict, List, Callable, Optional
 
 from src.core.domain.captured_image import CapturedImage
 from src.core.reader.player_card_reader import PlayerCardReader
@@ -13,10 +13,22 @@ from src.core.utils.benchmark_utils import benchmark
 from src.core.utils.detect_utils import save_detection_result_image
 from src.core.domain.detection_result import DetectionResult
 from src.core.utils.result_utils import print_detection_result, write_combined_result
-from src.core.utils.opencv_utils import load_templates, pil_to_cv2
+from src.core.utils.opencv_utils import load_templates, pil_to_cv2, coords_to_search_region
 
 
 class PokerGameProcessor:
+    # Player position coordinates on 784x584 screen
+    PLAYER_POSITIONS = {
+        1: {'x': 300, 'y': 375, 'w': 40, 'h': 40},  # Main player
+        2: {'x': 35, 'y': 330, 'w': 40, 'h': 40},
+        3: {'x': 35, 'y': 173, 'w': 40, 'h': 40},
+        4: {'x': 297, 'y': 120, 'w': 40, 'h': 40},
+        5: {'x': 562, 'y': 168, 'w': 40, 'h': 40},
+        6: {'x': 565, 'y': 332, 'w': 40, 'h': 40}
+    }
+
+    POSITION_MARGIN = 10  # Pixels to add around each position for detection
+
     def __init__(
             self,
             player_templates_dir: str = None,
@@ -68,6 +80,70 @@ class PokerGameProcessor:
         self._player_move_reader = None
         if self.move_templates:
             self._player_move_reader = PlayerMoveReader(self.move_templates)
+
+        # Initialize position readers for all players
+        self._player_position_readers = {}
+        self._init_all_player_position_readers()
+
+    def _init_all_player_position_readers(self):
+        """Initialize position readers for all 6 player positions"""
+        if not self.position_templates:
+            return
+
+        try:
+            # Create a reader for each player position
+            for player_num, coords in self.PLAYER_POSITIONS.items():
+                search_region = coords_to_search_region(
+                    x=coords['x'] - self.POSITION_MARGIN,
+                    y=coords['y'] - self.POSITION_MARGIN,
+                    w=coords['w'] + 2 * self.POSITION_MARGIN,
+                    h=coords['h'] + 2 * self.POSITION_MARGIN,
+                    image_width=784,
+                    image_height=584
+                )
+
+                reader = PlayerPositionReader(self.position_templates)
+                reader.search_region = search_region
+                self._player_position_readers[player_num] = reader
+
+                print(f"✅ Player {player_num} position reader initialized with search region: {search_region}")
+        except Exception as e:
+            print(f"❌ Error initializing player position readers: {str(e)}")
+
+    def _check_all_player_positions(self, cv2_image) -> Dict[int, str]:
+        """
+        Check all player positions in the image
+
+        Args:
+            cv2_image: OpenCV format image
+
+        Returns:
+            Dictionary mapping player number to position name (e.g., {1: 'BTN', 3: 'SB', 4: 'BB'})
+        """
+        player_positions = {}
+
+        if not self._player_position_readers:
+            return player_positions
+
+        try:
+            # Check each player position
+            for player_num, reader in self._player_position_readers.items():
+                try:
+                    detected_positions = reader.read(cv2_image)
+
+                    if detected_positions:
+                        # Take the highest confidence position
+                        best_position = detected_positions[0]  # Already sorted by score
+                        player_positions[player_num] = best_position.position_name
+
+                except Exception as e:
+                    print(f"❌ Error checking player {player_num} position: {str(e)}")
+
+            return player_positions
+
+        except Exception as e:
+            print(f"❌ Error checking player positions: {str(e)}")
+            return player_positions
 
     def process_single_image_public(
             self,
@@ -135,14 +211,15 @@ class PokerGameProcessor:
         except Exception as e:
             raise Exception(f"    ❌ Error detecting cards in {window_name}: {str(e)}")
 
-        # Detect positions if enabled
-        positions = []
+        # Detect all player positions
+        player_positions = {}
         if self.detect_positions and self.position_templates:
-            try:
-                positions = PlayerPositionReader(self.position_templates).read(cv2_image)
-            except Exception as e:
-                print(f"    ⚠️ Warning: Error detecting positions in {window_name}: {str(e)}")
-                # Don't fail on position detection errors, just continue without positions
+            player_positions = self._check_all_player_positions(cv2_image)
+            if player_positions:
+                print(f"  👤 Player positions at '{window_name}':")
+                for player_num, position in sorted(player_positions.items()):
+                    position_type = "Main player" if player_num == 1 else f"Player {player_num}"
+                    print(f"     {position_type}: {position}")
 
         # Check if it's player's move
         is_player_move = self._check_player_move(cv2_image, window_name)
@@ -154,7 +231,7 @@ class PokerGameProcessor:
             captured_image=captured_image,
             player_cards=player_cards,
             table_cards=table_cards,
-            positions=positions,
+            positions=player_positions,  # Now it's the dict mapping player -> position
             is_player_move=is_player_move
         )
 

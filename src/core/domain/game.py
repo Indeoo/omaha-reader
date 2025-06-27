@@ -14,7 +14,7 @@ class Game:
             window_name: str,
             player_cards: List[ReadedCard] = None,
             table_cards: List[ReadedCard] = None,
-            positions: List = None
+            positions: Dict[int, str] = None  # Changed from List to Dict[int, str]
     ):
         """
         Initialize a Game instance.
@@ -23,12 +23,12 @@ class Game:
             window_name: Name of the window/table
             player_cards: List of ReadedCard objects for player cards
             table_cards: List of ReadedCard objects for table cards
-            positions: List of DetectedPosition objects
+            positions: Dictionary mapping player number to position name
         """
         self.window_name = window_name
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
-        self.positions = positions or []
+        self.positions = positions or {}  # Now a dict
         self.timestamp = datetime.now()
 
     def get_street(self) -> Optional[Street]:
@@ -76,7 +76,12 @@ class Game:
         """Get formatted string of positions"""
         if not self.positions:
             return ""
-        return ", ".join([pos.position_name for pos in self.positions])
+        # Format as "Player 1: BTN, Player 3: SB, Player 4: BB"
+        position_parts = []
+        for player_num, position in sorted(self.positions.items()):
+            player_label = "Main" if player_num == 1 else f"P{player_num}"
+            position_parts.append(f"{player_label}:{position}")
+        return ", ".join(position_parts)
 
     def get_player_cards_for_web(self) -> List[Dict]:
         """Format player cards for web display with suit symbols"""
@@ -87,15 +92,17 @@ class Game:
         return self._format_cards_for_web(self.table_cards)
 
     def get_positions_for_web(self) -> List[Dict]:
-        """Format positions for web display"""
+        """Format positions for web display with player information"""
         if not self.positions:
             return []
 
         formatted = []
-        for position in self.positions:
+        for player_num, position_name in sorted(self.positions.items()):
             formatted.append({
-                'name': position.position_name,
-                'score': round(position.match_score, 3) if hasattr(position, 'match_score') else 0
+                'player': player_num,
+                'player_label': 'Main' if player_num == 1 else f'Player {player_num}',
+                'name': position_name,
+                'is_main_player': player_num == 1
             })
         return formatted
 

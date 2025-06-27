@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-DEBUG_FOLDER = "Dropbox/data_screenshots/_20250610_023049/_20250610_025342"
+DEBUG_FOLDER = "src/test/tables/_20250610_025342"
 
 
 def create_timestamp_folder(DEBUG_MODE = False) -> str:
