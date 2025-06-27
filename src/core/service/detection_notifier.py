@@ -19,11 +19,6 @@ class DetectionNotifier:
         """Add an observer that will be notified when detection results change"""
         self._observers.append(callback)
 
-    def remove_observer(self, callback: Callable[[dict], None]):
-        """Remove an observer"""
-        if callback in self._observers:
-            self._observers.remove(callback)
-
     def notify_observers(self, data: dict):
         """Notify all observers of detection changes"""
         for observer in self._observers:

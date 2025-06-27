@@ -34,9 +34,6 @@ class OmahaEngine:
     def add_observer(self, callback):
         self.notifier.add_observer(callback)
 
-    def remove_observer(self, callback):
-        self.notifier.remove_observer(callback)
-
     def get_latest_results(self) -> dict:
         return self.game_state_manager.get_latest_results()
 
