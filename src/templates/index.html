@@ -395,7 +395,7 @@
                     const positionsClass = isUpdate ? 'positions-block new-positions' : 'positions-block';
                     html += `<div class="${positionsClass}">`;
                     detection.positions.forEach(position => {
-                        html += `<div class="position">${position.name}</div>`;
+                        html += `<div class="position">${position.player} ${position.name}</div>`;
                     });
                     html += `</div>`;
                 } else {
