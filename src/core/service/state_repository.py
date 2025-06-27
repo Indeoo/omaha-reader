@@ -25,12 +25,6 @@ class StateRepository:
 
             return state_changed
 
-    def find_game(self, window_name: str) -> Optional[Game]:
-        current_state = self.get_current_state()
-        if current_state:
-            return current_state.find_game_by_window(window_name)
-        return None
-
     def update_single_game(self, new_game: Game, timestamp_folder: str) -> tuple[bool, Optional[Game]]:
         with self._lock:
             if self._current_state is None:

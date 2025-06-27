@@ -35,9 +35,6 @@ class GameStateManager:
     def get_notification_data(self) -> dict:
         return self.repository.get_notification_data()
 
-    def find_game(self, window_name: str) -> Optional[Game]:
-        return self.repository.find_game(window_name)
-
     def remove_game(self, window_name: str) -> bool:
         removed = self.repository.remove_game(window_name)
         if removed:
