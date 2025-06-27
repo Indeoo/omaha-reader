@@ -10,6 +10,8 @@ import hashlib
 from datetime import datetime
 from typing import List, Callable, Dict
 
+from src.domain.detection_result import DetectionResult
+from src.domain.game import Game
 from src.utils.capture_utils import capture_and_save_windows
 from src.utils.poker_game_processor import PokerGameProcessor, format_results_to_games
 
@@ -171,6 +173,30 @@ class DetectionService:
 
         return False
 
+    def format_results_to_games(self, processed_results: List[DetectionResult]) -> List[Game]:
+        """
+        Convert DetectionResult objects directly to Game instances
+
+        Args:
+            processed_results: List of DetectionResult objects
+
+        Returns:
+            List of Game instances
+        """
+        games = []
+
+        for result in processed_results:
+            if result.has_cards:
+                # Create game with raw ReadedCard objects
+                game = Game(
+                    window_name=result.window_name,
+                    player_cards=result.player_cards,
+                    table_cards=result.table_cards
+                )
+                games.append(game)
+
+        return games
+
     def _detection_worker(self):
         """Background worker that continuously captures and detects cards"""
         print("🎯 Detection worker started")
@@ -208,7 +234,7 @@ class DetectionService:
                             timestamp_folder=timestamp_folder,
                         )
 
-                        games = format_results_to_games(processed_results)
+                        games = self.format_results_to_games(processed_results)
 
                         # Check if results have changed
                         if self._has_detection_changed(games, self._previous_games):

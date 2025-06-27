@@ -104,7 +104,7 @@ def format_detection_output_from_result(result: Union[Dict, DetectionResult]) ->
         return f"{window_name}: No cards detected"
 
 
-def write_combined_result(result: DetectionResult, timestamp_folder: str, filename: str):
+def write_combined_result(result: DetectionResult, timestamp_folder: str, filename: str, index):
     """
     Write detection and position results for a single image to one file
 
@@ -117,7 +117,6 @@ def write_combined_result(result: DetectionResult, timestamp_folder: str, filena
 
     window_name = result.window_name
     source_filename = result.filename
-    index = result.index
     has_cards = result.has_cards
     player_cards = result.player_cards
     table_cards = result.table_cards

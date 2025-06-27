@@ -10,7 +10,6 @@ class DetectionResult:
 
     def __init__(
             self,
-            index: int,
             window_name: str,
             filename: str,
             captured_item: Dict[str, Any],
@@ -22,7 +21,6 @@ class DetectionResult:
         Initialize a detection result.
 
         Args:
-            index: Index of the image in processing order
             window_name: Name of the window/table
             filename: Filename of the captured image
             captured_item: Original captured item dictionary
@@ -30,7 +28,6 @@ class DetectionResult:
             table_cards: List of detected table cards
             positions: List of detected positions
         """
-        self.index = index
         self.window_name = window_name
         self.filename = filename
         self.captured_item = captured_item
@@ -56,7 +53,6 @@ class DetectionResult:
             Dictionary representation of the detection result
         """
         return {
-            'index': self.index,
             'window_name': self.window_name,
             'filename': self.filename,
             'captured_item': self.captured_item,
@@ -79,7 +75,6 @@ class DetectionResult:
             DetectionResult instance
         """
         return cls(
-            index=data['index'],
             window_name=data['window_name'],
             filename=data['filename'],
             captured_item=data['captured_item'],
