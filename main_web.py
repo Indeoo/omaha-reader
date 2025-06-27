@@ -21,20 +21,18 @@ def main():
     print("🎯 Initializing Web-based Omaha Card Reader with SSE")
     print("------------------------------")
 
-    detection_service = None
     scheduler = None
-    web_service = None
 
     try:
         # Initialize detection service (no internal threading)
-        detection_service = OmahaEngine(debug_mode=DEBUG_MODE)
+        omaha_engine = OmahaEngine(debug_mode=DEBUG_MODE)
 
         # Initialize detection scheduler
-        scheduler = DetectionScheduler(detection_service, WAIT_TIME)
+        scheduler = DetectionScheduler(omaha_engine, WAIT_TIME)
 
         # Initialize web service
         web_service = WebService(
-            detection_service=detection_service,
+            omaha_engine=omaha_engine,
             wait_time=WAIT_TIME,
             debug_mode=DEBUG_MODE
         )

@@ -11,8 +11,8 @@ from src.core.service.sse_manager import SSEManager
 
 class WebService:
 
-    def __init__(self, detection_service, wait_time: int = 5, debug_mode: bool = True):
-        self.detection_service = detection_service
+    def __init__(self, omaha_engine, wait_time: int = 5, debug_mode: bool = True):
+        self.omaha_engine = omaha_engine
         self.wait_time = wait_time
         self.debug_mode = debug_mode
 
@@ -29,7 +29,7 @@ class WebService:
         self.sse_manager = SSEManager()
 
         # Register detection service observer
-        self.detection_service.add_observer(self._on_detection_update)
+        self.omaha_engine.add_observer(self._on_detection_update)
 
         # Setup routes
         self._setup_routes()
@@ -53,7 +53,7 @@ class WebService:
                     yield f"data: {json.dumps({'type': 'connected', 'client_id': client_id})}\n\n"
 
                     # Send current state immediately
-                    latest_results = self.detection_service.get_latest_results()
+                    latest_results = self.omaha_engine.get_latest_results()
                     if latest_results['detections']:
                         initial_data = {
                             'type': 'detection_update',
@@ -96,7 +96,7 @@ class WebService:
         @self.app.route('/api/force-detect', methods=['POST'])
         def force_detect():
             try:
-                self.detection_service.force_detect()
+                self.omaha_engine.force_detect()
                 return jsonify({
                     'status': 'success',
                 })
@@ -108,14 +108,14 @@ class WebService:
 
         @self.app.route('/health')
         def health():
-            latest_results = self.detection_service.get_latest_results()
+            latest_results = self.omaha_engine.get_latest_results()
             return jsonify({
                 'status': 'ok',
                 'debug_mode': self.debug_mode,
                 'sse_clients': self.sse_manager.get_client_count(),
                 'last_update': latest_results['last_update'],
                 'detection_service_available': True,  # No longer has is_running()
-                'window_hashes': len(self.detection_service.get_window_hash_stats())
+                'window_hashes': len(self.omaha_engine.get_window_hash_stats())
             })
 
     def run(self, host: str = '0.0.0.0', port: int = 5001):
