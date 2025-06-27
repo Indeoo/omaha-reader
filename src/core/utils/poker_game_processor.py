@@ -24,7 +24,7 @@ class PokerGameProcessor:
             player_templates: Dict = None,
             table_templates: Dict = None,
             position_templates: Dict = None,
-            detect_positions: bool = True,
+            detect_positions: bool = True,  # Changed to True
             save_result_images=True,
             write_detection_files=True,
     ):
@@ -122,11 +122,12 @@ class PokerGameProcessor:
 
         # Detect positions if enabled
         positions = []
-        if self.detect_positions and self.position_templates and window_name:
+        if self.detect_positions and self.position_templates:
             try:
                 positions = PlayerPositionReader(self.position_templates).read(cv2_image)
             except Exception as e:
-                raise Exception(f"    ❌ Error detecting positions in {window_name}: {str(e)}")
+                print(f"    ⚠️ Warning: Error detecting positions in {window_name}: {str(e)}")
+                # Don't fail on position detection errors, just continue without positions
 
         # Create DetectionResult object
         result = DetectionResult(

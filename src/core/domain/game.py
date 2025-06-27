@@ -13,7 +13,8 @@ class Game:
             self,
             window_name: str,
             player_cards: List[ReadedCard] = None,
-            table_cards: List[ReadedCard] = None
+            table_cards: List[ReadedCard] = None,
+            positions: List = None
     ):
         """
         Initialize a Game instance.
@@ -22,10 +23,12 @@ class Game:
             window_name: Name of the window/table
             player_cards: List of ReadedCard objects for player cards
             table_cards: List of ReadedCard objects for table cards
+            positions: List of DetectedPosition objects
         """
         self.window_name = window_name
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
+        self.positions = positions or []
         self.timestamp = datetime.now()
 
     def get_street(self) -> Optional[Street]:
@@ -69,6 +72,12 @@ class Game:
         """Get formatted string of table cards (simple template names)"""
         return ReadedCard.format_cards_simple(self.table_cards)
 
+    def get_positions_string(self) -> str:
+        """Get formatted string of positions"""
+        if not self.positions:
+            return ""
+        return ", ".join([pos.position_name for pos in self.positions])
+
     def get_player_cards_for_web(self) -> List[Dict]:
         """Format player cards for web display with suit symbols"""
         return self._format_cards_for_web(self.player_cards)
@@ -76,6 +85,19 @@ class Game:
     def get_table_cards_for_web(self) -> List[Dict]:
         """Format table cards for web display with suit symbols"""
         return self._format_cards_for_web(self.table_cards)
+
+    def get_positions_for_web(self) -> List[Dict]:
+        """Format positions for web display"""
+        if not self.positions:
+            return []
+
+        formatted = []
+        for position in self.positions:
+            formatted.append({
+                'name': position.position_name,
+                'score': round(position.match_score, 3) if hasattr(position, 'match_score') else 0
+            })
+        return formatted
 
     def _format_cards_for_web(self, cards: List[ReadedCard]) -> List[Dict]:
         """Format cards for web display with suit symbols"""
@@ -96,13 +118,19 @@ class Game:
         """Check if any cards were detected"""
         return bool(self.player_cards or self.table_cards)
 
+    def has_positions(self) -> bool:
+        """Check if any positions were detected"""
+        return bool(self.positions)
+
     def to_dict(self):
         """Convert Game instance to dictionary for JSON serialization"""
         return {
             'window_name': self.window_name,
             'player_cards': self.get_player_cards_for_web(),
             'table_cards': self.get_table_cards_for_web(),
+            'positions': self.get_positions_for_web(),
             'player_cards_string': self.get_player_cards_string(),
             'table_cards_string': self.get_table_cards_string(),
+            'positions_string': self.get_positions_string(),
             'street': self.get_street_display()
         }

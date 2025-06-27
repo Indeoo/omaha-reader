@@ -101,12 +101,13 @@ class GameStateManager:
         games = []
 
         for result in processed_results:
-            if result.has_cards:
-                # Create game with raw ReadedCard objects
+            if result.has_cards or result.has_positions:  # Include games with positions
+                # Create game with raw ReadedCard objects and positions
                 game = Game(
                     window_name=result.window_name,
                     player_cards=result.player_cards,
-                    table_cards=result.table_cards
+                    table_cards=result.table_cards,
+                    positions=result.positions
                 )
                 games.append(game)
 
@@ -128,7 +129,8 @@ class GameStateManager:
 
         for new_game, old_game in zip(new_games, old_games):
             if (new_game.get_player_cards_string() != old_game.get_player_cards_string() or
-                    new_game.get_table_cards_string() != old_game.get_table_cards_string()):
+                    new_game.get_table_cards_string() != old_game.get_table_cards_string() or
+                    new_game.get_positions_string() != old_game.get_positions_string()):  # Check positions too
                 return True
 
         return False

@@ -95,6 +95,13 @@
             align-items: center;
         }
 
+        .player-section {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
         .cards-block {
             display: flex;
             gap: 3px;
@@ -116,9 +123,29 @@
             animation: newCardsGlow 2s ease-in-out;
         }
 
+        .positions-block {
+            display: flex;
+            gap: 5px;
+            background-color: #4a4a4a;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 2px solid #ff9800;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .positions-block.new-positions {
+            animation: newPositionsGlow 2s ease-in-out;
+        }
+
         @keyframes newCardsGlow {
             0% { box-shadow: 0 0 0 rgba(76, 175, 80, 0.7); }
             50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.7); }
+            100% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
+        }
+
+        @keyframes newPositionsGlow {
+            0% { box-shadow: 0 0 0 rgba(255, 152, 0, 0.7); }
+            50% { box-shadow: 0 0 20px rgba(255, 152, 0, 0.7); }
             100% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
         }
 
@@ -148,6 +175,17 @@
             color: #000;
         }
 
+        .position {
+            background-color: #ff9800;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            min-width: 40px;
+        }
+
         .street-indicator {
             display: inline-block;
             background-color: #4CAF50;
@@ -167,6 +205,12 @@
         .no-cards {
             color: #666;
             font-style: italic;
+        }
+
+        .no-positions {
+            color: #666;
+            font-style: italic;
+            font-size: 12px;
         }
 
         .loading {
@@ -329,10 +373,11 @@
                         <div class="table-name">${detection.window_name}</div>
 
                         <div class="cards-section">
-                            <div class="cards-label">Player Cards:</div>
-                            <div class="cards-container">
+                            <div class="cards-label">Player Cards & Position:</div>
+                            <div class="player-section">
                 `;
 
+                // Player cards
                 if (detection.player_cards && detection.player_cards.length > 0) {
                     const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
                     html += `<div class="${cardsClass}" onclick="copyToClipboard('${detection.player_cards_string}')">`;
@@ -343,6 +388,18 @@
                     html += `</div>`;
                 } else {
                     html += '<div class="no-cards">No cards detected</div>';
+                }
+
+                // Positions next to player cards
+                if (detection.positions && detection.positions.length > 0) {
+                    const positionsClass = isUpdate ? 'positions-block new-positions' : 'positions-block';
+                    html += `<div class="${positionsClass}">`;
+                    detection.positions.forEach(position => {
+                        html += `<div class="position">${position.name}</div>`;
+                    });
+                    html += `</div>`;
+                } else {
+                    html += '<div class="no-positions">No position detected</div>';
                 }
 
                 html += `
@@ -392,8 +449,8 @@
                     document.querySelectorAll('.updated').forEach(el => {
                         el.classList.remove('updated');
                     });
-                    document.querySelectorAll('.new-cards').forEach(el => {
-                        el.classList.remove('new-cards');
+                    document.querySelectorAll('.new-positions').forEach(el => {
+                        el.classList.remove('new-positions');
                     });
                 }, 2000);
             }
