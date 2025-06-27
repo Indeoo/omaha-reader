@@ -12,7 +12,7 @@ class GameStateManager:
         self.repository = StateRepository()
         self.change_detector = StateChangeDetector()
 
-    def update_state(self, detection_result: DetectionResult):
+    def manage(self, detection_result: DetectionResult):
         new_game = self._convert_result_to_game(detection_result)
 
         if not new_game:

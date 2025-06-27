@@ -48,7 +48,7 @@ class OmahaEngine:
         for i, captured_image in enumerate(images_to_process):
             try:
                 detection_result = self._process_single_image(captured_image, i)
-                self.game_state_manager.update_state(detection_result)
+                self.game_state_manager.manage(detection_result)
 
 
             except Exception as e:
@@ -69,7 +69,7 @@ class OmahaEngine:
         for i, captured_image in enumerate(captured_windows):
             try:
                 detection_result = self._process_single_image(captured_image, i)
-                self.game_state_manager.update_state(detection_result)
+                self.game_state_manager.manage(detection_result)
 
             except Exception as e:
                 print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
