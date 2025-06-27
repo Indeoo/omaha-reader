@@ -12,13 +12,13 @@ class GameStateManager:
         self.repository = StateRepository()
         self.change_detector = StateChangeDetector()
 
-    def update_state(self, detection_result: DetectionResult, timestamp_folder: str):
+    def update_state(self, detection_result: DetectionResult):
         new_game = self._convert_result_to_game(detection_result)
 
         if not new_game:
             return False
 
-        has_changed, old_game = self.repository.update_single_game(new_game, timestamp_folder)
+        has_changed, old_game = self.repository.update_single_game(new_game)
 
         if has_changed:
             change_result = self.change_detector.detect_single_game_change(new_game, old_game)

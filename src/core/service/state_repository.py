@@ -10,7 +10,6 @@ class StateRepository:
     def __init__(self):
         self.games: List[Game] = []
         self.last_update: Optional[str] = None
-        self.timestamp: Optional[str] = None
         self._lock = threading.Lock()
 
     def find_game_by_window(self, window_name: str) -> Optional[Game]:
@@ -25,7 +24,7 @@ class StateRepository:
                 return i
         return None
 
-    def update_single_game(self, new_game: Game, timestamp_folder: str) -> tuple[bool, Optional[Game]]:
+    def update_single_game(self, new_game: Game) -> tuple[bool, Optional[Game]]:
         with self._lock:
             old_game = self.find_game_by_window(new_game.window_name)
             game_index = self.get_game_index(new_game.window_name)
@@ -45,14 +44,12 @@ class StateRepository:
 
             if has_changed:
                 self.last_update = datetime.now().isoformat()
-                self.timestamp = timestamp_folder.split('/')[-1]
 
             return has_changed, old_game
 
     def get_latest_results_dict(self) -> dict:
         with self._lock:
             return {
-                'timestamp': self.timestamp,
                 'detections': [game.to_dict() for game in self.games],
                 'last_update': self.last_update
             }
@@ -61,7 +58,6 @@ class StateRepository:
         with self._lock:
             return {
                 'type': 'detection_update',
-                'timestamp': self.timestamp,
                 'detections': [game.to_dict() for game in self.games],
                 'last_update': self.last_update
             }
