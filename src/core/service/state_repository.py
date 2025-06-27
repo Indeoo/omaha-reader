@@ -56,15 +56,6 @@ class StateRepository:
 
             return has_changed, old_game
 
-    def update_batch_games(self, new_games: List[Game]) -> bool:
-
-        new_state = GameState(
-            games=new_games,
-            last_update=datetime.now().isoformat()
-        )
-
-        return self.update_state(new_state)
-
     def remove_game(self, window_name: str) -> bool:
         with self._lock:
             if self._current_state is None:
