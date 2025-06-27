@@ -1,13 +1,13 @@
 import threading
 import time
 
-from src.core.omaha_engine import OmahaGameReader
+from src.core.omaha_engine import OmahaEngine
 
 
 class DetectionScheduler:
     """Handles scheduling of detection cycles"""
 
-    def __init__(self, detection_service: OmahaGameReader, wait_time: int):
+    def __init__(self, detection_service: OmahaEngine, wait_time: int):
         self.detection_service = detection_service
         self.wait_time = wait_time
         self._running = False

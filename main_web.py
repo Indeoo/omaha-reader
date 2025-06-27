@@ -8,7 +8,7 @@ Refactored version with separated detection and web services.
 Uses scheduling instead of internal threading.
 """
 from src.core.service.detection_scheduler import DetectionScheduler
-from src.core.omaha_engine import OmahaGameReader
+from src.core.omaha_engine import OmahaEngine
 from src.core.service.web_service import WebService
 
 # Configuration
@@ -27,7 +27,7 @@ def main():
 
     try:
         # Initialize detection service (no internal threading)
-        detection_service = OmahaGameReader(debug_mode=DEBUG_MODE)
+        detection_service = OmahaEngine(debug_mode=DEBUG_MODE)
 
         # Initialize detection scheduler
         scheduler = DetectionScheduler(detection_service, WAIT_TIME)

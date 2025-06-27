@@ -13,7 +13,7 @@ from src.core.domain.game import Game
 from src.core.domain.captured_image import CapturedImage
 
 
-class OmahaGameReader:
+class OmahaEngine:
     def __init__(self, country="canada", debug_mode: bool = True):
         self.debug_mode = debug_mode
 
