@@ -39,10 +39,10 @@ class OmahaEngine:
 
     def detect_and_notify(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
-        images_to_process = self.image_capture_service.get_images_to_process(timestamp_folder)
+        changed_images = self.image_capture_service.get_changed_images(timestamp_folder)
 
-        if images_to_process:
-            for i, captured_image in enumerate(images_to_process):
+        if changed_images:
+            for i, captured_image in enumerate(changed_images):
                 try:
                     detection_result = self._process_single_image(captured_image, i)
                     self.game_state_manager.manage(detection_result)

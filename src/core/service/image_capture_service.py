@@ -14,8 +14,7 @@ class ImageCaptureService:
         self.debug_mode = debug_mode
         self._window_hashes: Dict[str, str] = {}
 
-    def get_images_to_process(self, timestamp_folder) -> List[CapturedWindow]:
-        """Get images that need processing (changed or new windows)"""
+    def get_changed_images(self, timestamp_folder) -> List[CapturedWindow]:
         captured_windows = self.capture_windows(timestamp_folder)
 
         if not captured_windows:
@@ -23,19 +22,6 @@ class ImageCaptureService:
             return []
 
         # Filter to only changed images
-        changed_images = self._get_changed_images(captured_windows)
-        print(f"🔍 Processing {len(changed_images)} changed/new images out of {len(captured_windows)} total")
-
-        return changed_images
-
-    def capture_windows(self, timestamp_folder: str) -> List[CapturedWindow]:
-        return capture_and_save_windows(
-            timestamp_folder=timestamp_folder,
-            save_windows=not self.debug_mode,
-            debug=self.debug_mode
-        )
-
-    def _get_changed_images(self, captured_windows: List[CapturedWindow]) -> List[CapturedWindow]:
         images_to_process = []
         current_window_hashes = {}
 
@@ -81,4 +67,15 @@ class ImageCaptureService:
             del self._window_hashes[removed_window]
             print(f"🗑️ Removed hash for closed window: {removed_window}")
 
-        return images_to_process
+        changed_images = images_to_process
+        print(f"🔍 Processing {len(changed_images)} changed/new images out of {len(captured_windows)} total")
+
+        return changed_images
+
+    def capture_windows(self, timestamp_folder: str) -> List[CapturedWindow]:
+        return capture_and_save_windows(
+            timestamp_folder=timestamp_folder,
+            save_windows=not self.debug_mode,
+            debug=self.debug_mode
+        )
+
