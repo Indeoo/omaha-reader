@@ -8,7 +8,7 @@ class PltTest(unittest.TestCase):
 
     def test_image_section(self):
         # Load and preprocess image
-        img_path = f"src/test/tables/move_test.png"
+        img_path = f"src/test/tables/6_vacant.png"
         #img = cv2.imread(f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
 
         img = cv2.imread(img_path)

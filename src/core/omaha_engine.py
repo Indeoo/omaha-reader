@@ -127,6 +127,19 @@ class OmahaGameReader:
                         timestamp_folder=timestamp_folder
                     )
 
+                    position_coords = {
+                        'POSITION6': (562, 310, 45, 20),
+                        'POSITION5': (572, 207, 40, 25),
+                        'POSITION4': (450, 165, 45, 15),
+                        'POSITION3': (185, 215, 45, 15),
+                        'POSITION2': (195, 310, 45, 15),  # 215 + 95
+                        'POSITION1': (386, 334, 45, 15)  # 214 + 120
+                    }
+
+                    for pos, (x, y, w, h) in position_coords.items():
+                        stake = self._poker_game_processor.detect_stake(captured_image, x, y, w, h)
+                        print(f"{pos}: {stake}")
+
                     # Update state for this single result
                     should_notify = self._update_state_and_check_notification(
                         [result],  # Pass as list with single item

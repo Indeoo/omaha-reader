@@ -2,7 +2,8 @@
 """
 Shared image processing functions for both main.py and main_web3.py
 """
-from typing import Dict, List, Callable, Optional
+from typing import Dict, Callable
+
 
 from src.core.domain.captured_image import CapturedImage
 from src.core.reader.player_card_reader import PlayerCardReader
@@ -14,7 +15,8 @@ from src.core.utils.detect_utils import save_detection_result_image
 from src.core.domain.detection_result import DetectionResult
 from src.core.utils.result_utils import print_detection_result, write_combined_result
 from src.core.utils.opencv_utils import load_templates, pil_to_cv2, coords_to_search_region
-
+import cv2
+import pytesseract
 
 class PokerGameProcessor:
     # Player position coordinates on 784x584 screen
@@ -287,3 +289,53 @@ class PokerGameProcessor:
         except Exception as e:
             print(f"❌ Error checking player move in {window_name}: {str(e)}")
             return False
+
+    def detect_stake(self, captured_image, x: int, y: int, w: int, h: int) -> str:
+        """
+        Detects the bid (stake) in a poker table screenshot.
+
+        Parameters
+        ----------
+        img_path : str
+            Path to the poker-table image file.
+        x, y : int
+            Top-left corner of the ROI bubble.
+        w, h : int
+            Width and height of the ROI bubble.
+
+        Returns
+        -------
+        str
+            The OCR’d stake (e.g. "2.50") or an empty string if nothing was found.
+        """
+        # 1. Load and convert to grayscale
+        cv2_image = pil_to_cv2(captured_image.image)
+
+        gray = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
+
+        # 2. Crop to the bubble ROI
+        crop = gray[y: y + h, x: x + w]
+
+        # 3. Binarize (invert so text is white on black)
+        _, thresh = cv2.threshold(
+            crop, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU
+        )
+
+        # 4. Upscale to make the dot thicker
+        upscaled = cv2.resize(
+            thresh, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC
+        )
+
+        # 5. Dilate to merge any broken bits of the dot or digits
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+        dilated = cv2.dilate(upscaled, kernel, iterations=1)
+
+        # 6. OCR with a strict whitelist and no dictionaries
+        config = (
+            "--psm 7 --oem 3 "
+            "-c tessedit_char_whitelist=0123456789. "
+            "-c load_system_dawg=0 -c load_freq_dawg=0"
+        )
+        text = pytesseract.image_to_string(dilated, config=config).strip()
+
+        return text
