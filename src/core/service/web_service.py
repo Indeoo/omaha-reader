@@ -10,6 +10,8 @@ import os
 from flask import Flask, render_template, jsonify, Response
 from flask_cors import CORS
 
+from src.core.service.sse_manager import SSEManager
+
 
 class WebService:
     """Web service that provides Flask routes and handles SSE communication"""
