@@ -41,41 +41,35 @@ class OmahaEngine:
         timestamp_folder = create_timestamp_folder(self.debug_mode)
         images_to_process = self.image_capture_service.get_images_to_process(timestamp_folder)
 
-        if not images_to_process:
-            print("🚫 No poker tables detected or no changes")
-            return self._get_current_games()
-
-        for i, captured_image in enumerate(images_to_process):
-            try:
-                detection_result = self._process_single_image(captured_image, i)
-                self.game_state_manager.manage(detection_result)
+        if images_to_process:
+            for i, captured_image in enumerate(images_to_process):
+                try:
+                    detection_result = self._process_single_image(captured_image, i)
+                    self.game_state_manager.manage(detection_result)
 
 
-            except Exception as e:
-                print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
+                except Exception as e:
+                    print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
-        self._notify_observers()
+            self._notify_observers()
 
     def force_detect(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
         captured_windows = self.image_capture_service._capture_windows(timestamp_folder)
 
-        if not captured_windows:
-            print("🚫 No poker tables detected")
-            return []
+        if captured_windows:
+            print(f"🔍 Force processing {len(captured_windows)} images")
 
-        print(f"🔍 Force processing {len(captured_windows)} images")
+            for i, captured_image in enumerate(captured_windows):
+                try:
+                    detection_result = self._process_single_image(captured_image, i)
+                    self.game_state_manager.manage(detection_result)
 
-        for i, captured_image in enumerate(captured_windows):
-            try:
-                detection_result = self._process_single_image(captured_image, i)
-                self.game_state_manager.manage(detection_result)
+                except Exception as e:
+                    print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
-            except Exception as e:
-                print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
-
-        self._notify_observers()
-        print(f"🔄 Force detection completed - notified observers")
+            self._notify_observers()
+            print(f"🔄 Force detection completed - notified observers")
 
     def _process_single_image(self, captured_image: CapturedWindow, index: int) -> DetectionResult:
         window_name = captured_image.window_name
