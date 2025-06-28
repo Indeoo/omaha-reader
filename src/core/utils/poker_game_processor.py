@@ -7,7 +7,7 @@ from src.core.domain.captured_image import CapturedWindow
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.readed_card import ReadedCard
 from src.core.reader.player_card_reader import PlayerCardReader
-from src.core.reader.player_move_reader import PlayerMoveReader
+from src.core.reader.player_move_reader import PlayerActionReader
 from src.core.reader.player_position_reader import PlayerPositionReader
 from src.core.reader.table_card_reader import TableCardReader
 from src.core.service.template_registry import TemplateRegistry
@@ -33,7 +33,7 @@ class PositionDetectionResult:
         return bool(self.player_positions)
 
 
-class MoveDetectionResult:
+class ActionDetectionResult:
     def __init__(self, available_moves: List, is_player_turn: bool):
         self.available_moves = available_moves
         self.is_player_turn = is_player_turn
@@ -86,8 +86,8 @@ class PokerGameProcessor:
 
     def _init_readers(self):
         self._player_move_reader = None
-        if self.template_registry.has_move_templates():
-            self._player_move_reader = PlayerMoveReader(self.template_registry.move_templates)
+        if self.template_registry.has_action_templates():
+            self._player_move_reader = PlayerActionReader(self.template_registry.action_templates)
 
         self._player_position_readers = {}
         self._init_all_player_position_readers()
@@ -154,9 +154,9 @@ class PokerGameProcessor:
             print(f"❌ Error detecting positions: {str(e)}")
             return PositionDetectionResult({})
 
-    def detect_moves(self, cv2_image, window_name: str = "") -> MoveDetectionResult:
+    def detect_moves(self, cv2_image, window_name: str = "") -> ActionDetectionResult:
         if not self._player_move_reader:
-            return MoveDetectionResult([], False)
+            return ActionDetectionResult([], False)
 
         try:
             detected_moves = self._player_move_reader.read(cv2_image)
@@ -165,15 +165,15 @@ class PokerGameProcessor:
                 move_types = [move.move_type for move in detected_moves]
                 if window_name:
                     print(f"🎯 Player's move detected in {window_name}! Options: {', '.join(move_types)}")
-                return MoveDetectionResult(detected_moves, True)
+                return ActionDetectionResult(detected_moves, True)
             else:
                 if window_name:
                     print(f"⏸️ Not player's move in {window_name} - no action buttons detected")
-                return MoveDetectionResult([], False)
+                return ActionDetectionResult([], False)
 
         except Exception as e:
             print(f"❌ Error detecting moves: {str(e)}")
-            return MoveDetectionResult([], False)
+            return ActionDetectionResult([], False)
 
     def is_player_move(self, cv2_image, window_name) -> bool:
         return len(self.detect_moves(cv2_image, window_name).available_moves) > 0
@@ -227,8 +227,8 @@ class PokerGameProcessor:
     def should_detect_positions(self, cards_result: CardDetectionResult) -> bool:
         return cards_result.has_cards and self.template_registry.has_position_templates()
 
-    def should_detect_moves(self, cards_result: CardDetectionResult) -> bool:
-        return bool(cards_result.player_cards) and self.template_registry.has_move_templates()
+    # def should_detect_moves(self, cards_result: CardDetectionResult) -> bool:
+    #     return bool(cards_result.player_cards) and self.template_registry.has_move_templates()
 
     def should_detect_bids(self, cards_result: CardDetectionResult) -> bool:
         return cards_result.has_cards
@@ -237,10 +237,10 @@ class PokerGameProcessor:
                                   captured_image: CapturedWindow,
                                   cards_result: CardDetectionResult,
                                   positions_result: Optional[PositionDetectionResult] = None,
-                                  moves_result: Optional[MoveDetectionResult] = None,
+                                  action_detection_result: Optional[ActionDetectionResult] = None,
                                   bids_result: Optional[BidDetectionResult] = None) -> DetectionResult:
         player_positions = positions_result.player_positions if positions_result else {}
-        is_player_move = moves_result.is_player_turn if moves_result else False
+        is_player_turn = action_detection_result.is_player_turn if action_detection_result else False
 
         if bids_result and bids_result.bids:
             print(f"💰 Bids detected:")
@@ -254,5 +254,5 @@ class PokerGameProcessor:
             player_cards=cards_result.player_cards,
             table_cards=cards_result.table_cards,
             positions=player_positions,
-            is_player_move=is_player_move
+            is_player_move=is_player_turn
         )

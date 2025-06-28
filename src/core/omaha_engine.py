@@ -97,22 +97,22 @@ class OmahaEngine:
                 else:
                     print(f"    ℹ️  No positions detected")
 
-            moves_result = None
-            if self._poker_game_processor.should_detect_moves(cards_result):
-                print(f"🎯 Detecting moves in {window_name}...")
-                moves_result = self._poker_game_processor.detect_moves(cv2_image, window_name)
-
-            bids_result = None
-            if self._poker_game_processor.should_detect_bids(cards_result):
-                print(f"💰 Detecting bids in {window_name}...")
-                bids_result = self._poker_game_processor.detect_bids(captured_image)
+            # moves_result = None
+            # if self._poker_game_processor.should_detect_moves(cards_result):
+            #     print(f"🎯 Detecting moves in {window_name}...")
+            #     moves_result = self._poker_game_processor.detect_moves(cv2_image, window_name)
 
             if self._poker_game_processor.is_player_move(cv2_image, window_name):
+                bids_result = None
+                if self._poker_game_processor.should_detect_bids(cards_result):
+                    print(f"💰 Detecting bids in {window_name}...")
+                    bids_result = self._poker_game_processor.detect_bids(captured_image)
+
                 print(f"🔄 Reconstructing moves for {window_name}...")
                 self._reconstruct_moves(window_name, cards_result, positions_result, bids_result)
 
             result = self._poker_game_processor.combine_detection_results(
-                captured_image, cards_result, positions_result, moves_result, bids_result
+                captured_image, cards_result, positions_result, None, bids_result
             )
 
             return result

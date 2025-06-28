@@ -19,7 +19,7 @@ class DetectedMove:
         return f"DetectedMove({self.move_type}, score={self.match_score:.3f}, center={self.center})"
 
 
-class PlayerMoveReader(TableReader):
+class PlayerActionReader(TableReader):
     """Detects player move options (Fold, Call, Raise, etc.) in poker table images"""
 
     # Default configuration for move detection

@@ -36,9 +36,9 @@ class TemplateRegistry:
         return self._position_templates
 
     @property
-    def move_templates(self) -> Dict[str, np.ndarray]:
+    def action_templates(self) -> Dict[str, np.ndarray]:
         if self._move_templates is None:
-            self._move_templates = self._load_template_category("turn_options")
+            self._move_templates = self._load_template_category("actions")
         return self._move_templates
 
     def _load_template_category(self, category: str) -> Dict[str, np.ndarray]:
@@ -70,13 +70,13 @@ class TemplateRegistry:
     def has_position_templates(self) -> bool:
         return bool(self.position_templates)
 
-    def has_move_templates(self) -> bool:
-        return bool(self.move_templates)
+    def has_action_templates(self) -> bool:
+        return bool(self.action_templates)
 
     def get_template_stats(self) -> Dict[str, int]:
         return {
             'player_cards': len(self.player_templates),
             'table_cards': len(self.table_templates),
             'positions': len(self.position_templates),
-            'turn_options': len(self.move_templates)
+            'turn_options': len(self.action_templates)
         }
