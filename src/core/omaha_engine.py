@@ -96,7 +96,7 @@ class OmahaEngine:
 
             print(f"🔄 Reconstructing moves for {window_name}...")
             new_game_state = self._build_game_state(window_name, player_cards, table_cards, positions_result, bids_result, is_new_game)
-            moves = self._reconstruct_moves(window_name, new_game_state, is_new_game)
+            moves = self._reconstruct_moves(window_name, new_game_state)
 
         result = self._poker_game_processor.combine_detection_results(
             captured_image, player_cards, table_cards, positions_result, actions_result, bids_result
@@ -104,25 +104,20 @@ class OmahaEngine:
 
         self.game_state_manager.manage(result)
 
-    def _reconstruct_moves(self, window_name: str, new_gate_state, is_new_game):
+    def _reconstruct_moves(self, window_name: str, new_game_state):
         previous_game_state = self.game_state_manager.get_previous_game_state(window_name)
 
-        if is_new_game:
-            print(f"    🆕 New game detected - resetting move history")
-            new_gate_state.reset_move_history()
-            previous_game_state = None
-
-        if previous_game_state and self._is_new_street(new_gate_state, previous_game_state):
+        if previous_game_state and self._is_new_street(new_game_state, previous_game_state):
             print(f"    🔄 New street detected - resetting bids")
-            new_gate_state.reset_bids_for_new_street()
-            if new_gate_state.bids_result and new_gate_state.bids_result.bids:
-                new_gate_state.current_bids = new_gate_state.bids_result.bids
+            new_game_state.reset_bids_for_new_street()
+            if new_game_state.bids_result and new_game_state.bids_result.bids:
+                new_game_state.current_bids = new_game_state.bids_result.bids
 
-        moves = self.move_reconstructor.reconstruct_moves(new_gate_state)
+        moves = self.move_reconstructor.reconstruct_moves(new_game_state)
 
         if moves:
-            current_street = new_gate_state.get_street()
-            new_gate_state.add_moves(moves, current_street)
+            current_street = new_game_state.get_street()
+            new_game_state.add_moves(moves, current_street)
             print(f"    📝 Reconstructed {len(moves)} moves for {current_street.value}:")
             for move in moves:
                 action_desc = f"{move.action_type.value}"
@@ -131,7 +126,7 @@ class OmahaEngine:
                 player_label = "Main" if move.player_number == 1 else f"P{move.player_number}"
                 print(f"        {player_label}: {action_desc}")
 
-        self.game_state_manager.store_previous_game_state(window_name, new_gate_state)
+        self.game_state_manager.store_previous_game_state(window_name, new_game_state)
 
         return moves
 
@@ -144,9 +139,10 @@ class OmahaEngine:
         current_bids = bids_result.bids
 
         previous_game = self.game_state_manager.get_previous_game_state(window_name)
-        move_history = None
         if previous_game and not is_new_game:
             move_history = previous_game.move_history
+        else:
+            move_history = []
 
         return Game(
             window_name=window_name,
