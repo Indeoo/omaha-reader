@@ -19,14 +19,15 @@ class GameStateManager:
         if not new_game:
             return False
 
-        has_changed, old_game = self.repository.update_single_game(new_game)
+        window_name = detection_result.window_name
+        has_changed, old_game = self.repository.update_single_game(window_name, new_game)
 
         if has_changed:
             change_result = self.change_detector.detect_single_game_change(new_game, old_game)
-            self.change_detector.log_change(change_result)
+            self.change_detector.log_change(change_result, window_name)
 
             if change_result.old_game is None:
-                print(f"  🆕 New table detected: '{new_game.window_name}'")
+                print(f"  🆕 New table detected: '{window_name}'")
 
     def is_new_game(self, window_name: str, player_cards) -> bool:
         existing_game = self.repository.find_game_by_window(window_name)
@@ -54,7 +55,6 @@ class GameStateManager:
     def _convert_result_to_game(self, result: DetectionResult) -> Optional[Game]:
         if result.has_cards or result.has_positions:
             return Game(
-                window_name=result.window_name,
                 player_cards=result.player_cards,
                 table_cards=result.table_cards,
                 positions=result.positions

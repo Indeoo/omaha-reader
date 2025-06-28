@@ -10,14 +10,12 @@ class Game:
 
     def __init__(
             self,
-            window_name: str,
             player_cards: List[ReadedCard] = None,
             table_cards: List[ReadedCard] = None,
             positions: Dict[int, str] = None,
             current_bids: Dict[int, float] = None,
             move_history: Dict[Street, List] = None
     ):
-        self.window_name = window_name
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.positions = positions or {}
@@ -37,7 +35,6 @@ class Game:
         elif card_count == 5:
             return Street.RIVER
         else:
-            print(f"❌ Invalid table card count for street detection: {card_count} cards in {self.window_name}")
             return None
 
     def get_street_display(self) -> str:
@@ -159,9 +156,9 @@ class Game:
     def has_moves(self) -> bool:
         return bool(self.move_history and any(self.move_history.values()))
 
-    def to_dict(self):
+    def to_dict(self, window_name: str):
         return {
-            'window_name': self.window_name,
+            'window_name': window_name,
             'player_cards': self.get_player_cards_for_web(),
             'table_cards': self.get_table_cards_for_web(),
             'positions': self.get_positions_for_web(),

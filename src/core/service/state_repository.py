@@ -1,5 +1,5 @@
 import threading
-from typing import List, Optional, Dict
+from typing import Dict, Optional
 from datetime import datetime
 
 from src.core.domain.game import Game
@@ -8,32 +8,19 @@ from src.core.domain.game import Game
 class StateRepository:
 
     def __init__(self):
-        self.games: List[Game] = []
+        self.games: Dict[str, Game] = {}
         self.previous_game_states: Dict[str, Game] = {}
         self.last_update: Optional[str] = None
         self._lock = threading.Lock()
 
     def find_game_by_window(self, window_name: str) -> Optional[Game]:
-        for game in self.games:
-            if game.window_name == window_name:
-                return game
-        return None
-
-    def get_game_index(self, window_name: str) -> Optional[int]:
-        for i, game in enumerate(self.games):
-            if game.window_name == window_name:
-                return i
-        return None
-
-    def update_single_game(self, new_game: Game) -> tuple[bool, Optional[Game]]:
         with self._lock:
-            old_game = self.find_game_by_window(new_game.window_name)
-            game_index = self.get_game_index(new_game.window_name)
+            return self.games.get(window_name)
 
-            if game_index is not None:
-                self.games[game_index] = new_game
-            else:
-                self.games.append(new_game)
+    def update_single_game(self, window_name: str, new_game: Game) -> tuple[bool, Optional[Game]]:
+        with self._lock:
+            old_game = self.games.get(window_name)
+            self.games[window_name] = new_game
 
             has_changed = (
                 old_game is None or
@@ -58,7 +45,7 @@ class StateRepository:
     def get_latest_results_dict(self) -> dict:
         with self._lock:
             return {
-                'detections': [game.to_dict() for game in self.games],
+                'detections': [game.to_dict(window_name) for window_name, game in self.games.items()],
                 'last_update': self.last_update
             }
 
@@ -66,10 +53,19 @@ class StateRepository:
         with self._lock:
             return {
                 'type': 'detection_update',
-                'detections': [game.to_dict() for game in self.games],
+                'detections': [game.to_dict(window_name) for window_name, game in self.games.items()],
                 'last_update': self.last_update
             }
 
     def is_empty(self) -> bool:
         with self._lock:
             return len(self.games) == 0
+
+    def remove_game(self, window_name: str):
+        with self._lock:
+            self.games.pop(window_name, None)
+            self.previous_game_states.pop(window_name, None)
+
+    def get_all_window_names(self) -> list[str]:
+        with self._lock:
+            return list(self.games.keys())

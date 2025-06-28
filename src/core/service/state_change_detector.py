@@ -65,7 +65,6 @@ class StateChangeDetector:
         old_table_cards = old_game.get_table_cards_string()
         new_table_cards = new_game.get_table_cards_string()
 
-        # Only consider it a new street if we had cards before and now have different cards
         return bool(old_table_cards) and (new_table_cards != old_table_cards)
 
     def _determine_change_type(self, is_new_game: bool, is_new_street: bool, has_any_change: bool) -> str:
@@ -78,14 +77,14 @@ class StateChangeDetector:
         else:
             return "position_change"
 
-    def log_change(self, change_result: GameChangeResult):
+    def log_change(self, change_result: GameChangeResult, window_name: str):
         if change_result.is_new_game:
             print(
-                f"  🆕 NEW GAME detected at '{change_result.new_game.window_name}' - Player cards: {change_result.new_game.get_player_cards_string()}")
+                f"  🆕 NEW GAME detected at '{window_name}' - Player cards: {change_result.new_game.get_player_cards_string()}")
 
         if change_result.is_new_street and change_result.old_game:
             old_street = change_result.old_game.get_street()
             new_street = change_result.new_game.get_street()
             old_street_name = old_street.value if old_street else 'Unknown'
             new_street_name = new_street.value if new_street else 'Unknown'
-            print(f"  🔄 NEW STREET at '{change_result.new_game.window_name}' - {old_street_name} → {new_street_name}")
+            print(f"  🔄 NEW STREET at '{window_name}' - {old_street_name} → {new_street_name}")
