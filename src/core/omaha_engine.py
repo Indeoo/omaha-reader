@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import os
-from typing import List, Dict, Optional
+from typing import Optional
 
 from src.core.domain.detection_result import DetectionResult
 from src.core.service.detection_notifier import DetectionNotifier
@@ -137,7 +137,7 @@ class OmahaEngine:
             print(f"    🔄 New street detected - resetting bids")
             current_game.reset_bids_for_new_street()
             if bids_result and bids_result.bids:
-                current_game.current_bids = self._parse_bids(bids_result.bids)
+                current_game.current_bids = bids_result.bids
 
         moves = self.move_reconstructor.reconstruct_moves(current_game)
 
@@ -162,9 +162,7 @@ class OmahaEngine:
         if positions_result and positions_result.has_positions:
             positions = positions_result.player_positions
 
-        current_bids = {}
-        if bids_result and bids_result.bids:
-            current_bids = self._parse_bids(bids_result.bids)
+        current_bids = bids_result.bids
 
         previous_game = self.game_state_manager.get_previous_game_state(window_name)
         move_history = None
@@ -179,28 +177,6 @@ class OmahaEngine:
             current_bids=current_bids,
             move_history=move_history
         )
-
-    def _parse_bids(self, bids_dict: Dict[str, str]) -> Dict[int, float]:
-        position_to_player = {
-            'POSITION1': 1,
-            'POSITION2': 2,
-            'POSITION3': 3,
-            'POSITION4': 4,
-            'POSITION5': 5,
-            'POSITION6': 6
-        }
-
-        parsed_bids = {}
-        for position_key, bid_str in bids_dict.items():
-            if position_key in position_to_player and bid_str:
-                try:
-                    player_num = position_to_player[position_key]
-                    bid_amount = float(bid_str)
-                    parsed_bids[player_num] = bid_amount
-                except ValueError:
-                    print(f"    ⚠️ Could not parse bid '{bid_str}' for {position_key}")
-
-        return parsed_bids
 
     def _is_new_game(self, current_game: Game, previous_game: Game) -> bool:
         return self._is_new_game_by_cards(current_game, previous_game)

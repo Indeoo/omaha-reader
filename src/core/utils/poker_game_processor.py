@@ -57,12 +57,12 @@ class GameConfiguration:
     POSITION_MARGIN = 10
 
     BIDS_POSITIONS = {
-        'POSITION6': (562, 310, 45, 20),
-        'POSITION5': (572, 207, 40, 25),
-        'POSITION4': (450, 165, 45, 15),
-        'POSITION3': (185, 215, 45, 15),
-        'POSITION2': (195, 310, 45, 15),
-        'POSITION1': (386, 334, 45, 15)
+        1: (386, 334, 45, 15),
+        2: (195, 310, 45, 15),
+        3: (185, 215, 45, 15),
+        4: (450, 165, 45, 15),
+        5: (572, 207, 40, 25),
+        6: (562, 310, 45, 20),
     }
 
     IMAGE_WIDTH = 784
@@ -185,7 +185,7 @@ class PokerGameProcessor:
             for position_name, (x, y, w, h) in self.config.BIDS_POSITIONS.items():
                 bid = self.detect_single_bid(captured_image, x, y, w, h)
                 if bid:
-                    bids[position_name] = bid
+                    bids[position_name] = float(bid)
 
             return BidDetectionResult(bids)
 
