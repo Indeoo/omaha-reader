@@ -138,9 +138,10 @@ class OmahaEngine:
 
         current_bids = bids_result.bids
 
-        previous_game = self.game_state_manager.get_previous_game_state(window_name)
-        if previous_game and not is_new_game:
-            move_history = previous_game.move_history
+        previous_game_state = self.game_state_manager.get_previous_game_state(window_name)
+
+        if previous_game_state and not is_new_game:
+            move_history = previous_game_state.move_history
         else:
             move_history = []
 
