@@ -12,7 +12,7 @@ from src.core.omaha_engine import OmahaEngine
 from src.core.service.web_service import WebService
 
 # Configuration
-WAIT_TIME = 3
+WAIT_TIME = 10
 DEBUG_MODE = True  # Set to False for live capture
 
 

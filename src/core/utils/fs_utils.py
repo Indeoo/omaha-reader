@@ -1,7 +1,7 @@
 import os
 from datetime import datetime
 
-DEBUG_FOLDER = "src/test/tables/_20250610_025342"
+DEBUG_FOLDER = "src/test/tables/test_move"
 
 
 def create_timestamp_folder(DEBUG_MODE = False) -> str:

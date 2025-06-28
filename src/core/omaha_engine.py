@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
 import os
-from typing import List
+from typing import List, Dict, Optional
 
 from src.core.domain.detection_result import DetectionResult
 from src.core.service.detection_notifier import DetectionNotifier
 from src.core.service.game_state_manager import GameStateManager
 from src.core.service.image_capture_service import ImageCaptureService
+from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.utils.fs_utils import create_timestamp_folder
 from src.core.utils.poker_game_processor import PokerGameProcessor
 from src.core.domain.game import Game
@@ -20,6 +21,10 @@ class OmahaEngine:
         self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
         self.notifier = DetectionNotifier()
         self.game_state_manager = GameStateManager()
+
+        # For move reconstruction
+        self.previous_game_states: Dict[str, Game] = {}
+        self.move_reconstructor = MoveReconstructor()
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
@@ -74,15 +79,6 @@ class OmahaEngine:
             print(f"🃏 Detecting cards in {window_name}...")
             cards_result = self._poker_game_processor.detect_cards(cv2_image)
 
-            # if self.game_state_manager.is_new_gave(cards_result, captured_image.window_name):
-            #     self.game_state_manager.new_game(captured_image)  # FULL Create new Game object, make full detection and conversion
-            # else:
-            #     new_street = self.game_state_manager.is_new_street(cards_result, captured_image.window_name)
-            #
-            #     if new_street:
-            #         self.game_state_manager.new_street()
-
-
             if cards_result.has_cards:
                 player_count = len(cards_result.player_cards)
                 table_count = len(cards_result.table_cards)
@@ -113,6 +109,11 @@ class OmahaEngine:
                 print(f"💰 Detecting bids in {window_name}...")
                 bids_result = self._poker_game_processor.detect_bids(captured_image)
 
+            # Reconstruct moves if this is a player move
+            if self._poker_game_processor.is_player_move(cv2_image, window_name):
+                print(f"🔄 Reconstructing moves for {window_name}...")
+                self._reconstruct_moves(window_name, cards_result, positions_result, bids_result)
+
             result = self._poker_game_processor.combine_detection_results(
                 captured_image, cards_result, positions_result, moves_result, bids_result
             )
@@ -121,6 +122,113 @@ class OmahaEngine:
 
         except Exception as e:
             raise Exception(f"❌ Error in detection for {window_name}: {str(e)}")
+
+    def _reconstruct_moves(self, window_name: str, cards_result, positions_result, bids_result):
+        # Build current game state
+        current_game = self._build_game_state(window_name, cards_result, positions_result, bids_result)
+
+        if not current_game:
+            return
+
+        # Get previous game state
+        previous_game = self.previous_game_states.get(window_name)
+
+        # Check if this is a new game (different player cards)
+        if previous_game and self._is_new_game(current_game, previous_game):
+            print(f"    🆕 New game detected - resetting move history")
+            current_game.reset_move_history()
+            previous_game = None
+
+        # Check if street changed
+        if previous_game and self._is_new_street(current_game, previous_game):
+            print(f"    🔄 New street detected - resetting bids")
+            current_game.reset_bids_for_new_street()
+            # Update current bids from detection
+            if bids_result and bids_result.bids:
+                current_game.current_bids = self._parse_bids(bids_result.bids)
+
+        # Reconstruct moves
+        moves = self.move_reconstructor.reconstruct_moves(current_game)
+
+        if moves:
+            current_street = current_game.get_street()
+            current_game.add_moves(moves, current_street)
+            print(f"    📝 Reconstructed {len(moves)} moves for {current_street.value}:")
+            for move in moves:
+                action_desc = f"{move.action_type.value}"
+                if move.amount > 0:
+                    action_desc += f" ${move.amount:.2f}"
+                player_label = "Main" if move.player_number == 1 else f"P{move.player_number}"
+                print(f"        {player_label}: {action_desc}")
+
+        # Store current state for next comparison
+        self.previous_game_states[window_name] = current_game
+
+    def _build_game_state(self, window_name: str, cards_result, positions_result, bids_result) -> Optional[Game]:
+        if not cards_result.has_cards:
+            return None
+
+        # Parse positions
+        positions = {}
+        if positions_result and positions_result.has_positions:
+            positions = positions_result.player_positions
+
+        # Parse bids
+        current_bids = {}
+        if bids_result and bids_result.bids:
+            current_bids = self._parse_bids(bids_result.bids)
+
+        # Get previous move history if same game
+        previous_game = self.previous_game_states.get(window_name)
+        move_history = None
+        if previous_game and not self._is_new_game_by_cards(cards_result, previous_game):
+            move_history = previous_game.move_history
+
+        return Game(
+            window_name=window_name,
+            player_cards=cards_result.player_cards,
+            table_cards=cards_result.table_cards,
+            positions=positions,
+            current_bids=current_bids,
+            move_history=move_history
+        )
+
+    def _parse_bids(self, bids_dict: Dict[str, str]) -> Dict[int, float]:
+        position_to_player = {
+            'POSITION1': 1,
+            'POSITION2': 2,
+            'POSITION3': 3,
+            'POSITION4': 4,
+            'POSITION5': 5,
+            'POSITION6': 6
+        }
+
+        parsed_bids = {}
+        for position_key, bid_str in bids_dict.items():
+            if position_key in position_to_player and bid_str:
+                try:
+                    player_num = position_to_player[position_key]
+                    bid_amount = float(bid_str)
+                    parsed_bids[player_num] = bid_amount
+                except ValueError:
+                    print(f"    ⚠️ Could not parse bid '{bid_str}' for {position_key}")
+
+        return parsed_bids
+
+    def _is_new_game(self, current_game: Game, previous_game: Game) -> bool:
+        return self._is_new_game_by_cards(current_game, previous_game)
+
+    def _is_new_game_by_cards(self, current_game, previous_game) -> bool:
+        current_player_cards = current_game.get_player_cards_string() if hasattr(current_game,
+                                                                                 'get_player_cards_string') else ''.join(
+            [c.template_name for c in current_game.player_cards if c.template_name])
+        previous_player_cards = previous_game.get_player_cards_string()
+        return current_player_cards != previous_player_cards
+
+    def _is_new_street(self, current_game: Game, previous_game: Game) -> bool:
+        current_street = current_game.get_street()
+        previous_street = previous_game.get_street()
+        return current_street != previous_street
 
     def _notify_observers(self):
         notification_data = self.game_state_manager.get_notification_data()
