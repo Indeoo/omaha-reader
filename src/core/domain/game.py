@@ -109,19 +109,33 @@ class Game:
         return formatted
 
     def get_moves_for_web(self) -> List[Dict]:
-        moves_data = []
-        for street, moves in self.move_history.items():
-            for move in moves:
-                moves_data.append({
-                    'player_number': move.player_number,
-                    'player_label': f'P{move.player_number}',
-                    'action': move.action_type.value,
-                    'amount': move.amount,
-                    'total_contribution': move.total_pot_contribution,
-                    'street': street.value
-                })
-        return moves_data
+        if not self.move_history:
+            return []
 
+        moves_by_street = []
+
+        # Process streets in order: Preflop, Flop, Turn, River
+        street_order = [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]
+
+        for street in street_order:
+            moves = self.move_history.get(street, [])
+            if moves:  # Only include streets that have moves
+                street_moves = []
+                for move in moves:
+                    street_moves.append({
+                        'player_number': move.player_number,
+                        'player_label': f'P{move.player_number}',
+                        'action': move.action_type.value,
+                        'amount': move.amount,
+                        'total_contribution': move.total_pot_contribution
+                    })
+
+                moves_by_street.append({
+                    'street': street.value,
+                    'moves': street_moves
+                })
+
+        return moves_by_street
     def get_bids_for_web(self) -> List[Dict]:
         bids_data = []
         for player_num, bid_amount in sorted(self.current_bids.items()):

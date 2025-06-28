@@ -137,32 +137,40 @@
             animation: newPositionsGlow 2s ease-in-out;
         }
 
-        .moves-block {
+        .moves-by-street {
             display: flex;
-            gap: 5px;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .street-moves-block {
             background-color: #3a3a3a;
-            padding: 8px 12px;
+            padding: 12px;
             border-radius: 8px;
             border: 2px solid #2196F3;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            flex-wrap: wrap;
-            margin-bottom: 5px;
-            align-items: center;
         }
 
-        .moves-block.new-moves {
+        .street-moves-block.new-moves {
             animation: newMovesGlow 2s ease-in-out;
         }
 
-        .street-header {
+        .street-moves-header {
             background-color: #1976d2;
             color: white;
-            padding: 4px 8px;
+            padding: 6px 12px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 13px;
             font-weight: bold;
-            text-align: center;
-            margin-right: 5px;
+            margin-bottom: 8px;
+            display: inline-block;
+        }
+
+        .street-moves-list {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
         @keyframes newCardsGlow {
@@ -459,21 +467,27 @@
 
                         <div class="cards-section">
                             <div class="cards-label">Moves History:</div>
-                            <div class="cards-container">
+                            <div class="moves-by-street">
                 `;
 
-                // Moves history
+                // Moves history grouped by street
                 if (detection.moves && detection.moves.length > 0) {
-                    const movesClass = isUpdate ? 'moves-block new-moves' : 'moves-block';
-                    html += `<div class="${movesClass}">`;
-                    detection.moves.forEach(move => {
-                        html += `<div class="move">${move.player_label}: ${move.action}`;
-                        if (move.amount > 0) {
-                            html += ` $${move.amount}`;
-                        }
-                        html += `</div>`;
+                    detection.moves.forEach(streetData => {
+                        const movesClass = isUpdate ? 'street-moves-block new-moves' : 'street-moves-block';
+                        html += `<div class="${movesClass}">`;
+                        html += `<div class="street-moves-header">${streetData.street}</div>`;
+                        html += `<div class="street-moves-list">`;
+
+                        streetData.moves.forEach(move => {
+                            html += `<div class="move">${move.player_label}: ${move.action}`;
+                            if (move.amount > 0) {
+                                html += ` $${move.amount}`;
+                            }
+                            html += `</div>`;
+                        });
+
+                        html += `</div></div>`;
                     });
-                    html += `</div>`;
                 } else {
                     html += '<div class="no-moves">No moves detected</div>';
                 }
