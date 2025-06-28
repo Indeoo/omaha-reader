@@ -27,6 +27,12 @@ class GameStateManager:
             if change_result.old_game is None:
                 print(f"  🆕 New table detected: '{new_game.window_name}'")
 
+    def get_previous_game_state(self, window_name: str) -> Optional[Game]:
+        return self.repository.get_previous_game_state(window_name)
+
+    def store_previous_game_state(self, window_name: str, game: Game):
+        self.repository.store_previous_game_state(window_name, game)
+
     def get_latest_results(self) -> dict:
         return self.repository.get_latest_results_dict()
 

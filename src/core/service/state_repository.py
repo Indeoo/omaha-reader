@@ -1,5 +1,5 @@
 import threading
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 
 from src.core.domain.game import Game
@@ -9,6 +9,7 @@ class StateRepository:
 
     def __init__(self):
         self.games: List[Game] = []
+        self.previous_game_states: Dict[str, Game] = {}
         self.last_update: Optional[str] = None
         self._lock = threading.Lock()
 
@@ -34,7 +35,6 @@ class StateRepository:
             else:
                 self.games.append(new_game)
 
-            # Check if state actually changed
             has_changed = (
                 old_game is None or
                 new_game.get_player_cards_string() != old_game.get_player_cards_string() or
@@ -46,6 +46,14 @@ class StateRepository:
                 self.last_update = datetime.now().isoformat()
 
             return has_changed, old_game
+
+    def get_previous_game_state(self, window_name: str) -> Optional[Game]:
+        with self._lock:
+            return self.previous_game_states.get(window_name)
+
+    def store_previous_game_state(self, window_name: str, game: Game):
+        with self._lock:
+            self.previous_game_states[window_name] = game
 
     def get_latest_results_dict(self) -> dict:
         with self._lock:

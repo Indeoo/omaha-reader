@@ -22,8 +22,6 @@ class OmahaEngine:
         self.notifier = DetectionNotifier()
         self.game_state_manager = GameStateManager()
 
-        # For move reconstruction
-        self.previous_game_states: Dict[str, Game] = {}
         self.move_reconstructor = MoveReconstructor()
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -109,7 +107,6 @@ class OmahaEngine:
                 print(f"💰 Detecting bids in {window_name}...")
                 bids_result = self._poker_game_processor.detect_bids(captured_image)
 
-            # Reconstruct moves if this is a player move
             if self._poker_game_processor.is_player_move(cv2_image, window_name):
                 print(f"🔄 Reconstructing moves for {window_name}...")
                 self._reconstruct_moves(window_name, cards_result, positions_result, bids_result)
@@ -124,30 +121,24 @@ class OmahaEngine:
             raise Exception(f"❌ Error in detection for {window_name}: {str(e)}")
 
     def _reconstruct_moves(self, window_name: str, cards_result, positions_result, bids_result):
-        # Build current game state
         current_game = self._build_game_state(window_name, cards_result, positions_result, bids_result)
 
         if not current_game:
             return
 
-        # Get previous game state
-        previous_game_state = self.previous_game_states.get(window_name)
+        previous_game_state = self.game_state_manager.get_previous_game_state(window_name)
 
-        # Check if this is a new game (different player cards)
         if previous_game_state and self._is_new_game(current_game, previous_game_state):
             print(f"    🆕 New game detected - resetting move history")
             current_game.reset_move_history()
             previous_game_state = None
 
-        # Check if street changed
         if previous_game_state and self._is_new_street(current_game, previous_game_state):
             print(f"    🔄 New street detected - resetting bids")
             current_game.reset_bids_for_new_street()
-            # Update current bids from detection
             if bids_result and bids_result.bids:
                 current_game.current_bids = self._parse_bids(bids_result.bids)
 
-        # Reconstruct moves
         moves = self.move_reconstructor.reconstruct_moves(current_game)
 
         if moves:
@@ -161,25 +152,21 @@ class OmahaEngine:
                 player_label = "Main" if move.player_number == 1 else f"P{move.player_number}"
                 print(f"        {player_label}: {action_desc}")
 
-        # Store current state for next comparison
-        self.previous_game_states[window_name] = current_game
+        self.game_state_manager.store_previous_game_state(window_name, current_game)
 
     def _build_game_state(self, window_name: str, cards_result, positions_result, bids_result) -> Optional[Game]:
         if not cards_result.has_cards:
             return None
 
-        # Parse positions
         positions = {}
         if positions_result and positions_result.has_positions:
             positions = positions_result.player_positions
 
-        # Parse bids
         current_bids = {}
         if bids_result and bids_result.bids:
             current_bids = self._parse_bids(bids_result.bids)
 
-        # Get previous move history if same game
-        previous_game = self.previous_game_states.get(window_name)
+        previous_game = self.game_state_manager.get_previous_game_state(window_name)
         move_history = None
         if previous_game and not self._is_new_game_by_cards(cards_result, previous_game):
             move_history = previous_game.move_history
