@@ -10,6 +10,8 @@ class ActionType(Enum):
     CALL = "call"
     RAISE = "raise"
     CHECK = "check"
+    SMALL_BLIND = "sb"
+    BIG_BLIND = "bb"
 
 
 @dataclass
@@ -125,6 +127,15 @@ class MoveReconstructor:
                 amount=0.0,
                 street=current_street,
                 total_pot_contribution=0.0
+            )
+
+        if current_bid == 0.5:
+            return Move(
+                player_number=player_num,
+                action_type=ActionType.SMALL_BLIND,
+                amount=current_bid,
+                street=Street.PREFLOP,
+                total_pot_contribution=current_bid
             )
 
         # Player increased their bid
