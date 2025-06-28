@@ -137,6 +137,34 @@
             animation: newPositionsGlow 2s ease-in-out;
         }
 
+        .moves-block {
+            display: flex;
+            gap: 5px;
+            background-color: #3a3a3a;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 2px solid #2196F3;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            flex-wrap: wrap;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+
+        .moves-block.new-moves {
+            animation: newMovesGlow 2s ease-in-out;
+        }
+
+        .street-header {
+            background-color: #1976d2;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            margin-right: 5px;
+        }
+
         @keyframes newCardsGlow {
             0% { box-shadow: 0 0 0 rgba(76, 175, 80, 0.7); }
             50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.7); }
@@ -146,6 +174,12 @@
         @keyframes newPositionsGlow {
             0% { box-shadow: 0 0 0 rgba(255, 152, 0, 0.7); }
             50% { box-shadow: 0 0 20px rgba(255, 152, 0, 0.7); }
+            100% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
+        }
+
+        @keyframes newMovesGlow {
+            0% { box-shadow: 0 0 0 rgba(33, 150, 243, 0.7); }
+            50% { box-shadow: 0 0 20px rgba(33, 150, 243, 0.7); }
             100% { box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); }
         }
 
@@ -186,6 +220,17 @@
             min-width: 40px;
         }
 
+        .move {
+            background-color: #2196F3;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            white-space: nowrap;
+        }
+
         .street-indicator {
             display: inline-block;
             background-color: #4CAF50;
@@ -208,6 +253,12 @@
         }
 
         .no-positions {
+            color: #666;
+            font-style: italic;
+            font-size: 12px;
+        }
+
+        .no-moves {
             color: #666;
             font-style: italic;
             font-size: 12px;
@@ -407,6 +458,31 @@
                         </div>
 
                         <div class="cards-section">
+                            <div class="cards-label">Moves History:</div>
+                            <div class="cards-container">
+                `;
+
+                // Moves history
+                if (detection.moves && detection.moves.length > 0) {
+                    const movesClass = isUpdate ? 'moves-block new-moves' : 'moves-block';
+                    html += `<div class="${movesClass}">`;
+                    detection.moves.forEach(move => {
+                        html += `<div class="move">${move.player_label}: ${move.action}`;
+                        if (move.amount > 0) {
+                            html += ` $${move.amount}`;
+                        }
+                        html += `</div>`;
+                    });
+                    html += `</div>`;
+                } else {
+                    html += '<div class="no-moves">No moves detected</div>';
+                }
+
+                html += `
+                            </div>
+                        </div>
+
+                        <div class="cards-section">
                             <div class="cards-label">
                                 Table Cards:
                 `;
@@ -451,6 +527,9 @@
                     });
                     document.querySelectorAll('.new-positions').forEach(el => {
                         el.classList.remove('new-positions');
+                    });
+                    document.querySelectorAll('.new-moves').forEach(el => {
+                        el.classList.remove('new-moves');
                     });
                 }, 2000);
             }

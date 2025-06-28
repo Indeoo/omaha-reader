@@ -73,7 +73,7 @@ class Game:
             return ""
         position_parts = []
         for player_num, position in sorted(self.positions.items()):
-            player_label = "Main" if player_num == 1 else f"P{player_num}"
+            player_label = f"P{player_num}"
             position_parts.append(f"{player_label}:{position}")
         return ", ".join(position_parts)
 
@@ -102,7 +102,7 @@ class Game:
         for player_num, position_name in sorted(self.positions.items()):
             formatted.append({
                 'player': player_num,
-                'player_label': 'Main' if player_num == 1 else f'Player {player_num}',
+                'player_label': f'Player {player_num}',
                 'name': position_name,
                 'is_main_player': player_num == 1
             })
@@ -114,7 +114,7 @@ class Game:
             for move in moves:
                 moves_data.append({
                     'player_number': move.player_number,
-                    'player_label': 'Main' if move.player_number == 1 else f'P{move.player_number}',
+                    'player_label': f'P{move.player_number}',
                     'action': move.action_type.value,
                     'amount': move.amount,
                     'total_contribution': move.total_pot_contribution,
@@ -128,7 +128,7 @@ class Game:
             if bid_amount > 0:
                 bids_data.append({
                     'player_number': player_num,
-                    'player_label': 'Main' if player_num == 1 else f'P{player_num}',
+                    'player_label': f'P{player_num}',
                     'amount': bid_amount
                 })
         return bids_data
