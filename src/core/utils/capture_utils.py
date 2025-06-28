@@ -26,9 +26,9 @@ def _capture_windows(windows) -> List[CapturedWindow]:
         print(f"Capturing window {i}/{len(windows)}: {title} ({process})")
 
         # Create filename
-        safe_title = "".join([c if c.isalnum() else "_" for c in title])[:50]
-        safe_process = "".join([c if c.isalnum() else "_" for c in process])[:20]
-        filename = f"{i:02d}_{safe_process}_{safe_title}.png"
+        safe_title =  f"{i:02d}_".join([c if c.isalnum() else "_" for c in title])[:50]
+        #safe_process = "".join([c if c.isalnum() else "_" for c in process])[:20]
+        filename = f"{safe_title}.png"
 
         # First try using PrintWindow method (ignores overlapping)
         img = careful_capture_window(hwnd, width, height)
