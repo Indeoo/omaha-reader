@@ -10,7 +10,6 @@ class GameStateRepository:
 
     def __init__(self):
         self.games: Dict[str, Game] = {}
-        self.previous_game_states: Dict[str, Game] = {}
         self.last_update: Optional[str] = None
         self._lock = threading.Lock()
 
@@ -84,13 +83,13 @@ class GameStateRepository:
 
             return False
 
-    def get_previous_game_state(self, window_name: str) -> Optional[Game]:
-        with self._lock:
-            return self.previous_game_states.get(window_name)
-
-    def store_previous_game_state(self, window_name: str, game: Game):
-        with self._lock:
-            self.previous_game_states[window_name] = game
+    # def get_previous_game_state(self, window_name: str) -> Optional[Game]:
+    #     with self._lock:
+    #         return self.previous_game_states.get(window_name)
+    #
+    # def store_previous_game_state(self, window_name: str, game: Game):
+    #     with self._lock:
+    #         self.previous_game_states[window_name] = game
 
     def get_latest_results_dict(self) -> dict:
         with self._lock:

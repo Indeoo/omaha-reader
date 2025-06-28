@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import os
-from typing import Optional
 
 from src.core.domain.readed_card import ReadedCard
 from src.core.service.detection_notifier import DetectionNotifier
@@ -10,7 +9,6 @@ from src.core.service.image_capture_service import ImageCaptureService
 from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.utils.fs_utils import create_timestamp_folder
 from src.core.utils.poker_game_processor import PokerGameProcessor
-from src.core.domain.game import Game
 from src.core.domain.captured_image import CapturedWindow
 
 
@@ -82,7 +80,8 @@ class OmahaEngine:
             self.state_repository.new_game(window_name, player_cards, table_cards, positions_result.player_positions)
         else:
             previous_table_cards = self.state_repository.get_table_cards(window_name)
-            is_new_street = ReadedCard.format_cards_simple(table_cards) == ReadedCard.format_cards_simple(previous_table_cards)
+            is_new_street = ReadedCard.format_cards_simple(table_cards) != ReadedCard.format_cards_simple(
+                previous_table_cards)
 
             if is_new_street:
                 self.state_repository.update_table_cards(window_name, table_cards)
@@ -90,27 +89,58 @@ class OmahaEngine:
         is_player_move = self._poker_game_processor.is_player_move(cv2_image, window_name)
 
         if is_player_move:
+            current_game = self.state_repository.get_by_window(window_name)
+            bids_before_update = self.state_repository.get_by_window(window_name).current_bids
+
             bids_result = self._poker_game_processor.detect_bids(captured_image)
-            self.state_repository.update_bids(window_name, bids_result.bids)
+            bids_updated = self.state_repository.update_bids(window_name, bids_result.bids)
 
+            if bids_updated:
+                print(f"💰 Bids updated for {window_name} - reconstructing moves...")
+                self._reconstruct_moves(current_game, bids_before_update, bids_result.bids)
 
-        # actions_result = None
-        # bids_result = None
-        # if self._poker_game_processor.is_player_move(cv2_image, window_name):
-        #     actions_result = self._poker_game_processor.detect_actions(cv2_image, window_name)
-        #     if self._poker_game_processor.should_detect_bids(player_cards):
-        #         print(f"💰 Detecting bids...")
-        #         bids_result = self._poker_game_processor.detect_bids(captured_image)
-        #
-        #     print(f"🔄 Reconstructing moves for {window_name}...")
-        #     new_game_state = self._build_game_state(player_cards, table_cards, positions_result, bids_result, is_new_game)
-        #     moves = self._reconstruct_moves(window_name, new_game_state)
-        #
-        # result = self._poker_game_processor.combine_detection_results(
-        #     captured_image, player_cards, table_cards, positions_result, actions_result, bids_result
-        # )
-        #
-        # self.game_state_manager.manage(result)
+    def _reconstruct_moves(self, current_game, previous_bids, current_bids):
+        current_street = current_game.get_street()
+        if not current_street:
+            return
+
+        moves = self.move_reconstructor.reconstruct_moves(
+            current_bids=current_bids,
+            previous_bids=previous_bids,
+            current_street=current_street,
+            positions=current_game.positions
+        )
+
+        if moves:
+            current_game.add_moves(moves, current_street)
+            print(f"    📝 Reconstructed {len(moves)} moves for {current_street.value}:")
+            for move in moves:
+                action_desc = f"{move.action_type.value}"
+                if move.amount > 0:
+                    action_desc += f" ${move.amount:.2f}"
+                player_label = "Main" if move.player_number == 1 else f"P{move.player_number}"
+                print(f"        {player_label}: {action_desc}")
+
+        # Store current game state as previous for next comparison
+        #self.game_state_manager.store_previous_game_state(window_name, current_game)
+
+    # actions_result = None
+    # bids_result = None
+    # if self._poker_game_processor.is_player_move(cv2_image, window_name):
+    #     actions_result = self._poker_game_processor.detect_actions(cv2_image, window_name)
+    #     if self._poker_game_processor.should_detect_bids(player_cards):
+    #         print(f"💰 Detecting bids...")
+    #         bids_result = self._poker_game_processor.detect_bids(captured_image)
+    #
+    #     print(f"🔄 Reconstructing moves for {window_name}...")
+    #     new_game_state = self._build_game_state(player_cards, table_cards, positions_result, bids_result, is_new_game)
+    #     moves = self._reconstruct_moves(window_name, new_game_state)
+    #
+    # result = self._poker_game_processor.combine_detection_results(
+    #     captured_image, player_cards, table_cards, positions_result, actions_result, bids_result
+    # )
+    #
+    # self.game_state_manager.manage(result)
     #
     # def _reconstruct_moves(self, window_name: str, new_game_state):
     #     previous_game_state = self.game_state_manager.get_previous_game_state(window_name)
