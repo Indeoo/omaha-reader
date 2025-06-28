@@ -39,9 +39,9 @@ class MoveDetectionResult:
         self.is_player_turn = is_player_turn
 
 
-class StakeDetectionResult:
-    def __init__(self, stakes: Dict[str, str]):
-        self.stakes = stakes
+class BidDetectionResult:
+    def __init__(self, bids: Dict[str, str]):
+        self.bids = bids
 
 
 class GameConfiguration:
@@ -56,7 +56,7 @@ class GameConfiguration:
 
     POSITION_MARGIN = 10
 
-    STAKE_POSITIONS = {
+    BIDS_POSITIONS = {
         'POSITION6': (562, 310, 45, 20),
         'POSITION5': (572, 207, 40, 25),
         'POSITION4': (450, 165, 45, 15),
@@ -175,22 +175,22 @@ class PokerGameProcessor:
             print(f"❌ Error detecting moves: {str(e)}")
             return MoveDetectionResult([], False)
 
-    def detect_stakes(self, captured_image: CapturedWindow) -> StakeDetectionResult:
-        stakes = {}
+    def detect_bids(self, captured_image: CapturedWindow) -> BidDetectionResult:
+        bids = {}
 
         try:
-            for position_name, (x, y, w, h) in self.config.STAKE_POSITIONS.items():
-                stake = self.detect_single_stake(captured_image, x, y, w, h)
-                if stake:
-                    stakes[position_name] = stake
+            for position_name, (x, y, w, h) in self.config.BIDS_POSITIONS.items():
+                bid = self.detect_single_bid(captured_image, x, y, w, h)
+                if bid:
+                    bids[position_name] = bid
 
-            return StakeDetectionResult(stakes)
+            return BidDetectionResult(bids)
 
         except Exception as e:
-            print(f"❌ Error detecting stakes: {str(e)}")
-            return StakeDetectionResult({})
+            print(f"❌ Error detecting bids: {str(e)}")
+            return BidDetectionResult({})
 
-    def detect_single_stake(self, captured_image: CapturedWindow, x: int, y: int, w: int, h: int) -> str:
+    def detect_single_bid(self, captured_image: CapturedWindow, x: int, y: int, w: int, h: int) -> str:
         try:
             cv2_image = captured_image.get_cv2_image()
             gray = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
@@ -218,7 +218,7 @@ class PokerGameProcessor:
             return text
 
         except Exception as e:
-            print(f"❌ Error detecting stake at ({x}, {y}): {str(e)}")
+            print(f"❌ Error detecting bids at ({x}, {y}): {str(e)}")
             return ""
 
     def should_detect_positions(self, cards_result: CardDetectionResult) -> bool:
@@ -227,7 +227,7 @@ class PokerGameProcessor:
     def should_detect_moves(self, cards_result: CardDetectionResult) -> bool:
         return bool(cards_result.player_cards) and self.template_registry.has_move_templates()
 
-    def should_detect_stakes(self, cards_result: CardDetectionResult) -> bool:
+    def should_detect_bids(self, cards_result: CardDetectionResult) -> bool:
         return cards_result.has_cards
 
     def combine_detection_results(self,
@@ -235,14 +235,14 @@ class PokerGameProcessor:
                                   cards_result: CardDetectionResult,
                                   positions_result: Optional[PositionDetectionResult] = None,
                                   moves_result: Optional[MoveDetectionResult] = None,
-                                  stakes_result: Optional[StakeDetectionResult] = None) -> DetectionResult:
+                                  bids_result: Optional[BidDetectionResult] = None) -> DetectionResult:
         player_positions = positions_result.player_positions if positions_result else {}
         is_player_move = moves_result.is_player_turn if moves_result else False
 
-        if stakes_result and stakes_result.stakes:
-            print(f"💰 Stakes detected:")
-            for position, stake in stakes_result.stakes.items():
-                print(f"    {position}: {stake}")
+        if bids_result and bids_result.bids:
+            print(f"💰 Bids detected:")
+            for position, bid in bids_result.bids.items():
+                print(f"    {position}: {bid}")
 
         return DetectionResult(
             window_name=captured_image.window_name,

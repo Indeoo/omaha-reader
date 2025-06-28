@@ -146,6 +146,7 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
 
     # Get all window info
     windows = get_poker_window_info("Pot Limit Omaha")
+    print(f"Found {len(windows)} poker windows with titles:")
     if len(windows) > 0:
         os.makedirs(timestamp_folder, exist_ok=True)
     else:

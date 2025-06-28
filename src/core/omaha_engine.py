@@ -74,6 +74,15 @@ class OmahaEngine:
             print(f"🃏 Detecting cards in {window_name}...")
             cards_result = self._poker_game_processor.detect_cards(cv2_image)
 
+            # if self.game_state_manager.is_new_gave(cards_result, captured_image.window_name):
+            #     self.game_state_manager.new_game(captured_image)  # FULL Create new Game object, make full detection and conversion
+            # else:
+            #     new_street = self.game_state_manager.is_new_street(cards_result, captured_image.window_name)
+            #
+            #     if new_street:
+            #         self.game_state_manager.new_street()
+
+
             if cards_result.has_cards:
                 player_count = len(cards_result.player_cards)
                 table_count = len(cards_result.table_cards)
@@ -99,13 +108,13 @@ class OmahaEngine:
                 print(f"🎯 Detecting moves in {window_name}...")
                 moves_result = self._poker_game_processor.detect_moves(cv2_image, window_name)
 
-            stakes_result = None
-            if self._poker_game_processor.should_detect_stakes(cards_result):
-                print(f"💰 Detecting stakes in {window_name}...")
-                stakes_result = self._poker_game_processor.detect_stakes(captured_image)
+            bids_result = None
+            if self._poker_game_processor.should_detect_bids(cards_result):
+                print(f"💰 Detecting bids in {window_name}...")
+                bids_result = self._poker_game_processor.detect_bids(captured_image)
 
             result = self._poker_game_processor.combine_detection_results(
-                captured_image, cards_result, positions_result, moves_result, stakes_result
+                captured_image, cards_result, positions_result, moves_result, bids_result
             )
 
             return result

@@ -152,7 +152,7 @@ class TestPytesseract(unittest.TestCase):
         )
         text = pytesseract.image_to_string(dilated, config=config).strip()
 
-        print("Detected stake:", text)
+        print("Detected bid:", text)
 
         # Map of coordinates for each position
         position_coords = {
