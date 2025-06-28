@@ -131,16 +131,16 @@ class OmahaEngine:
             return
 
         # Get previous game state
-        previous_game = self.previous_game_states.get(window_name)
+        previous_game_state = self.previous_game_states.get(window_name)
 
         # Check if this is a new game (different player cards)
-        if previous_game and self._is_new_game(current_game, previous_game):
+        if previous_game_state and self._is_new_game(current_game, previous_game_state):
             print(f"    🆕 New game detected - resetting move history")
             current_game.reset_move_history()
-            previous_game = None
+            previous_game_state = None
 
         # Check if street changed
-        if previous_game and self._is_new_street(current_game, previous_game):
+        if previous_game_state and self._is_new_street(current_game, previous_game_state):
             print(f"    🔄 New street detected - resetting bids")
             current_game.reset_bids_for_new_street()
             # Update current bids from detection
