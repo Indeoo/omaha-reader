@@ -45,7 +45,7 @@ def _capture_windows(windows) -> List[CapturedWindow]:
             captured_image = CapturedWindow(
                 image=img,
                 filename=filename,
-                window_name=safe_title,
+                window_name=f"{i}_{title}",
                 description=f"{title} - {capture_method}"
             )
             captured_images.append(captured_image)
