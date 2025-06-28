@@ -234,17 +234,3 @@ class OmahaEngine:
         notification_data = self.game_state_manager.get_notification_data()
         self.notifier.notify_observers(notification_data)
         print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
-
-    def _get_current_games(self) -> List[Game]:
-        latest_results = self.game_state_manager.get_latest_results()
-
-        games = []
-        for game_dict in latest_results.get('detections', []):
-            game = Game(
-                window_name=game_dict['window_name'],
-                player_cards=[],
-                table_cards=[]
-            )
-            games.append(game)
-
-        return games
