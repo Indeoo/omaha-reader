@@ -175,6 +175,9 @@ class PokerGameProcessor:
             print(f"❌ Error detecting moves: {str(e)}")
             return MoveDetectionResult([], False)
 
+    def is_player_move(self, cv2_image, window_name) -> bool:
+        return len(self.detect_moves(cv2_image, window_name).available_moves) > 0
+
     def detect_bids(self, captured_image: CapturedWindow) -> BidDetectionResult:
         bids = {}
 
