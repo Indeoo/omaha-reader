@@ -71,13 +71,8 @@ class OmahaEngine:
         window_name = captured_image.window_name
         cv2_image = captured_image.get_cv2_image()
 
-        print(f"🃏 Processing {window_name}...")
         player_cards = self._poker_game_processor.detect_player_cards(cv2_image)
         table_cards = self._poker_game_processor.detect_table_cards(cv2_image)
-        player_count = len(player_cards)
-        table_count = len(table_cards)
-        print(f"    ✅ Found {player_count} player cards, {table_count} table cards")
-
         is_new_game = self.game_state_manager.is_new_game(window_name, player_cards)
 
         if is_new_game:
@@ -89,12 +84,11 @@ class OmahaEngine:
 
         if self._poker_game_processor.is_player_move(cv2_image, window_name):
             actions_result = self._poker_game_processor.detect_actions(cv2_image, window_name)
-            bids_result = None
             if self._poker_game_processor.should_detect_bids(player_cards):
-                print(f"💰 Detecting bids in {window_name}...")
+                print(f"💰 Detecting bids...")
                 bids_result = self._poker_game_processor.detect_bids(captured_image)
 
-            print(f"🔄 Reconstructing moves for {window_name}...")
+            print(f"🔄 Reconstructing moves for...")
             new_game_state = self._build_game_state(window_name, player_cards, table_cards, positions_result, bids_result, is_new_game)
             moves = self._reconstruct_moves(window_name, new_game_state)
 
