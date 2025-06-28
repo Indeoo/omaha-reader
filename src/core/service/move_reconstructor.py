@@ -38,9 +38,10 @@ class MoveReconstructor:
         max_bid = max(current_bids.values()) if current_bids else 0.0
 
         for player_num in range(1, 7):
-            # Check if player is still active
-            if player_num not in current_game.positions:
-                # Player folded (assuming they were in the game initially)
+            player_bid = current_bids.get(player_num, 0.0)
+
+            if player_bid == 0:
+                # No bid detected = player folded
                 move = Move(
                     player_number=player_num,
                     action_type=ActionType.FOLD,
@@ -49,36 +50,21 @@ class MoveReconstructor:
                     total_pot_contribution=0.0
                 )
                 moves.append(move)
-                continue
-
-            # Player is active, check their bid
-            player_bid = current_bids.get(player_num, 0.0)
-
-            if player_bid == 0:
-                # Player checked/hasn't acted
+            elif player_bid == max_bid and player_bid > 0:
+                # Has the highest bid = raised (or initial bet)
                 move = Move(
                     player_number=player_num,
-                    action_type=ActionType.CHECK,
-                    amount=0.0,
-                    street=current_street,
-                    total_pot_contribution=0.0
-                )
-                moves.append(move)
-            elif player_bid == max_bid:
-                # Player called the betting level
-                move = Move(
-                    player_number=player_num,
-                    action_type=ActionType.CALL,
+                    action_type=ActionType.RAISE,
                     amount=player_bid,
                     street=current_street,
                     total_pot_contribution=player_bid
                 )
                 moves.append(move)
-            elif player_bid == max_bid and max_bid > 0:
-                # Player raised (has the highest bid)
+            else:
+                # Has a bid but not the highest = called
                 move = Move(
                     player_number=player_num,
-                    action_type=ActionType.RAISE,
+                    action_type=ActionType.CALL,
                     amount=player_bid,
                     street=current_street,
                     total_pot_contribution=player_bid
