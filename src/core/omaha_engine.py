@@ -63,13 +63,12 @@ class OmahaEngine:
             try:
                 print(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
                 print("-" * 40)
-                detection_result = self._process_window(captured_image)
-                self.game_state_manager.manage(detection_result)
+                self._process_window(captured_image)
 
             except Exception as e:
                 print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
-    def _process_window(self, captured_image: CapturedWindow) -> DetectionResult:
+    def _process_window(self, captured_image: CapturedWindow):
         window_name = captured_image.window_name
         cv2_image = captured_image.get_cv2_image()
 
@@ -83,6 +82,8 @@ class OmahaEngine:
         else:
             print(f"    ℹ️  No cards detected")
             return None
+
+        is_new_game = self.game_state_manager.is_new_game(window_name, cards_result.player_cards)
 
         positions_result = self._poker_game_processor.detect_positions(cv2_image)
 
@@ -105,7 +106,7 @@ class OmahaEngine:
             captured_image, cards_result, positions_result, actions_result, bids_result
         )
 
-        return result
+        self.game_state_manager.manage(result)
 
     def _reconstruct_moves(self, window_name: str, cards_result, positions_result, bids_result):
         current_game = self._build_game_state(window_name, cards_result, positions_result, bids_result)

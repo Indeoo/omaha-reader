@@ -4,6 +4,7 @@ from src.core.domain.detection_result import DetectionResult
 from src.core.domain.game import Game
 from .state_change_detector import StateChangeDetector
 from .state_repository import StateRepository
+from ..domain.readed_card import ReadedCard
 
 
 class GameStateManager:
@@ -26,6 +27,17 @@ class GameStateManager:
 
             if change_result.old_game is None:
                 print(f"  🆕 New table detected: '{new_game.window_name}'")
+
+    def is_new_game(self, window_name: str, player_cards) -> bool:
+        existing_game = self.repository.find_game_by_window(window_name)
+
+        if existing_game is None:
+            return True
+
+        current_player_cards_string = ReadedCard.format_cards_simple(player_cards)
+        existing_player_cards_string = existing_game.get_player_cards_string()
+
+        return current_player_cards_string != existing_player_cards_string
 
     def get_previous_game_state(self, window_name: str) -> Optional[Game]:
         return self.repository.get_previous_game_state(window_name)
