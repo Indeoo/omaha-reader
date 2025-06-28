@@ -3,14 +3,14 @@ from typing import Optional
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.game import Game
 from .state_change_detector import StateChangeDetector
-from .state_repository import StateRepository
+from .state_repository import GameStateRepository
 from ..domain.readed_card import ReadedCard
 
 
 class GameStateManager:
 
     def __init__(self):
-        self.repository = StateRepository()
+        self.repository = GameStateRepository()
         self.change_detector = StateChangeDetector()
 
     def manage(self, detection_result: DetectionResult):
@@ -30,7 +30,7 @@ class GameStateManager:
                 print(f"  🆕 New table detected: '{window_name}'")
 
     def is_new_game(self, window_name: str, player_cards) -> bool:
-        existing_game = self.repository.find_game_by_window(window_name)
+        existing_game = self.repository.get_by_window(window_name)
 
         if existing_game is None:
             return True

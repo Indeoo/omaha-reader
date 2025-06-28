@@ -3,9 +3,10 @@ from typing import Dict, Optional
 from datetime import datetime
 
 from src.core.domain.game import Game
+from src.core.domain.street import Street
 
 
-class StateRepository:
+class GameStateRepository:
 
     def __init__(self):
         self.games: Dict[str, Game] = {}
@@ -13,9 +14,12 @@ class StateRepository:
         self.last_update: Optional[str] = None
         self._lock = threading.Lock()
 
-    def find_game_by_window(self, window_name: str) -> Optional[Game]:
+    def get_by_window(self, window_name: str) -> Optional[Game]:
         with self._lock:
             return self.games.get(window_name)
+
+    def get_table_cards(self, window_name: str):
+        return self.get_by_window(window_name).table_cards
 
     def update_single_game(self, window_name: str, new_game: Game) -> tuple[bool, Optional[Game]]:
         with self._lock:
@@ -33,6 +37,52 @@ class StateRepository:
                 self.last_update = datetime.now().isoformat()
 
             return has_changed, old_game
+
+    def new_game(self, window_name: str, player_cards=None, table_cards=None, positions=None) -> Game:
+        with self._lock:
+            new_game = Game(
+                player_cards=player_cards or [],
+                table_cards=table_cards or [],
+                positions=positions or {}
+            )
+
+            self.games[window_name] = new_game
+            self.last_update = datetime.now().isoformat()
+
+            return new_game
+
+    def update_bids(self, window_name: str, current_bids) -> bool:
+        with self._lock:
+            game = self.games.get(window_name)
+
+            if game is None:
+                return False
+
+            old_bids = game.current_bids.copy()
+            game.current_bids = current_bids or {}
+
+            if old_bids != game.current_bids:
+                self.last_update = datetime.now().isoformat()
+                return True
+
+            return False
+
+    def update_table_cards(self, window_name: str, table_cards) -> bool:
+        with self._lock:
+            game = self.games.get(window_name)
+
+            if game is None:
+                return False
+
+            old_table_cards_string = game.get_table_cards_string()
+            game.table_cards = table_cards or []
+            new_table_cards_string = game.get_table_cards_string()
+
+            if old_table_cards_string != new_table_cards_string:
+                self.last_update = datetime.now().isoformat()
+                return True
+
+            return False
 
     def get_previous_game_state(self, window_name: str) -> Optional[Game]:
         with self._lock:

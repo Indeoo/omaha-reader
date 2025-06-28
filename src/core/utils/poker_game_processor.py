@@ -134,6 +134,11 @@ class PokerGameProcessor:
                 except Exception as e:
                     print(f"❌ Error checking player {player_num} position: {str(e)}")
 
+            print(f"    ✅ Found positions:")
+            for player_num, position in sorted(player_positions.items()):
+                position_type = "Main player" if player_num == 1 else f"Player {player_num}"
+                print(f"        {position_type}: {position}")
+
             return PositionDetectionResult(player_positions)
 
         except Exception as e:
