@@ -14,16 +14,6 @@ from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.opencv_utils import coords_to_search_region
 
 
-class CardDetectionResult:
-    def __init__(self, player_cards: List[ReadedCard], table_cards: List[ReadedCard]):
-        self.player_cards = player_cards
-        self.table_cards = table_cards
-
-    @property
-    def has_cards(self) -> bool:
-        return bool(self.player_cards or self.table_cards)
-
-
 class PositionDetectionResult:
     def __init__(self, player_positions: Dict[int, str]):
         self.player_positions = player_positions
@@ -115,20 +105,16 @@ class PokerGameProcessor:
         except Exception as e:
             print(f"❌ Error initializing player position readers: {str(e)}")
 
-    def detect_cards(self, cv2_image) -> CardDetectionResult:
-        try:
-            player_cards = PlayerCardReader(
-                self.template_registry.player_templates,
-                PlayerCardReader.DEFAULT_SEARCH_REGION
-            ).read(cv2_image)
+    def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
+        player_cards = PlayerCardReader(
+            self.template_registry.player_templates,
+            PlayerCardReader.DEFAULT_SEARCH_REGION
+        ).read(cv2_image)
 
-            table_cards = TableCardReader(self.template_registry.table_templates, None).read(cv2_image)
+        return player_cards
 
-            return CardDetectionResult(player_cards, table_cards)
-
-        except Exception as e:
-            print(f"❌ Error detecting cards: {str(e)}")
-            return CardDetectionResult([], [])
+    def detect_table_cards(self, cv2_image) -> List[ReadedCard]:
+        return TableCardReader(self.template_registry.table_templates, None).read(cv2_image)
 
     def detect_positions(self, cv2_image) -> PositionDetectionResult:
         if not self.template_registry.has_position_templates() or not self._player_position_readers:
@@ -230,12 +216,13 @@ class PokerGameProcessor:
     # def should_detect_moves(self, cards_result: CardDetectionResult) -> bool:
     #     return bool(cards_result.player_cards) and self.template_registry.has_move_templates()
 
-    def should_detect_bids(self, cards_result: CardDetectionResult) -> bool:
-        return cards_result.has_cards
+    def should_detect_bids(self, player_cards: List[ReadedCard]) -> bool:
+        return len(player_cards) > 0
 
     def combine_detection_results(self,
                                   captured_image: CapturedWindow,
-                                  cards_result: CardDetectionResult,
+                                  player_cards: List[ReadedCard],
+                                  table_cards: List[ReadedCard],
                                   positions_result: Optional[PositionDetectionResult] = None,
                                   action_detection_result: Optional[ActionDetectionResult] = None,
                                   bids_result: Optional[BidDetectionResult] = None) -> DetectionResult:
@@ -251,8 +238,8 @@ class PokerGameProcessor:
             window_name=captured_image.window_name,
             filename=captured_image.filename,
             captured_image=captured_image,
-            player_cards=cards_result.player_cards,
-            table_cards=cards_result.table_cards,
+            player_cards=player_cards,
+            table_cards=table_cards,
             positions=player_positions,
             is_player_move=is_player_turn
         )
