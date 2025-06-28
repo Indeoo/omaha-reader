@@ -45,8 +45,8 @@ def _capture_windows(windows) -> List[CapturedWindow]:
             captured_image = CapturedWindow(
                 image=img,
                 filename=filename,
-                window_name=title,
-                description=f"{title} ({process}) - {capture_method}"
+                window_name=safe_title,
+                description=f"{title} - {capture_method}"
             )
             captured_images.append(captured_image)
             print(f"  ✓ Captured using {capture_method}")
