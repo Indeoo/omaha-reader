@@ -73,52 +73,39 @@ class OmahaEngine:
         window_name = captured_image.window_name
         cv2_image = captured_image.get_cv2_image()
 
-        try:
-            print(f"🃏 Detecting cards in {window_name}...")
-            cards_result = self._poker_game_processor.detect_cards(cv2_image)
+        print(f"🃏 Processing {window_name}...")
+        cards_result = self._poker_game_processor.detect_cards(cv2_image)
 
-            if cards_result.has_cards:
-                player_count = len(cards_result.player_cards)
-                table_count = len(cards_result.table_cards)
-                print(f"    ✅ Found {player_count} player cards, {table_count} table cards")
-            else:
-                print(f"    ℹ️  No cards detected")
+        if cards_result.has_cards:
+            player_count = len(cards_result.player_cards)
+            table_count = len(cards_result.table_cards)
+            print(f"    ✅ Found {player_count} player cards, {table_count} table cards")
+        else:
+            print(f"    ℹ️  No cards detected")
+            return None
 
-            positions_result = None
-            if self._poker_game_processor.should_detect_positions(cards_result):
-                print(f"👤 Detecting positions in {window_name}...")
-                positions_result = self._poker_game_processor.detect_positions(cv2_image)
+        positions_result = self._poker_game_processor.detect_positions(cv2_image)
 
-                if positions_result.has_positions:
-                    print(f"    ✅ Found positions:")
-                    for player_num, position in sorted(positions_result.player_positions.items()):
-                        position_type = "Main player" if player_num == 1 else f"Player {player_num}"
-                        print(f"        {position_type}: {position}")
-                else:
-                    print(f"    ℹ️  No positions detected")
+        print(f"    ✅ Found positions:")
+        for player_num, position in sorted(positions_result.player_positions.items()):
+            position_type = "Main player" if player_num == 1 else f"Player {player_num}"
+            print(f"        {position_type}: {position}")
 
-            # moves_result = None
-            # if self._poker_game_processor.should_detect_moves(cards_result):
-            #     print(f"🎯 Detecting moves in {window_name}...")
-            #     moves_result = self._poker_game_processor.detect_moves(cv2_image, window_name)
+        if self._poker_game_processor.is_player_move(cv2_image, window_name):
+            actions_result = self._poker_game_processor.detect_actions(cv2_image, window_name)
+            bids_result = None
+            if self._poker_game_processor.should_detect_bids(cards_result):
+                print(f"💰 Detecting bids in {window_name}...")
+                bids_result = self._poker_game_processor.detect_bids(captured_image)
 
-            if self._poker_game_processor.is_player_move(cv2_image, window_name):
-                bids_result = None
-                if self._poker_game_processor.should_detect_bids(cards_result):
-                    print(f"💰 Detecting bids in {window_name}...")
-                    bids_result = self._poker_game_processor.detect_bids(captured_image)
+            print(f"🔄 Reconstructing moves for {window_name}...")
+            moves = self._reconstruct_moves(window_name, cards_result, positions_result, bids_result)
 
-                print(f"🔄 Reconstructing moves for {window_name}...")
-                self._reconstruct_moves(window_name, cards_result, positions_result, bids_result)
+        result = self._poker_game_processor.combine_detection_results(
+            captured_image, cards_result, positions_result, actions_result, bids_result
+        )
 
-            result = self._poker_game_processor.combine_detection_results(
-                captured_image, cards_result, positions_result, None, bids_result
-            )
-
-            return result
-
-        except Exception as e:
-            raise Exception(f"❌ Error in detection for {window_name}: {str(e)}")
+        return result
 
     def _reconstruct_moves(self, window_name: str, cards_result, positions_result, bids_result):
         current_game = self._build_game_state(window_name, cards_result, positions_result, bids_result)
@@ -153,6 +140,8 @@ class OmahaEngine:
                 print(f"        {player_label}: {action_desc}")
 
         self.game_state_manager.store_previous_game_state(window_name, current_game)
+
+        return moves
 
     def _build_game_state(self, window_name: str, cards_result, positions_result, bids_result) -> Optional[Game]:
         if not cards_result.has_cards:

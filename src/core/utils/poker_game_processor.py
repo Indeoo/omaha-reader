@@ -154,7 +154,7 @@ class PokerGameProcessor:
             print(f"❌ Error detecting positions: {str(e)}")
             return PositionDetectionResult({})
 
-    def detect_moves(self, cv2_image, window_name: str = "") -> ActionDetectionResult:
+    def detect_actions(self, cv2_image, window_name: str = "") -> ActionDetectionResult:
         if not self._player_move_reader:
             return ActionDetectionResult([], False)
 
@@ -176,7 +176,7 @@ class PokerGameProcessor:
             return ActionDetectionResult([], False)
 
     def is_player_move(self, cv2_image, window_name) -> bool:
-        return len(self.detect_moves(cv2_image, window_name).available_moves) > 0
+        return len(self.detect_actions(cv2_image, window_name).available_moves) > 0
 
     def detect_bids(self, captured_image: CapturedWindow) -> BidDetectionResult:
         bids = {}
@@ -224,8 +224,8 @@ class PokerGameProcessor:
             print(f"❌ Error detecting bids at ({x}, {y}): {str(e)}")
             return ""
 
-    def should_detect_positions(self, cards_result: CardDetectionResult) -> bool:
-        return cards_result.has_cards and self.template_registry.has_position_templates()
+    # def should_detect_positions(self, cards_result: CardDetectionResult) -> bool:
+    #     return cards_result.has_cards and self.template_registry.has_position_templates()
 
     # def should_detect_moves(self, cards_result: CardDetectionResult) -> bool:
     #     return bool(cards_result.player_cards) and self.template_registry.has_move_templates()
