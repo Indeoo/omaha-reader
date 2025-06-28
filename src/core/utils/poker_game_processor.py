@@ -76,9 +76,8 @@ class PokerGameProcessor:
 
     def _init_readers(self):
         self._player_move_reader = None
-        if self.template_registry.has_action_templates():
-            self._player_move_reader = PlayerActionReader(self.template_registry.action_templates)
-
+        #if self.template_registry.has_action_templates():
+        self._player_move_reader = PlayerActionReader(self.template_registry.action_templates)
         self._player_position_readers = {}
         self._init_all_player_position_readers()
 
@@ -136,7 +135,7 @@ class PokerGameProcessor:
 
             print(f"    ✅ Found positions:")
             for player_num, position in sorted(player_positions.items()):
-                position_type = "Main player" if player_num == 1 else f"Player {player_num}"
+                position_type = f"Player {player_num}"
                 print(f"        {position_type}: {position}")
 
             return PositionDetectionResult(player_positions)

@@ -118,80 +118,9 @@ class OmahaEngine:
                 action_desc = f"{move.action_type.value}"
                 if move.amount > 0:
                     action_desc += f" ${move.amount:.2f}"
-                player_label = "Main" if move.player_number == 1 else f"P{move.player_number}"
+                player_label = f"P{move.player_number}"
                 print(f"        {player_label}: {action_desc}")
 
-        # Store current game state as previous for next comparison
-        #self.game_state_manager.store_previous_game_state(window_name, current_game)
-
-    # actions_result = None
-    # bids_result = None
-    # if self._poker_game_processor.is_player_move(cv2_image, window_name):
-    #     actions_result = self._poker_game_processor.detect_actions(cv2_image, window_name)
-    #     if self._poker_game_processor.should_detect_bids(player_cards):
-    #         print(f"💰 Detecting bids...")
-    #         bids_result = self._poker_game_processor.detect_bids(captured_image)
-    #
-    #     print(f"🔄 Reconstructing moves for {window_name}...")
-    #     new_game_state = self._build_game_state(player_cards, table_cards, positions_result, bids_result, is_new_game)
-    #     moves = self._reconstruct_moves(window_name, new_game_state)
-    #
-    # result = self._poker_game_processor.combine_detection_results(
-    #     captured_image, player_cards, table_cards, positions_result, actions_result, bids_result
-    # )
-    #
-    # self.game_state_manager.manage(result)
-    #
-    # def _reconstruct_moves(self, window_name: str, new_game_state):
-    #     previous_game_state = self.game_state_manager.get_previous_game_state(window_name)
-    #
-    #     if previous_game_state and self._is_new_street(new_game_state, previous_game_state):
-    #         print(f"    🔄 New street detected - resetting bids")
-    #         new_game_state.reset_bids_for_new_street()
-    #         if hasattr(new_game_state, 'bids_result') and new_game_state.bids_result and new_game_state.bids_result.bids:
-    #             new_game_state.current_bids = new_game_state.bids_result.bids
-    #
-    #     moves = self.move_reconstructor.reconstruct_moves(new_game_state)
-    #
-    #     if moves:
-    #         current_street = new_game_state.get_street()
-    #         new_game_state.add_moves(moves, current_street)
-    #         print(f"    📝 Reconstructed {len(moves)} moves for {current_street.value}:")
-    #         for move in moves:
-    #             action_desc = f"{move.action_type.value}"
-    #             if move.amount > 0:
-    #                 action_desc += f" ${move.amount:.2f}"
-    #             player_label = "Main" if move.player_number == 1 else f"P{move.player_number}"
-    #             print(f"        {player_label}: {action_desc}")
-    #
-    #     self.game_state_manager.store_previous_game_state(window_name, new_game_state)
-    #
-    #     return moves
-    #
-    # def _build_game_state(self, player_cards, table_cards, positions_result, bids_result, is_new_game) -> Optional[Game]:
-    #     positions = {}
-    #     if positions_result and positions_result.has_positions:
-    #         positions = positions_result.player_positions
-    #
-    #     current_bids = {}
-    #     if bids_result and bids_result.bids:
-    #         current_bids = bids_result.bids
-    #
-    #     move_history = []
-    #
-    #     return Game(
-    #         player_cards=player_cards,
-    #         table_cards=table_cards,
-    #         positions=positions,
-    #         current_bids=current_bids,
-    #         move_history=move_history
-    #     )
-    #
-    # def _is_new_street(self, current_game: Game, previous_game: Game) -> bool:
-    #     current_street = current_game.get_street()
-    #     previous_street = previous_game.get_street()
-    #     return current_street != previous_street
-    #
     def _notify_observers(self):
         notification_data = self.game_state_manager.get_notification_data()
         self.notifier.notify_observers(notification_data)
