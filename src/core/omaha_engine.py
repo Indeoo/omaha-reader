@@ -91,7 +91,7 @@ class OmahaEngine:
 
         if is_player_move:
             bids_result = self._poker_game_processor.detect_bids(captured_image)
-            self.state_repository.update_bids(window_name, bids_result)
+            self.state_repository.update_bids(window_name, bids_result.bids)
 
 
         # actions_result = None
