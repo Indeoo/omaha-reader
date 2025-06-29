@@ -9,43 +9,38 @@ from flask_cors import CORS
 from src.core.service.sse_manager import SSEManager
 
 
-class WebService:
+class OmahaWebApi:
 
-    def __init__(self, omaha_engine, wait_time: int = 5, debug_mode: bool = True):
+    def __init__(self, omaha_engine, sse_manager=None):
         self.omaha_engine = omaha_engine
-        self.wait_time = wait_time
-        self.debug_mode = debug_mode
-
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Navigate to src/templates
-        template_dir = os.path.abspath(os.path.join(current_dir, '..', '..', 'templates'))
-
-        # Initialize Flask app
-        #self.app = Flask(__name__, template_folder=template_dir)
-        self.app = Flask(__name__, template_folder=template_dir, static_folder=os.path.join(template_dir, 'static'))
-
-        CORS(self.app)
-
-        # Initialize SSE manager
-        self.sse_manager = SSEManager()
+        self.sse_manager = sse_manager or SSEManager()
 
         # Register detection service observer
         self.omaha_engine.add_observer(self._on_detection_update)
 
-        # Setup routes
-        self._setup_routes()
-
     def _on_detection_update(self, data: dict):
         self.sse_manager.broadcast(data)
 
-    def _setup_routes(self):
+    def create_app(self):
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        template_dir = os.path.abspath(os.path.join(current_dir, '..', '..', 'templates'))
 
-        @self.app.route('/')
+        app = Flask(__name__,
+                    template_folder=template_dir,
+                    static_folder=os.path.join(template_dir, 'static'))
+
+        CORS(app)
+
+        self._setup_routes(app)
+        return app
+
+    def _setup_routes(self, app):
+
+        @app.route('/')
         def index():
             return render_template('index.html')
 
-        @self.app.route('/api/stream')
+        @app.route('/api/stream')
         def sse_stream():
             client_id, client_queue = self.sse_manager.add_client()
 
@@ -89,13 +84,13 @@ class WebService:
                 }
             )
 
-        @self.app.route('/api/config')
+        @app.route('/api/config')
         def get_config():
             return jsonify({
-                'backend_capture_interval': self.wait_time
+                'backend_capture_interval': getattr(self, 'wait_time', 5)
             })
 
-        @self.app.route('/api/force-detect', methods=['POST'])
+        @app.route('/api/force-detect', methods=['POST'])
         def force_detect():
             try:
                 self.omaha_engine.force_detect()
@@ -108,26 +103,15 @@ class WebService:
                     'message': str(e)
                 }), 500
 
-        @self.app.route('/health')
+        @app.route('/health')
         def health():
             latest_results = self.omaha_engine.get_latest_results()
             return jsonify({
                 'status': 'ok',
-                'debug_mode': self.debug_mode,
                 'sse_clients': self.sse_manager.get_client_count(),
                 'last_update': latest_results['last_update'],
-                'detection_service_available': True,  # No longer has is_running()
+                'detection_service_available': True,
             })
 
-    def run(self, host: str = '0.0.0.0', port: int = 5001):
-        print(f"\n✅ Web server starting...")
-        print(f"📍 Open http://localhost:{port} in your browser")
-        print(f"🔄 Real-time updates via Server-Sent Events")
-        print(f"📡 SSE endpoint: http://localhost:{port}/api/stream")
-        print(f"🔧 Manual detection: POST to http://localhost:{port}/api/detect")
-        print(f"⚡ Force detection: POST to http://localhost:{port}/api/force-detect")
-        print(f"📋 Click any card to copy to clipboard")
-        print(f"🐛 Debug mode: {'ON' if self.debug_mode else 'OFF'}")
-        print("\nPress Ctrl+C to stop the server\n")
-
-        self.app.run(host=host, port=port, debug=False, threaded=True)
+    def set_wait_time(self, wait_time: int):
+        self.wait_time = wait_time
