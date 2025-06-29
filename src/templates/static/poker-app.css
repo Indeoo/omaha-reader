@@ -329,3 +329,43 @@ h1 {
 .update-indicator.show {
     opacity: 1;
 }
+
+
+.main-cards-section {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+    align-items: flex-start;
+}
+
+.player-cards-column,
+.table-cards-column,
+.positions-column {
+    flex: 1;
+}
+
+.player-cards-column {
+    min-width: 250px;
+}
+
+.table-cards-column {
+    min-width: 250px;
+}
+
+.positions-column {
+    min-width: 200px;
+}
+
+.positions-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* On smaller screens, stack vertically */
+@media (max-width: 1024px) {
+    .main-cards-section {
+        flex-direction: column;
+        gap: 15px;
+    }
+}

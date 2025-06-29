@@ -65,9 +65,10 @@ function renderCards(detections, isUpdate = false) {
             <div class="${tableClass}">
                 <div class="table-name">${detection.window_name}</div>
 
-                <div class="cards-section">
-                    <div class="cards-label">Player Cards & Position:</div>
-                    <div class="player-section">
+                <div class="main-cards-section">
+                    <div class="player-cards-column">
+                        <div class="cards-label">Player Cards:</div>
+                        <div class="player-section">
         `;
 
         // Player cards
@@ -83,7 +84,48 @@ function renderCards(detections, isUpdate = false) {
             html += '<div class="no-cards">No cards detected</div>';
         }
 
-        // Positions next to player cards
+        html += `
+                        </div>
+                    </div>
+
+                    <div class="table-cards-column">
+                        <div class="cards-label">
+                            Table Cards:
+        `;
+
+        // Add street indicator
+        if (detection.street) {
+            const streetClass = detection.street.startsWith('ERROR') ? 'street-indicator error' : 'street-indicator';
+            html += `<span class="${streetClass}">${detection.street}</span>`;
+        }
+
+        html += `
+                        </div>
+                        <div class="cards-container">
+        `;
+
+        if (detection.table_cards && detection.table_cards.length > 0) {
+            const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
+            html += `<div class="${cardsClass}" onclick="copyToClipboard('${detection.table_cards_string}')">`;
+            detection.table_cards.forEach(card => {
+                const colorClass = getSuitColor(card.display);
+                html += `<div class="card ${colorClass}">${card.display}</div>`;
+            });
+            html += `</div>`;
+        } else {
+            html += '<div class="no-cards">No cards detected</div>';
+        }
+
+        html += `
+                        </div>
+                    </div>
+
+                    <div class="positions-column">
+                        <div class="cards-label">Positions:</div>
+                        <div class="positions-container">
+        `;
+
+        // Positions in their own column
         if (detection.positions && detection.positions.length > 0) {
             const positionsClass = isUpdate ? 'positions-block new-positions' : 'positions-block';
             html += `<div class="${positionsClass}">`;
@@ -96,6 +138,7 @@ function renderCards(detections, isUpdate = false) {
         }
 
         html += `
+                        </div>
                     </div>
                 </div>
 
@@ -124,38 +167,6 @@ function renderCards(detections, isUpdate = false) {
             });
         } else {
             html += '<div class="no-moves">No moves detected</div>';
-        }
-
-        html += `
-                    </div>
-                </div>
-
-                <div class="cards-section">
-                    <div class="cards-label">
-                        Table Cards:
-        `;
-
-        // Add street indicator
-        if (detection.street) {
-            const streetClass = detection.street.startsWith('ERROR') ? 'street-indicator error' : 'street-indicator';
-            html += `<span class="${streetClass}">${detection.street}</span>`;
-        }
-
-        html += `
-                    </div>
-                    <div class="cards-container">
-        `;
-
-        if (detection.table_cards && detection.table_cards.length > 0) {
-            const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
-            html += `<div class="${cardsClass}" onclick="copyToClipboard('${detection.table_cards_string}')">`;
-            detection.table_cards.forEach(card => {
-                const colorClass = getSuitColor(card.display);
-                html += `<div class="card ${colorClass}">${card.display}</div>`;
-            });
-            html += `</div>`;
-        } else {
-            html += '<div class="no-cards">No cards detected</div>';
         }
 
         html += `
