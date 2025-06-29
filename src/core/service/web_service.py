@@ -22,7 +22,9 @@ class WebService:
         template_dir = os.path.abspath(os.path.join(current_dir, '..', '..', 'templates'))
 
         # Initialize Flask app
-        self.app = Flask(__name__, template_folder=template_dir)
+        #self.app = Flask(__name__, template_folder=template_dir)
+        self.app = Flask(__name__, template_folder=template_dir, static_folder=os.path.join(template_dir, 'static'))
+
         CORS(self.app)
 
         # Initialize SSE manager
