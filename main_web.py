@@ -9,7 +9,7 @@ Uses scheduling instead of internal threading.
 """
 from src.core.service.detection_scheduler import DetectionScheduler
 from src.core.omaha_engine import OmahaEngine
-from src.core.service.web_service import WebService
+from src.core.web.web_service import WebService
 
 # Configuration
 WAIT_TIME = 10
