@@ -41,13 +41,120 @@ function getSuitColor(card) {
     if (suit === '♥') return 'red';
     if (suit === '♦') return 'blue';
     if (suit === '♣') return 'green';
-    return 'black'; // spades
+    return 'black';
 }
 
 function detectChanges(newDetections) {
     const newStr = JSON.stringify(newDetections);
     const prevStr = JSON.stringify(previousDetections);
     return newStr !== prevStr;
+}
+
+function createPlayerCardsSection(detection, isUpdate) {
+    const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
+
+    if (detection.player_cards && detection.player_cards.length > 0) {
+        const cardsHtml = detection.player_cards.map(card =>
+            `<div class="card ${getSuitColor(card.display)}">${card.display}</div>`
+        ).join('');
+
+        return `<div class="${cardsClass}" onclick="copyToClipboard('${detection.player_cards_string}')">${cardsHtml}</div>`;
+    }
+
+    return '<div class="no-cards">No cards detected</div>';
+}
+
+function createTableCardsSection(detection, isUpdate) {
+    const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
+    const streetClass = detection.street && detection.street.startsWith('ERROR') ? 'street-indicator error' : 'street-indicator';
+    const streetDisplay = detection.street ? `<span class="${streetClass}">${detection.street}</span>` : '';
+
+    let cardsHtml = '';
+    if (detection.table_cards && detection.table_cards.length > 0) {
+        const cards = detection.table_cards.map(card =>
+            `<div class="card ${getSuitColor(card.display)}">${card.display}</div>`
+        ).join('');
+        cardsHtml = `<div class="${cardsClass}" onclick="copyToClipboard('${detection.table_cards_string}')">${cards}</div>`;
+    } else {
+        cardsHtml = '<div class="no-cards">No cards detected</div>';
+    }
+
+    return `
+        <div class="cards-label">Table Cards: ${streetDisplay}</div>
+        <div class="cards-container">${cardsHtml}</div>
+    `;
+}
+
+function createPositionsSection(detection, isUpdate) {
+    const positionsClass = isUpdate ? 'positions-block new-positions' : 'positions-block';
+
+    if (detection.positions && detection.positions.length > 0) {
+        const positionsHtml = detection.positions.map(position =>
+            `<div class="position">${position.player} ${position.name}</div>`
+        ).join('');
+
+        return `<div class="${positionsClass}">${positionsHtml}</div>`;
+    }
+
+    return '<div class="no-positions">No position detected</div>';
+}
+
+function createMovesSection(detection, isUpdate) {
+    if (!detection.moves || detection.moves.length === 0) {
+        return '<div class="no-moves">No moves detected</div>';
+    }
+
+    const movesClass = isUpdate ? 'street-moves-block new-moves' : 'street-moves-block';
+
+    return detection.moves.map(streetData => {
+        const movesHtml = streetData.moves.map(move => {
+            let moveText = `${move.player_label}: ${move.action}`;
+            if (move.amount > 0) {
+                moveText += ` $${move.amount}`;
+            }
+            return `<div class="move">${moveText}</div>`;
+        }).join('');
+
+        return `
+            <div class="${movesClass}">
+                <div class="street-moves-header">${streetData.street}</div>
+                <div class="street-moves-list">${movesHtml}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+function createTableContainer(detection, isUpdate) {
+    const tableClass = isUpdate ? 'table-container updated' : 'table-container';
+
+    return `
+        <div class="${tableClass}">
+            <div class="table-name">${detection.window_name}</div>
+            <div class="main-cards-section">
+                <div class="player-cards-column">
+                    <div class="cards-label">Player Cards:</div>
+                    <div class="player-section">
+                        ${createPlayerCardsSection(detection, isUpdate)}
+                    </div>
+                </div>
+                <div class="table-cards-column">
+                    ${createTableCardsSection(detection, isUpdate)}
+                </div>
+                <div class="positions-column">
+                    <div class="cards-label">Positions:</div>
+                    <div class="positions-container">
+                        ${createPositionsSection(detection, isUpdate)}
+                    </div>
+                </div>
+            </div>
+            <div class="cards-section">
+                <div class="cards-label">Moves History:</div>
+                <div class="moves-by-street">
+                    ${createMovesSection(detection, isUpdate)}
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function renderCards(detections, isUpdate = false) {
@@ -58,123 +165,9 @@ function renderCards(detections, isUpdate = false) {
         return;
     }
 
-    let html = '';
-    detections.forEach((detection, index) => {
-        const tableClass = isUpdate ? 'table-container updated' : 'table-container';
-        html += `
-            <div class="${tableClass}">
-                <div class="table-name">${detection.window_name}</div>
-
-                <div class="main-cards-section">
-                    <div class="player-cards-column">
-                        <div class="cards-label">Player Cards:</div>
-                        <div class="player-section">
-        `;
-
-        // Player cards
-        if (detection.player_cards && detection.player_cards.length > 0) {
-            const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
-            html += `<div class="${cardsClass}" onclick="copyToClipboard('${detection.player_cards_string}')">`;
-            detection.player_cards.forEach(card => {
-                const colorClass = getSuitColor(card.display);
-                html += `<div class="card ${colorClass}">${card.display}</div>`;
-            });
-            html += `</div>`;
-        } else {
-            html += '<div class="no-cards">No cards detected</div>';
-        }
-
-        html += `
-                        </div>
-                    </div>
-
-                    <div class="table-cards-column">
-                        <div class="cards-label">
-                            Table Cards:
-        `;
-
-        // Add street indicator
-        if (detection.street) {
-            const streetClass = detection.street.startsWith('ERROR') ? 'street-indicator error' : 'street-indicator';
-            html += `<span class="${streetClass}">${detection.street}</span>`;
-        }
-
-        html += `
-                        </div>
-                        <div class="cards-container">
-        `;
-
-        if (detection.table_cards && detection.table_cards.length > 0) {
-            const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
-            html += `<div class="${cardsClass}" onclick="copyToClipboard('${detection.table_cards_string}')">`;
-            detection.table_cards.forEach(card => {
-                const colorClass = getSuitColor(card.display);
-                html += `<div class="card ${colorClass}">${card.display}</div>`;
-            });
-            html += `</div>`;
-        } else {
-            html += '<div class="no-cards">No cards detected</div>';
-        }
-
-        html += `
-                        </div>
-                    </div>
-
-                    <div class="positions-column">
-                        <div class="cards-label">Positions:</div>
-                        <div class="positions-container">
-        `;
-
-        // Positions in their own column
-        if (detection.positions && detection.positions.length > 0) {
-            const positionsClass = isUpdate ? 'positions-block new-positions' : 'positions-block';
-            html += `<div class="${positionsClass}">`;
-            detection.positions.forEach(position => {
-                html += `<div class="position">${position.player} ${position.name}</div>`;
-            });
-            html += `</div>`;
-        } else {
-            html += '<div class="no-positions">No position detected</div>';
-        }
-
-        html += `
-                        </div>
-                    </div>
-                </div>
-
-                <div class="cards-section">
-                    <div class="cards-label">Moves History:</div>
-                    <div class="moves-by-street">
-        `;
-
-        // Moves history grouped by street
-        if (detection.moves && detection.moves.length > 0) {
-            detection.moves.forEach(streetData => {
-                const movesClass = isUpdate ? 'street-moves-block new-moves' : 'street-moves-block';
-                html += `<div class="${movesClass}">`;
-                html += `<div class="street-moves-header">${streetData.street}</div>`;
-                html += `<div class="street-moves-list">`;
-
-                streetData.moves.forEach(move => {
-                    html += `<div class="move">${move.player_label}: ${move.action}`;
-                    if (move.amount > 0) {
-                        html += ` $${move.amount}`;
-                    }
-                    html += `</div>`;
-                });
-
-                html += `</div></div>`;
-            });
-        } else {
-            html += '<div class="no-moves">No moves detected</div>';
-        }
-
-        html += `
-                    </div>
-                </div>
-            </div>
-        `;
-    });
+    const html = detections.map(detection =>
+        createTableContainer(detection, isUpdate)
+    ).join('');
 
     content.innerHTML = html;
 
@@ -188,6 +181,9 @@ function renderCards(detections, isUpdate = false) {
             });
             document.querySelectorAll('.new-moves').forEach(el => {
                 el.classList.remove('new-moves');
+            });
+            document.querySelectorAll('.new-cards').forEach(el => {
+                el.classList.remove('new-cards');
             });
         }, 2000);
     }
