@@ -21,7 +21,7 @@ def create_timestamp_folder(DEBUG_MODE = False) -> str:
         timestamp_folder = os.path.join(os.getcwd(),DEBUG_FOLDER)
     else:
         # Live mode - create new folder
-        timestamp_folder = os.path.join(os.getcwd(), f"Dropbox/data_screenshots/{session_timestamp}")
+        timestamp_folder = os.path.join(os.getcwd(), f"resources/results/{session_timestamp}")
 
     return timestamp_folder
 
