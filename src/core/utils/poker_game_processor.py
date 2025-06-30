@@ -16,12 +16,6 @@ from src.core.utils.fs_utils import write_dict
 from src.core.utils.opencv_utils import coords_to_search_region
 
 
-class ActionDetectionResult:
-    def __init__(self, available_moves: List, is_player_turn: bool):
-        self.available_moves = available_moves
-        self.is_player_turn = is_player_turn
-
-
 PLAYER_POSITIONS = {
     1: {'x': 300, 'y': 375, 'w': 40, 'h': 40},
     2: {'x': 35, 'y': 330, 'w': 40, 'h': 40},
@@ -175,9 +169,9 @@ class PokerGameProcessor:
             print(f"❌ Error detecting positions: {str(e)}")
             return []
 
-    def detect_actions(self, cv2_image, window_name: str = "") -> ActionDetectionResult:
+    def detect_actions(self, cv2_image, window_name: str = "") -> List:
         if not self._player_move_reader:
-            return ActionDetectionResult([], False)
+            return []
 
         try:
             detected_moves = self._player_move_reader.read(cv2_image)
@@ -186,15 +180,15 @@ class PokerGameProcessor:
                 move_types = [move.move_type for move in detected_moves]
                 if window_name:
                     print(f"🎯 Player's move detected in {window_name}! Options: {', '.join(move_types)}")
-                return ActionDetectionResult(detected_moves, True)
+                return detected_moves
             else:
                 if window_name:
                     print(f"⏸️ Not player's move in {window_name} - no action buttons detected")
-                return ActionDetectionResult([], False)
+                return []
 
         except Exception as e:
             print(f"❌ Error detecting moves: {str(e)}")
-            return ActionDetectionResult([], False)
+            return []
 
     def is_player_move(self, cv2_image, window_name) -> bool:
-        return len(self.detect_actions(cv2_image, window_name).available_moves) > 0
+        return len(self.detect_actions(cv2_image, window_name)) > 0
