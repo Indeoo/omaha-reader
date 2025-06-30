@@ -46,7 +46,7 @@ class OmahaWebApi:
         @app.route('/api/config')
         def get_config():
             return jsonify({
-                'backend_capture_interval': getattr(self, 'wait_time', 5)
+                'backend_capture_interval': getattr(self, 'wait_time', int(os.getenv('WAIT_TIME', '10')))
             })
 
         @app.route('/health')
