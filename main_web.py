@@ -3,7 +3,6 @@ import os
 from flask.cli import load_dotenv
 from loguru import logger
 
-from src.core.utils.logs import load_logger
 from src.core.web.omaha_web_api import OmahaWebApi
 from src.core.omaha_engine import OmahaEngine
 
