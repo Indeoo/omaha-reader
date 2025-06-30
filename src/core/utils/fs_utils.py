@@ -34,11 +34,25 @@ def get_image_names(timestamp_folder):
 
 
 def write_dict(bids_data, timestamp_folder, window_name):
-    # Write as key-value pairs
-    file_path = os.path.join(timestamp_folder, f"result_{window_name}.txt")
+    try:
+        # Create directory if it doesn't exist
+        os.makedirs(timestamp_folder, exist_ok=True)
 
-    with open(file_path, "w") as file:
-        for item, bid in bids_data.items():
-            file.write(f"{item}: ${bid:.2f}\n")
+        # Create file path
+        file_path = os.path.join(timestamp_folder, f"result_{window_name}.txt")
 
-    print(f"Bids written to: {file_path}")
+        # Check if we have data to write
+        if not bids_data:
+            print("Warning: No bids data to write")
+            return
+
+        # Write as key-value pairs
+        with open(file_path, "w") as file:
+            for item, bid in bids_data.items():
+                file.write(f"{item}: ${bid:.2f}\n")
+
+        print(f"Bids written to: {file_path}")
+        print(f"Successfully wrote {len(bids_data)} items")
+
+    except Exception as e:
+        print(f"Error writing bids data: {e}")
