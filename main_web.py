@@ -23,11 +23,7 @@ def main():
         scheduler = DetectionScheduler(omaha_engine, WAIT_TIME)
 
         # Initialize web service
-        web_server = WebServer(
-            omaha_engine=omaha_engine,
-            wait_time=WAIT_TIME,
-            debug_mode=DEBUG_MODE
-        )
+        web_server = WebServer(omaha_engine=omaha_engine, wait_time=WAIT_TIME, debug_mode=DEBUG_MODE)
 
         # Start detection scheduler
         scheduler.start()

@@ -7,8 +7,8 @@ from src.core.omaha_engine import OmahaEngine
 class DetectionScheduler:
     """Handles scheduling of detection cycles"""
 
-    def __init__(self, detection_service: OmahaEngine, wait_time: int):
-        self.detection_service = detection_service
+    def __init__(self, omaha_engine: OmahaEngine, wait_time: int):
+        self.omaha_engine = omaha_engine
         self.wait_time = wait_time
         self._running = False
         self._scheduler_thread = None
@@ -42,7 +42,7 @@ class DetectionScheduler:
         while self._running:
             try:
                 # Trigger detection
-                self.detection_service.detect_and_notify()
+                self.omaha_engine.detect_and_notify()
             except Exception as e:
                 print(f"❌ Error in scheduled detection: {str(e)}")
 
