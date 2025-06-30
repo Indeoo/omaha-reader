@@ -137,29 +137,25 @@ function createTableContainer(detection, isUpdate) {
                         ${createPlayerCardsSection(detection, isUpdate)}
                     </div>
                 </div>
-
-
+                <div class="table-cards-column">
+                    ${createTableCardsSection(detection, isUpdate)}
+                </div>
+                <div class="positions-column">
+                    <div class="cards-label">Positions:</div>
+                    <div class="positions-container">
+                        ${createPositionsSection(detection, isUpdate)}
+                    </div>
+                </div>
+            </div>
+            <div class="cards-section">
+                <div class="cards-label">Moves History:</div>
+                <div class="moves-by-street">
+                    ${createMovesSection(detection, isUpdate)}
+                </div>
             </div>
         </div>
     `;
 }
-                // <div class="table-cards-column">
-                //     ${createTableCardsSection(detection, isUpdate)}
-                // </div>
-
-                // <div class="positions-column">
-                //     <div class="cards-label">Positions:</div>
-                //     <div class="positions-container">
-                //         ${createPositionsSection(detection, isUpdate)}
-                //     </div>
-                // </div>
-
-            // <div class="cards-section">
-            //     <div class="cards-label">Moves History:</div>
-            //     <div class="moves-by-street">
-            //         ${createMovesSection(detection, isUpdate)}
-            //     </div>
-            // </div>
 
 function renderCards(detections, isUpdate = false) {
     const content = document.getElementById('content');
