@@ -3,6 +3,7 @@ from typing import Dict, Optional
 from datetime import datetime
 
 from src.core.domain.game import Game
+from src.core.domain.readed_card import ReadedCard
 
 
 class GameStateRepository:
@@ -81,6 +82,17 @@ class GameStateRepository:
                 return True
 
             return False
+
+    def is_new_game(self, window_name: str, player_cards) -> bool:
+        existing_game = self.get_by_window(window_name)
+
+        if existing_game is None:
+            return True
+
+        current_player_cards_string = ReadedCard.format_cards_simple(player_cards)
+        existing_player_cards_string = existing_game.get_player_cards_string()
+
+        return current_player_cards_string != existing_player_cards_string
 
     def get_latest_results_dict(self) -> dict:
         with self._lock:

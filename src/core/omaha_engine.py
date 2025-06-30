@@ -4,9 +4,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.readed_card import ReadedCard
 from src.core.service.detection_notifier import DetectionNotifier
-from src.core.service.game_state_manager import GameStateManager
 from src.core.service.image_capture_service import ImageCaptureService
 from src.core.service.move_reconstructor import MoveReconstructor
+from src.core.service.state_repository import GameStateRepository
 from src.core.utils.fs_utils import create_timestamp_folder
 from src.core.utils.poker_game_processor import PokerGameProcessor
 
@@ -18,8 +18,7 @@ class OmahaEngine:
 
         self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
         self.notifier = DetectionNotifier()
-        self.game_state_manager = GameStateManager()
-        self.state_repository = self.game_state_manager.repository
+        self.state_repository = GameStateRepository()
         self.move_reconstructor = MoveReconstructor()
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -88,7 +87,7 @@ class OmahaEngine:
         cv2_image = captured_image.get_cv2_image()
 
         player_cards = self._poker_game_processor.detect_player_cards(cv2_image)
-        is_new_game = self.game_state_manager.is_new_game(window_name, player_cards)
+        is_new_game = self.state_repository.is_new_game(window_name, player_cards)
         table_cards = self._poker_game_processor.detect_table_cards(cv2_image)
 
         if is_new_game:
@@ -116,6 +115,6 @@ class OmahaEngine:
                 self.move_reconstructor.process_bid(current_game, bids_before_update, bids_result.bids)
 
     def _notify_observers(self):
-        notification_data = self.game_state_manager.get_notification_data()
+        notification_data = self.state_repository.get_notification_data()
         self.notifier.notify_observers(notification_data)
         print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
