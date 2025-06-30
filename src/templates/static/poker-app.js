@@ -1,7 +1,7 @@
 let config = {
     backend_capture_interval: 5
 };
-let eventSource = null;
+let socket = null;
 let previousDetections = [];
 
 function copyToClipboard(text) {
@@ -201,64 +201,51 @@ function updateTimerDisplay() {
     document.getElementById('backendInfo').textContent = `every ${config.backend_capture_interval}`;
 }
 
-function initializeSSE() {
-    if (eventSource) {
-        eventSource.close();
+function initializeSocketIO() {
+    if (socket) {
+        socket.disconnect();
     }
 
     updateConnectionStatus('connecting', '🔗 Connecting...');
 
-    eventSource = new EventSource('/api/stream');
+    // Initialize Socket.IO
+    socket = io();
 
-    eventSource.onopen = function(event) {
-        console.log('SSE connection opened');
+    socket.on('connect', function() {
+        console.log('SocketIO connected');
         updateConnectionStatus('connected', '🟢 Connected');
-    };
+    });
 
-    eventSource.onmessage = function(event) {
-        try {
-            const data = JSON.parse(event.data);
-
-            switch(data.type) {
-                case 'connected':
-                    console.log('SSE client connected:', data.client_id);
-                    break;
-
-                case 'detection_update':
-                    console.log('Received detection update:', data);
-
-                    const hasChanges = detectChanges(data.detections);
-                    if (hasChanges) {
-                        showUpdateIndicator();
-                    }
-
-                    updateStatus(data.last_update);
-                    renderCards(data.detections, hasChanges);
-                    previousDetections = data.detections;
-                    break;
-
-                case 'heartbeat':
-                    break;
-
-                default:
-                    console.log('Unknown SSE message type:', data.type);
-            }
-        } catch (e) {
-            console.error('Error parsing SSE message:', e);
-        }
-    };
-
-    eventSource.onerror = function(event) {
-        console.error('SSE connection error:', event);
+    socket.on('disconnect', function() {
+        console.log('SocketIO disconnected');
         updateConnectionStatus('disconnected', '🔴 Disconnected');
 
+        // Attempt to reconnect after 3 seconds
         setTimeout(() => {
-            if (eventSource.readyState === EventSource.CLOSED) {
-                console.log('Attempting to reconnect SSE...');
-                initializeSSE();
+            if (socket && !socket.connected) {
+                console.log('Attempting to reconnect...');
+                socket.connect();
             }
         }, 3000);
-    };
+    });
+
+    socket.on('detection_update', function(data) {
+        console.log('Received detection update:', data);
+
+        const hasChanges = detectChanges(data.detections);
+        if (hasChanges) {
+            showUpdateIndicator();
+        }
+
+        updateStatus(data.last_update);
+        renderCards(data.detections, hasChanges);
+        previousDetections = data.detections;
+    });
+
+    socket.on('connect_error', function(error) {
+        console.error('SocketIO connection error:', error);
+        updateConnectionStatus('disconnected', '🔴 Connection Error');
+    });
 }
 
 async function loadConfig() {
@@ -275,27 +262,29 @@ async function loadConfig() {
 async function initialize() {
     await loadConfig();
 
-    if (typeof(EventSource) !== "undefined") {
-        console.log('Initializing with SSE...');
-        initializeSSE();
+    if (typeof io !== "undefined") {
+        console.log('Initializing with SocketIO...');
+        initializeSocketIO();
     } else {
-        console.error('SSE not supported by this browser');
-        document.getElementById('content').innerHTML = '<div class="error">Real-time updates not supported by this browser</div>';
+        console.error('SocketIO not loaded');
+        document.getElementById('content').innerHTML = '<div class="error">SocketIO library not loaded</div>';
         updateConnectionStatus('disconnected', '🔴 Not Supported');
     }
 }
 
+// Handle page visibility changes
 document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && eventSource && eventSource.readyState === EventSource.CLOSED) {
-        console.log('Page visible again, reconnecting SSE...');
-        initializeSSE();
+    if (!document.hidden && socket && !socket.connected) {
+        console.log('Page visible again, reconnecting...');
+        socket.connect();
     }
 });
 
+// Handle page restoration from cache
 window.addEventListener('pageshow', function(event) {
-    if (event.persisted) {
-        console.log('Page restored from cache, reconnecting SSE...');
-        initializeSSE();
+    if (event.persisted && socket && !socket.connected) {
+        console.log('Page restored from cache, reconnecting...');
+        socket.connect();
     }
 });
 

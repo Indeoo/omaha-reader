@@ -1,7 +1,9 @@
 pytesseract==0.3.13
 opencv-python==4.11.0.86
 apscheduler==3.10.4
-pywin32==310
+#pywin32==310
 Flask==3.1.1
 flask-cors==6.0.1
 matplotlib==3.10.3
+flask-socketio==5.4.1
+python-socketio==5.13.0

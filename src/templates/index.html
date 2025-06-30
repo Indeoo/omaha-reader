@@ -20,7 +20,7 @@
     </div>
 
     <div class="timer-info" id="timerInfo">
-        <div>Mode: <span class="countdown">Real-time SSE</span></div>
+        <div>Mode: <span class="countdown">Real-time WebSocket</span></div>
         <div>Backend: <span id="backendInfo">-</span>s</div>
     </div>
 
@@ -30,6 +30,7 @@
 
     <div class="toast" id="toast">Copied to clipboard!</div>
 
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='poker-app.js') }}"></script>
 </body>
 </html>
