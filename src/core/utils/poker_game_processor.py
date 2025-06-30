@@ -24,23 +24,23 @@ class ActionDetectionResult:
         self.is_player_turn = is_player_turn
 
 
-class GameConfiguration:
-    PLAYER_POSITIONS = {
-        1: {'x': 300, 'y': 375, 'w': 40, 'h': 40},
-        2: {'x': 35, 'y': 330, 'w': 40, 'h': 40},
-        3: {'x': 35, 'y': 173, 'w': 40, 'h': 40},
-        4: {'x': 297, 'y': 120, 'w': 40, 'h': 40},
-        5: {'x': 562, 'y': 168, 'w': 40, 'h': 40},
-        6: {'x': 565, 'y': 332, 'w': 40, 'h': 40}
-    }
+PLAYER_POSITIONS = {
+    1: {'x': 300, 'y': 375, 'w': 40, 'h': 40},
+    2: {'x': 35, 'y': 330, 'w': 40, 'h': 40},
+    3: {'x': 35, 'y': 173, 'w': 40, 'h': 40},
+    4: {'x': 297, 'y': 120, 'w': 40, 'h': 40},
+    5: {'x': 562, 'y': 168, 'w': 40, 'h': 40},
+    6: {'x': 565, 'y': 332, 'w': 40, 'h': 40}
+}
 
-    POSITION_MARGIN = 10
+POSITION_MARGIN = 10
 
-    IMAGE_WIDTH = 784
-    IMAGE_HEIGHT = 584
+IMAGE_WIDTH = 784
+IMAGE_HEIGHT = 584
 
 
 class PokerGameProcessor:
+
     def __init__(
             self,
             state_repository: GameStateRepository,
@@ -52,7 +52,6 @@ class PokerGameProcessor:
         self.state_repository = state_repository
         self.save_result_images = save_result_images
         self.write_detection_files = write_detection_files
-        self.config = GameConfiguration()
         self.move_reconstructor = MoveReconstructor()
 
         self.template_registry = TemplateRegistry(country, project_root)
@@ -69,14 +68,14 @@ class PokerGameProcessor:
             return
 
         try:
-            for player_num, coords in self.config.PLAYER_POSITIONS.items():
+            for player_num, coords in PLAYER_POSITIONS.items():
                 search_region = coords_to_search_region(
-                    x=coords['x'] - self.config.POSITION_MARGIN,
-                    y=coords['y'] - self.config.POSITION_MARGIN,
-                    w=coords['w'] + 2 * self.config.POSITION_MARGIN,
-                    h=coords['h'] + 2 * self.config.POSITION_MARGIN,
-                    image_width=self.config.IMAGE_WIDTH,
-                    image_height=self.config.IMAGE_HEIGHT
+                    x=coords['x'] - POSITION_MARGIN,
+                    y=coords['y'] - POSITION_MARGIN,
+                    w=coords['w'] + 2 * POSITION_MARGIN,
+                    h=coords['h'] + 2 * POSITION_MARGIN,
+                    image_width=IMAGE_WIDTH,
+                    image_height=IMAGE_HEIGHT
                 )
 
                 reader = PlayerPositionMatcher(self.template_registry.position_templates)
@@ -97,12 +96,10 @@ class PokerGameProcessor:
 
         if is_new_game:
             positions_result = self.detect_positions(cv2_image)
-            self.state_repository.start_new_game(window_name, player_cards, table_cards, positions_result.player_positions)
+            self.state_repository.start_new_game(window_name, player_cards, table_cards,
+                                                 positions_result.player_positions)
         else:
-            previous_table_cards = self.state_repository.get_table_cards(window_name)
-            is_new_street = ReadedCard.format_cards_simple(table_cards) != ReadedCard.format_cards_simple(
-                previous_table_cards)
-
+            is_new_street = self.state_repository.is_new_street(table_cards, window_name)
             if is_new_street:
                 self.state_repository.update_table_cards(window_name, table_cards)
 
@@ -182,4 +179,3 @@ class PokerGameProcessor:
 
     def is_player_move(self, cv2_image, window_name) -> bool:
         return len(self.detect_actions(cv2_image, window_name).available_moves) > 0
-

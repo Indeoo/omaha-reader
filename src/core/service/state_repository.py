@@ -91,3 +91,10 @@ class GameStateRepository:
                 'detections': [game.to_dict(window_name) for window_name, game in self.games.items()],
                 'last_update': self.last_update
             }
+
+
+    def is_new_street(self, table_cards, window_name):
+        previous_table_cards = self.get_table_cards(window_name)
+        is_new_street = ReadedCard.format_cards_simple(table_cards) != ReadedCard.format_cards_simple(
+            previous_table_cards)
+        return is_new_street

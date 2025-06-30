@@ -19,7 +19,7 @@ class PltTest(unittest.TestCase):
         print("Image shape (h, w, c):", img.shape)
 
         # Initial guess for bubble ROI (tweak these values as needed)
-        x, y, w, h = 565, 332, 40, 40
+        x, y, w, h = 297, 120, 40, 40
         roi = img_rgb[y:y + h, x:x + w]
 
         # Draw rectangle on the original image for context

@@ -105,7 +105,7 @@ class MoveReconstructor:
         Determine betting order based on positions
         Standard order: SB -> BB -> UTG -> MP -> CO -> BTN
         """
-        position_order = ['SB', 'BB', 'UTG', 'MP', 'CO', 'BTN']
+        position_order = ['SB', 'BB', 'EP', 'MP', 'CO', 'BTN']
 
         # Create mapping of position to player
         position_to_player = {pos: player for player, pos in positions.items()}
@@ -157,6 +157,15 @@ class MoveReconstructor:
                 action_type=ActionType.SMALL_BLIND,
                 amount=current_bid,
                 street=Street.PREFLOP,
+                total_pot_contribution=current_bid
+            )
+
+        if current_bid == 1:
+            return Move(
+                player_number=player_num,
+                action_type=ActionType.BIG_BLIND,
+                amount=current_bid,
+                street=current_street,
                 total_pot_contribution=current_bid
             )
 

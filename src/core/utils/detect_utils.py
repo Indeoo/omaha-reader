@@ -2,9 +2,9 @@ from typing import List, Dict, Union
 
 import numpy as np
 
+from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.readed_card import ReadedCard
 from src.core.domain.detection_result import DetectionResult
-from src.core.domain.captured_image import CapturedWindow
 from src.core.utils.opencv_utils import save_opencv_image, draw_detected_cards, draw_detected_positions
 
 
