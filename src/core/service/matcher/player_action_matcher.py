@@ -55,7 +55,6 @@ class PlayerActionMatcher(OmahaTableMatcher):
             scale_factors=self.DEFAULT_SCALE_FACTORS
         )
 
-    @benchmark
     def read(self, image: np.ndarray) -> List[DetectedMove]:
         """
         Override read method to add benchmark decorator

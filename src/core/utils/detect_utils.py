@@ -8,7 +8,7 @@ from src.core.domain.detection_result import DetectionResult
 from src.core.utils.opencv_utils import save_opencv_image, draw_detected_cards, draw_detected_positions
 
 
-def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, result: Union[Dict, DetectionResult]):
+def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, result: DetectionResult):
     window_name = captured_image.window_name
     filename = captured_image.filename
 
@@ -18,16 +18,10 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
 
         drawn_items = []
 
-        if isinstance(result, DetectionResult):
-            has_cards = result.has_cards
-            player_cards = result.player_cards
-            table_cards = result.table_cards
-            positions = result.positions
-        else:
-            has_cards = result['has_cards']
-            player_cards = result.get('player_cards', [])
-            table_cards = result.get('table_cards', [])
-            positions = result.get('positions', [])
+        has_cards = result.has_cards
+        player_cards = result.player_cards
+        table_cards = result.table_cards
+        positions = result.positions
 
         if has_cards:
             if player_cards:

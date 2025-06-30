@@ -1,22 +1,19 @@
 from typing import List, Dict
 
 from src.core.domain.captured_window import CapturedWindow
+from src.core.domain.detection_result import DetectionResult
 from src.core.domain.readed_card import ReadedCard
 from src.core.service.matcher.player_action_matcher import PlayerActionMatcher
 from src.core.service.matcher.player_card_matcher import PlayerCardMatcher
-from src.core.service.matcher.player_position_matcher import PlayerPositionMatcher
+from src.core.service.matcher.player_position_matcher import PlayerPositionMatcher, DetectedPosition
 from src.core.service.matcher.table_card_matcher import OmahaTableCard
 from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.service.state_repository import GameStateRepository
 from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.bid_detect_utils import detect_bids
+from src.core.utils.detect_utils import save_detection_result_image
 from src.core.utils.fs_utils import write_dict
 from src.core.utils.opencv_utils import coords_to_search_region
-
-
-class PositionDetectionResult:
-    def __init__(self, player_positions: Dict[int, str]):
-        self.player_positions = player_positions
 
 
 class ActionDetectionResult:
@@ -95,10 +92,24 @@ class PokerGameProcessor:
         is_new_game = self.state_repository.is_new_game(window_name, player_cards)
         table_cards = self.detect_table_cards(cv2_image)
 
+        positions_result = None
+
         if is_new_game:
             positions_result = self.detect_positions(cv2_image)
-            self.state_repository.start_new_game(window_name, player_cards, table_cards,
-                                                 positions_result.player_positions)
+
+            print(f"    ✅ Found positions:")
+            for i, position_result in enumerate(positions_result, 1):
+                player_num = i
+                position = position_result.position_name
+                position_type = f"Player {player_num}"
+                print(f"        {position_type}: {position}")
+
+            self.state_repository.start_new_game(
+                window_name,
+                player_cards,
+                table_cards,
+                positions_result
+            )
         else:
             is_new_street = self.state_repository.is_new_street(table_cards, window_name)
             if is_new_street:
@@ -118,6 +129,15 @@ class PokerGameProcessor:
                 print(f"💰 Bids updated for {window_name} - reconstructing moves...")
                 self.move_reconstructor.process_bid(current_game, bids_before_update, bids)
 
+        result = DetectionResult(
+            player_cards,
+            table_cards,
+            positions_result,
+            is_player_move,
+        )
+
+        save_detection_result_image(timestamp_folder, captured_image, result)
+
     def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
         player_cards = PlayerCardMatcher(
             self.template_registry.player_templates,
@@ -129,34 +149,29 @@ class PokerGameProcessor:
     def detect_table_cards(self, cv2_image) -> List[ReadedCard]:
         return OmahaTableCard(self.template_registry.table_templates, None).read(cv2_image)
 
-    def detect_positions(self, cv2_image) -> PositionDetectionResult:
+    def detect_positions(self, cv2_image) -> List[DetectedPosition]:
         if not self.template_registry.has_position_templates() or not self._player_position_readers:
-            return PositionDetectionResult({})
+            return []
 
         try:
-            player_positions = {}
+            player_positions = []
 
             for player_num, reader in self._player_position_readers.items():
                 try:
-                    detected_positions = reader.read(cv2_image)
+                    detected_position = reader.read(cv2_image)
 
-                    if detected_positions:
-                        best_position = detected_positions[0]
-                        player_positions[player_num] = best_position.position_name
+                    if detected_position:
+                        best_position = detected_position[0]
+                        player_positions.append(best_position)
 
                 except Exception as e:
                     print(f"❌ Error checking player {player_num} position: {str(e)}")
 
-            print(f"    ✅ Found positions:")
-            for player_num, position in sorted(player_positions.items()):
-                position_type = f"Player {player_num}"
-                print(f"        {position_type}: {position}")
-
-            return PositionDetectionResult(player_positions)
+            return player_positions
 
         except Exception as e:
             print(f"❌ Error detecting positions: {str(e)}")
-            return PositionDetectionResult({})
+            return []
 
     def detect_actions(self, cv2_image, window_name: str = "") -> ActionDetectionResult:
         if not self._player_move_reader:

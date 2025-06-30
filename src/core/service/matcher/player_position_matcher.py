@@ -2,7 +2,6 @@ from typing import List, Dict, Tuple
 import numpy as np
 
 from src.core.service.matcher.omaha_matcher import OmahaTableMatcher
-from src.core.utils.benchmark_utils import benchmark
 
 
 class DetectedPosition:
@@ -44,7 +43,6 @@ class PlayerPositionMatcher(OmahaTableMatcher):
             scale_factors=self.DEFAULT_SCALE_FACTORS
         )
 
-    @benchmark
     def read(self, image: np.ndarray) -> List[DetectedPosition]:
         """
         Override read method to add benchmark decorator

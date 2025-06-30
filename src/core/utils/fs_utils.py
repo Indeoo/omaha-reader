@@ -35,9 +35,10 @@ def get_image_names(timestamp_folder):
 
 def write_dict(bids_data, timestamp_folder, window_name):
     # Write as key-value pairs
-    file_path = os.path.join(timestamp_folder, f"bids_{window_name}.txt")
+    file_path = os.path.join(timestamp_folder, f"result_{window_name}.txt")
 
     with open(file_path, "w") as file:
-        json.dump(bids_data, file, indent=4)
+        for item, bid in bids_data.items():
+            file.write(f"{item}: ${bid:.2f}\n")
 
     print(f"Bids written to: {file_path}")

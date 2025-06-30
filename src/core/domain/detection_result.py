@@ -12,9 +12,9 @@ class DetectionResult:
 
     def __init__(
             self,
-            window_name: str,
-            filename: str,
-            captured_image: CapturedWindow,
+            # window_name: str,
+            # filename: str,
+            # captured_image: CapturedWindow,
             player_cards: Optional[List[ReadedCard]] = None,
             table_cards: Optional[List[ReadedCard]] = None,
             positions: Optional[List[Any]] = None,
@@ -32,9 +32,9 @@ class DetectionResult:
             positions: List of detected positions
             is_player_move: Whether it's player's turn to move
         """
-        self.window_name = window_name
-        self.filename = filename
-        self.captured_image = captured_image
+        # self.window_name = window_name
+        # self.filename = filename
+        # self.captured_image = captured_image
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.positions = positions or []
@@ -50,10 +50,10 @@ class DetectionResult:
         """Check if any positions were detected"""
         return bool(self.positions)
 
-    @property
-    def captured_item(self) -> Dict[str, Any]:
-        """Backward compatibility property - returns captured_image as dict"""
-        return self.captured_image.to_dict()
+    # @property
+    # def captured_item(self) -> Dict[str, Any]:
+    #     """Backward compatibility property - returns captured_image as dict"""
+    #     return self.captured_image.to_dict()
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -63,10 +63,10 @@ class DetectionResult:
             Dictionary representation of the detection result
         """
         return {
-            'window_name': self.window_name,
-            'filename': self.filename,
-            'captured_item': self.captured_image.to_dict(),  # For backward compatibility
-            'captured_image': self.captured_image,
+            # 'window_name': self.window_name,
+            # 'filename': self.filename,
+            # 'captured_item': self.captured_image.to_dict(),  # For backward compatibility
+            # 'captured_image': self.captured_image,
             'player_cards': self.player_cards,
             'table_cards': self.table_cards,
             'positions': self.positions,
@@ -93,9 +93,9 @@ class DetectionResult:
             captured_image = CapturedWindow.from_dict(data['captured_item'])
 
         return cls(
-            window_name=data['window_name'],
-            filename=data['filename'],
-            captured_image=captured_image,
+            # window_name=data['window_name'],
+            # filename=data['filename'],
+            # captured_image=captured_image,
             player_cards=data.get('player_cards', []),
             table_cards=data.get('table_cards', []),
             positions=data.get('positions', []),

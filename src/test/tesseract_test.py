@@ -98,7 +98,7 @@ class TestPytesseract(unittest.TestCase):
 
     def testReadBid(self):
         # Load and preprocess image
-        img_path = f"src/test/tables/test_move/3_move.png"
+        img_path = f"src/test/tables/test_move/5_move.png"
         #img = cv2.imread(f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
 
         img = cv2.imread(img_path)
@@ -109,7 +109,7 @@ class TestPytesseract(unittest.TestCase):
         print("Image shape (h, w, c):", img.shape)
 
         # Initial guess for bubble ROI (tweak these values as needed)
-        x, y, w, h = 461, 165, 25, 15
+        x, y, w, h = 200, 310, 40, 15
         roi = img_rgb[y:y + h, x:x + w]
 
         # Draw rectangle on the original image for context
@@ -159,7 +159,7 @@ class TestPytesseract(unittest.TestCase):
             'POSITION6': (562, 310, 45, 20),
             'POSITION5': (572, 207, 40, 25),
             'POSITION4': (450, 165, 45, 15),
-            'POSITION3': (185, 215, 45, 15),
-            'POSITION2': (195, 310, 45, 15),  # 215 + 95
+            'POSITION3': (185, 212, 45, 15),
+            'POSITION2': (200, 310, 40, 15),  # 215 + 95
             'POSITION1': (386, 334, 45, 15)  # 214 + 120
         }
