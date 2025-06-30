@@ -3,7 +3,6 @@ from typing import Dict, Optional
 from datetime import datetime
 
 from src.core.domain.game import Game
-from src.core.domain.street import Street
 
 
 class GameStateRepository:
@@ -83,14 +82,6 @@ class GameStateRepository:
 
             return False
 
-    # def get_previous_game_state(self, window_name: str) -> Optional[Game]:
-    #     with self._lock:
-    #         return self.previous_game_states.get(window_name)
-    #
-    # def store_previous_game_state(self, window_name: str, game: Game):
-    #     with self._lock:
-    #         self.previous_game_states[window_name] = game
-
     def get_latest_results_dict(self) -> dict:
         with self._lock:
             return {
@@ -105,16 +96,3 @@ class GameStateRepository:
                 'detections': [game.to_dict(window_name) for window_name, game in self.games.items()],
                 'last_update': self.last_update
             }
-
-    def is_empty(self) -> bool:
-        with self._lock:
-            return len(self.games) == 0
-
-    def remove_game(self, window_name: str):
-        with self._lock:
-            self.games.pop(window_name, None)
-            self.previous_game_states.pop(window_name, None)
-
-    def get_all_window_names(self) -> list[str]:
-        with self._lock:
-            return list(self.games.keys())

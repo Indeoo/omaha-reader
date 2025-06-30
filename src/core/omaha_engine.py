@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 
@@ -108,7 +106,7 @@ class OmahaEngine:
 
         if is_player_move:
             current_game = self.state_repository.get_by_window(window_name)
-            bids_before_update = self.state_repository.get_by_window(window_name).current_bids
+            bids_before_update = current_game.current_bids
 
             bids_result = self._poker_game_processor.detect_bids(captured_image)
             bids_updated = self.state_repository.update_bids(window_name, bids_result.bids)
