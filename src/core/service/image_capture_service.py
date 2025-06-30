@@ -9,6 +9,7 @@ from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
 from src.core.utils.capture_utils import capture_and_save_windows
+from src.core.utils.logs import console_logger
 
 
 class ImageCaptureService:
@@ -20,7 +21,7 @@ class ImageCaptureService:
         captured_windows = self.capture_windows(timestamp_folder)
 
         if not captured_windows:
-            logger.error("🚫 No poker tables detected")
+            console_logger.error("🚫 No poker tables detected")
             return []
 
         changed_images = []
