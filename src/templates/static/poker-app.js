@@ -137,14 +137,15 @@ function createTableContainer(detection, isUpdate) {
                         ${createPlayerCardsSection(detection, isUpdate)}
                     </div>
                 </div>
-                <div class="table-cards-column">
-                    ${createTableCardsSection(detection, isUpdate)}
-                </div>
+
 
             </div>
         </div>
     `;
 }
+                // <div class="table-cards-column">
+                //     ${createTableCardsSection(detection, isUpdate)}
+                // </div>
 
                 // <div class="positions-column">
                 //     <div class="cards-label">Positions:</div>
