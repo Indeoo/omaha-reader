@@ -83,29 +83,7 @@ class OmahaEngine:
 
             if bids_updated:
                 print(f"💰 Bids updated for {window_name} - reconstructing moves...")
-                self._reconstruct_moves(current_game, bids_before_update, bids_result.bids)
-
-    def _reconstruct_moves(self, current_game, previous_bids, current_bids):
-        current_street = current_game.get_street()
-        if not current_street:
-            return
-
-        moves = self.move_reconstructor.reconstruct_moves(
-            current_bids=current_bids,
-            previous_bids=previous_bids,
-            current_street=current_street,
-            positions=current_game.positions
-        )
-
-        if moves:
-            current_game.add_moves(moves, current_street)
-            print(f"    📝 Reconstructed {len(moves)} moves for {current_street.value}:")
-            for move in moves:
-                action_desc = f"{move.action_type.value}"
-                if move.amount > 0:
-                    action_desc += f" ${move.amount:.2f}"
-                player_label = f"P{move.player_number}"
-                print(f"        {player_label}: {action_desc}")
+                self.move_reconstructor.process_bid(current_game, bids_before_update, bids_result.bids)
 
     def _notify_observers(self):
         notification_data = self.game_state_manager.get_notification_data()

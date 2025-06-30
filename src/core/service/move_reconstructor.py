@@ -24,6 +24,28 @@ class Move:
 
 class MoveReconstructor:
 
+    def process_bid(self, current_game, previous_bids, current_bids):
+        current_street = current_game.get_street()
+        if not current_street:
+            return
+
+        moves = self.reconstruct_moves(
+            current_bids=current_bids,
+            previous_bids=previous_bids,
+            current_street=current_street,
+            positions=current_game.positions
+        )
+
+        if moves:
+            current_game.add_moves(moves, current_street)
+            print(f"    📝 Reconstructed {len(moves)} moves for {current_street.value}:")
+            for move in moves:
+                action_desc = f"{move.action_type.value}"
+                if move.amount > 0:
+                    action_desc += f" ${move.amount:.2f}"
+                player_label = f"P{move.player_number}"
+                print(f"        {player_label}: {action_desc}")
+
     def reconstruct_moves(self, current_bids: Dict[int, float], previous_bids: Dict[int, float],
                           current_street: Street, positions: Dict[int, str]) -> List[Move]:
         """
