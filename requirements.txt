@@ -7,3 +7,4 @@ flask-cors==6.0.1
 matplotlib==3.10.3
 flask-socketio==5.4.1
 python-socketio==5.13.0
+loguru==0.7.2

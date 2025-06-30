@@ -4,6 +4,7 @@ import os
 from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
+from loguru import logger
 
 
 class OmahaWebApi:
@@ -69,7 +70,7 @@ class OmahaWebApi:
 
         @self.socketio.on('connect')
         def handle_connect():
-            print(f"🔌 New client connected")
+            logger.info(f"🔌 New client connected")
 
             # Send current state immediately
             latest_results = self.state_repository.get_latest_results_dict()
@@ -82,7 +83,7 @@ class OmahaWebApi:
 
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            print(f"🔌 Client disconnected")
+            logger.info(f"🔌 Client disconnected")
 
     def get_socketio(self):
         return self.socketio

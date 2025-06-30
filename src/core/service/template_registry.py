@@ -1,6 +1,7 @@
 import os
 from typing import Dict, Optional
 import numpy as np
+from loguru import logger
 
 from src.core.utils.opencv_utils import load_templates
 
@@ -45,13 +46,13 @@ class TemplateRegistry:
         templates_path = os.path.join(self._templates_dir, category)
 
         if not os.path.exists(templates_path):
-            print(f"⚠️  Template directory not found: {templates_path}")
+            logger.error(f"⚠️  Template directory not found: {templates_path}")
             return {}
 
         try:
             return load_templates(templates_path)
         except Exception as e:
-            print(f"❌ Error loading {category} templates: {str(e)}")
+            logger.error(f"❌ Error loading {category} templates: {str(e)}")
             return {}
 
     def has_position_templates(self) -> bool:

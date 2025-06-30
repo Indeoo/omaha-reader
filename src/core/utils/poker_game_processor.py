@@ -1,5 +1,7 @@
 from typing import List, Dict
 
+from loguru import logger
+
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.readed_card import ReadedCard
@@ -74,9 +76,9 @@ class PokerGameProcessor:
                 reader.search_region = search_region
                 self._player_position_readers[player_num] = reader
 
-                print(f"✅ Player {player_num} position reader initialized with search region: {search_region}")
+                logger.info(f"✅ Player {player_num} position reader initialized with search region: {search_region}")
         except Exception as e:
-            print(f"❌ Error initializing player position readers: {str(e)}")
+            logger.error(f"❌ Error initializing player position readers: {str(e)}")
 
     def process_window(self, captured_image: CapturedWindow, timestamp_folder):
         window_name = captured_image.window_name
@@ -92,12 +94,12 @@ class PokerGameProcessor:
         if is_new_game:
             positions_result = self.detect_positions(cv2_image)
 
-            print(f"    ✅ Found positions:")
+            logger.info(f"    ✅ Found positions:")
             for i, position_result in enumerate(positions_result, 1):
                 player_num = i
                 position = position_result.position_name
                 position_type = f"Player {player_num}"
-                print(f"        {position_type}: {position}")
+                logger.info(f"        {position_type}: {position}")
 
             self.state_repository.start_new_game(
                 window_name,
@@ -121,7 +123,7 @@ class PokerGameProcessor:
             bids_updated = self.state_repository.update_bids(window_name, bids)
 
             if bids_updated:
-                print(f"💰 Bids updated for {window_name} - reconstructing moves...")
+                logger.info(f"💰 Bids updated for {window_name} - reconstructing moves...")
                 self.move_reconstructor.process_bid(current_game, bids_before_update, bids)
 
         if is_new_game or is_player_move or is_new_street:
@@ -161,12 +163,12 @@ class PokerGameProcessor:
                         player_positions.append(best_position)
 
                 except Exception as e:
-                    print(f"❌ Error checking player {player_num} position: {str(e)}")
+                    logger.error(f"❌ Error checking player {player_num} position: {str(e)}")
 
             return player_positions
 
         except Exception as e:
-            print(f"❌ Error detecting positions: {str(e)}")
+            logger.error(f"❌ Error detecting positions: {str(e)}")
             return []
 
     def detect_actions(self, cv2_image, window_name: str = "") -> List:
@@ -179,15 +181,15 @@ class PokerGameProcessor:
             if detected_moves:
                 move_types = [move.move_type for move in detected_moves]
                 if window_name:
-                    print(f"🎯 Player's move detected in {window_name}! Options: {', '.join(move_types)}")
+                    logger.info(f"🎯 Player's move detected in {window_name}! Options: {', '.join(move_types)}")
                 return detected_moves
             else:
                 if window_name:
-                    print(f"⏸️ Not player's move in {window_name} - no action buttons detected")
+                    logger.info(f"⏸️ Not player's move in {window_name} - no action buttons detected")
                 return []
 
         except Exception as e:
-            print(f"❌ Error detecting moves: {str(e)}")
+            logger.error(f"❌ Error detecting moves: {str(e)}")
             return []
 
     def is_player_move(self, cv2_image, window_name) -> bool:

@@ -5,11 +5,12 @@ from typing import List, Dict, Tuple, Union
 import cv2
 import numpy as np
 from PIL import Image
+from loguru import logger
 
 
 def pil_to_cv2(pil_image: Image.Image) -> np.ndarray:
     if pil_image.mode in ('RGBA', 'LA'):
-        print(f"Warning: Alpha channel in {pil_image.mode} image will be removed")
+        logger.info(f"Warning: Alpha channel in {pil_image.mode} image will be removed")
 
     if pil_image.mode != 'RGB':
         pil_image = pil_image.convert('RGB')
@@ -31,7 +32,7 @@ def match_cv2_template(scaled_h, scaled_w, search_image, template):
 
 
 def load_templates(template_dir):
-    print(f"📁 Loading templates from: {template_dir}")
+    logger.info(f"📁 Loading templates from: {template_dir}")
 
     templates = {}
     for tpl_path in glob.glob(os.path.join(template_dir, '*.png')):
@@ -42,7 +43,7 @@ def load_templates(template_dir):
     if not templates:
         raise Exception("❌ No player templates loaded! Please check the templates directory.")
     else:
-        print(f"✅ Loaded {len(templates)} templates: {list(templates.keys())}")
+        logger.info(f"✅ Loaded {len(templates)} templates: {list(templates.keys())}")
 
     return templates
 

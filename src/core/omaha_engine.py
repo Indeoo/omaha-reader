@@ -1,10 +1,13 @@
 import os
+
 from apscheduler.schedulers.background import BackgroundScheduler
+from loguru import logger
 
 from src.core.service.detection_notifier import DetectionNotifier
 from src.core.service.image_capture_service import ImageCaptureService
 from src.core.service.state_repository import GameStateRepository
 from src.core.utils.fs_utils import create_timestamp_folder
+from src.core.utils.logs import load_logger
 from src.core.utils.poker_game_processor import PokerGameProcessor
 
 
@@ -47,22 +50,23 @@ class OmahaEngine:
     def start_scheduler(self):
         if not self.scheduler.running:
             self.scheduler.start()
-            print(f"✅ Detection scheduler started (interval: {self.detection_interval}s)")
+            logger.info(f"✅ Detection scheduler started (interval: {self.detection_interval}s)")
         else:
-            print("⚠️ Detection scheduler is already running")
+            logger.info("⚠️ Detection scheduler is already running")
 
     def stop_scheduler(self):
         if self.scheduler.running:
             self.scheduler.shutdown(wait=True)
-            print("✅ Detection scheduler stopped")
+            logger.info("✅ Detection scheduler stopped")
         else:
-            print("⚠️ Detection scheduler is not running")
+            logger.info("⚠️ Detection scheduler is not running")
 
     def is_scheduler_running(self) -> bool:
         return self.scheduler.running
 
     def detect_and_notify(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
+        load_logger(timestamp_folder)
         changed_images = self.image_capture_service.get_changed_images(timestamp_folder)
 
         if changed_images:
@@ -72,14 +76,14 @@ class OmahaEngine:
     def _process_windows(self, captured_windows, timestamp_folder):
         for i, captured_image in enumerate(captured_windows):
             try:
-                print(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
-                print("-" * 40)
+                logger.info(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
+                logger.info("-" * 40)
                 self.poker_game_processor.process_window(captured_image, timestamp_folder)
 
             except Exception as e:
-                print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
+                logger.error(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
     def _notify_observers(self):
         notification_data = self.state_repository.get_notification_data()
         self.notifier.notify_observers(notification_data)
-        print(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
+        logger.info(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")

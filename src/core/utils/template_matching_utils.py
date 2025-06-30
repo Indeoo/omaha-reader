@@ -2,6 +2,8 @@ import numpy as np
 from typing import List, Tuple, Dict
 from concurrent.futures import ThreadPoolExecutor
 
+from loguru import logger
+
 from src.core.utils.opencv_utils import match_template_at_scale
 
 
@@ -93,7 +95,7 @@ def find_single_template_matches(
             detections.extend(scale_detections)
 
     except Exception as e:
-        print(f"{e} template name: {template_name}")
+        logger.error(f"{e} template name: {template_name}")
         raise e
 
     return detections

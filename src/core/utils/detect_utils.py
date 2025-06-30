@@ -1,6 +1,7 @@
 from typing import List, Dict, Union
 
 import numpy as np
+from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.readed_card import ReadedCard
@@ -41,12 +42,12 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
         save_opencv_image(result_image, timestamp_folder, result_filename)
 
         if drawn_items:
-            print(f"    📷 Saved {result_filename} with: {', '.join(drawn_items)}")
+            logger.info(f"    📷 Saved {result_filename} with: {', '.join(drawn_items)}")
         else:
-            print(f"    📷 Saved {result_filename} (no detections)")
+            logger.info(f"    📷 Saved {result_filename} (no detections)")
 
     except Exception as e:
-        print(f"    ❌ Error saving result image for {window_name}: {str(e)}")
+        logger.error(f"    ❌ Error saving result image for {window_name}: {str(e)}")
 
 
 def draw_cards(image: np.ndarray, readed_cards: List[ReadedCard], color=(0, 255, 0)) -> np.ndarray:

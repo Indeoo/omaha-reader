@@ -5,6 +5,8 @@ Extracted from DetectionService for better separation of concerns.
 """
 from typing import List, Dict
 
+from loguru import logger
+
 from src.core.domain.captured_window import CapturedWindow
 from src.core.utils.capture_utils import capture_and_save_windows
 
@@ -18,7 +20,7 @@ class ImageCaptureService:
         captured_windows = self.capture_windows(timestamp_folder)
 
         if not captured_windows:
-            print("🚫 No poker tables detected")
+            logger.error("🚫 No poker tables detected")
             return []
 
         changed_images = []
@@ -36,9 +38,9 @@ class ImageCaptureService:
         self._window_hashes = current_hashes
 
         if changed_images:
-            print(f"🔍 Processing {len(changed_images)} changed/new images out of {len(captured_windows)} total")
+            logger.info(f"🔍 Processing {len(changed_images)} changed/new images out of {len(captured_windows)} total")
         else:
-            print("📊 All windows unchanged")
+            logger.info("📊 All windows unchanged")
 
         return changed_images
 

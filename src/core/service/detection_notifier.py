@@ -5,6 +5,8 @@ Extracted from DetectionService for better separation of concerns.
 """
 from typing import List, Callable
 
+from loguru import logger
+
 
 class DetectionNotifier:
     """
@@ -25,7 +27,7 @@ class DetectionNotifier:
             try:
                 observer(data)
             except Exception as e:
-                print(f"❌ Error notifying observer: {str(e)}")
+                logger.error(f"❌ Error notifying observer: {str(e)}")
 
     def get_observer_count(self) -> int:
         """Get the number of registered observers"""

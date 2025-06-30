@@ -3,6 +3,7 @@ from datetime import datetime
 import os
 
 from PIL import Image, ImageGrab
+from loguru import logger
 
 
 def careful_capture_window(hwnd, width, height):
@@ -96,7 +97,7 @@ def careful_capture_window(hwnd, width, height):
                     pass
 
     except Exception as e:
-        print(f"  Capture error: {e}")
+        logger.error(f"  Capture error: {e}")
         return None
 
 
@@ -107,7 +108,7 @@ def capture_screen_region(rect):
         window_img = screen.crop(rect)
         return window_img
     except Exception as e:
-        print(f"  Error capturing screen region: {e}")
+        logger.error(f"  Error capturing screen region: {e}")
         return None
 
 
@@ -184,4 +185,4 @@ def write_windows_list(windows, output_folder):
         #print(f"Window list written to: {windows_file_path}")
 
     except Exception as e:
-        print(f"Error writing windows list: {e}")
+        logger.error(f"Error writing windows list: {e}")

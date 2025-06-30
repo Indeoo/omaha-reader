@@ -2,6 +2,7 @@ from typing import Dict
 
 import cv2
 import pytesseract
+from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
 
@@ -28,7 +29,7 @@ def detect_bids(captured_image: CapturedWindow) -> Dict[int, str]:
         return bids
 
     except Exception as e:
-        print(f"❌ Error detecting bids: {str(e)}")
+        logger.error(f"❌ Error detecting bids: {str(e)}")
         return {}
 
 
@@ -60,5 +61,5 @@ def detect_single_bid(captured_image: CapturedWindow, x: int, y: int, w: int, h:
         return text
 
     except Exception as e:
-        print(f"❌ Error detecting bids at ({x}, {y}): {str(e)}")
+        logger.error(f"❌ Error detecting bids at ({x}, {y}): {str(e)}")
         return ""

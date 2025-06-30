@@ -1,6 +1,7 @@
 import unittest
 
 import cv2
+from loguru import logger
 from matplotlib import pyplot as plt
 
 
@@ -16,7 +17,7 @@ class PltTest(unittest.TestCase):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # Print image shape for reference
-        print("Image shape (h, w, c):", img.shape)
+        logger.info("Image shape (h, w, c):", img.shape)
 
         # Initial guess for bubble ROI (tweak these values as needed)
         x, y, w, h = 297, 120, 40, 40

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 import multiprocessing
 from typing import List, Dict, Tuple, Optional, Any
 import numpy as np
+from loguru import logger
 
 from src.core.utils.template_matching_utils import (
     find_template_matches_parallel,
@@ -55,7 +56,7 @@ class OmahaTableMatcher(ABC):
             List of detected objects (type depends on subclass)
         """
         if not self.templates:
-            print(f"No templates loaded for {self.__class__.__name__}!")
+            logger.error(f"No templates loaded for {self.__class__.__name__}!")
             return []
 
         # Find all template matches

@@ -5,6 +5,7 @@ from PIL import Image, ImageEnhance, ImageOps
 import pytesseract
 import re
 
+from loguru import logger
 from matplotlib import pyplot as plt
 
 
@@ -27,7 +28,7 @@ class TestPytesseract(unittest.TestCase):
         config = "--psm 6 -c tessedit_char_whitelist=0123456789.:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
         text_full = pytesseract.image_to_string(resized_full, config=config)
 
-        print(text_full.strip())
+        logger.info(text_full.strip())
 
         total_match = re.search(r'Total.?pot[:\s]*([\d.]+)', text_full)
         main_match = re.search(r'Main.?pot[:\s]*([\d.]+)', text_full)
@@ -35,8 +36,8 @@ class TestPytesseract(unittest.TestCase):
         total_pot = total_match.group(1) if total_match else "Not found"
         main_pot = main_match.group(1) if main_match else "Not found"
 
-        print(total_pot)
-        print(main_pot)
+        logger.info(total_pot)
+        logger.info(main_pot)
 
 
     def testBalances(self):
@@ -67,7 +68,7 @@ class TestPytesseract(unittest.TestCase):
             text = data['text'][i].strip()
             conf = int(data['conf'][i])
             if text != '' and conf > 80:
-                print(f"Text: {text} | Confidence: {conf} | Position: ({data['left'][i]}, {data['top'][i]})")
+                logger.info(f"Text: {text} | Confidence: {conf} | Position: ({data['left'][i]}, {data['top'][i]})")
 
         seat_coords = {
             'CO': (370, 430, 90, 25),
@@ -81,7 +82,7 @@ class TestPytesseract(unittest.TestCase):
             _, crop = cv2.threshold(crop, 160, 255, cv2.THRESH_BINARY)
             crop = cv2.resize(crop, None, fx=2, fy=2)
             text = pytesseract.image_to_string(crop, config=config)
-            print(f"{seat}: {text.strip()}")
+            logger.info(f"{seat}: {text.strip()}")
 
         # for i in range(len(data['text'])):
         #     text = data['text'][i].strip()
@@ -106,7 +107,7 @@ class TestPytesseract(unittest.TestCase):
         img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # Print image shape for reference
-        print("Image shape (h, w, c):", img.shape)
+        logger.info("Image shape (h, w, c):", img.shape)
 
         # Initial guess for bubble ROI (tweak these values as needed)
         x, y, w, h = 200, 310, 40, 15
@@ -152,7 +153,7 @@ class TestPytesseract(unittest.TestCase):
         )
         text = pytesseract.image_to_string(dilated, config=config).strip()
 
-        print("Detected bid:", text)
+        logger.info("Detected bid:", text)
 
         # Map of coordinates for each position
         position_coords = {

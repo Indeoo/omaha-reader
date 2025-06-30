@@ -2,6 +2,7 @@ from typing import Optional
 from PIL import Image
 import hashlib
 import numpy as np
+from loguru import logger
 
 from src.core.utils.opencv_utils import pil_to_cv2
 
@@ -33,7 +34,7 @@ class CapturedWindow:
                 image_bytes = resized_image.tobytes()
                 self._image_hash = hashlib.sha256(image_bytes).hexdigest()[:16]
             except Exception as e:
-                print(f"❌ Error calculating image hash: {str(e)}")
+                logger.error(f"❌ Error calculating image hash: {str(e)}")
                 self._image_hash = ""
 
         return self._image_hash
@@ -46,7 +47,7 @@ class CapturedWindow:
             self.image.save(filepath)
             return True
         except Exception as e:
-            print(f"❌ Failed to save {self.filename}: {e}")
+            logger.error(f"❌ Failed to save {self.filename}: {e}")
             return False
 
     def to_dict(self) -> dict:

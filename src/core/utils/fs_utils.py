@@ -2,6 +2,8 @@ import json
 import os
 from datetime import datetime
 
+from loguru import logger
+
 DEBUG_FOLDER = "src/test/tables/test_move"
 
 
@@ -43,7 +45,7 @@ def write_dict(bids_data, timestamp_folder, window_name):
 
         # Check if we have data to write
         if not bids_data:
-            print("Warning: No bids data to write")
+            logger.info("Warning: No bids data to write")
             return
 
         # Write as key-value pairs
@@ -51,8 +53,8 @@ def write_dict(bids_data, timestamp_folder, window_name):
             for item, bid in bids_data.items():
                 file.write(f"{item}: ${bid:.2f}\n")
 
-        print(f"Bids written to: {file_path}")
-        print(f"Successfully wrote {len(bids_data)} items")
+        logger.info(f"Bids written to: {file_path}")
+        logger.info(f"Successfully wrote {len(bids_data)} items")
 
     except Exception as e:
-        print(f"Error writing bids data: {e}")
+        logger.error(f"Error writing bids data: {e}")
