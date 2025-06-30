@@ -1,17 +1,22 @@
+import os
+
+from flask.cli import load_dotenv
+
 from src.core.web.omaha_web_api import OmahaWebApi
 from src.core.omaha_engine import OmahaEngine
 
+load_dotenv()
 # Configuration
-WAIT_TIME = 10
-DEBUG_MODE = True
-
+WAIT_TIME = int(os.getenv('WAIT_TIME', '10'))
+DEBUG_MODE = os.getenv('DEBUG_MODE', 'true').lower() == 'true'
+COUNTRY = os.getenv('COUNTRY', "canada").lower()
 
 def main():
     print("🎯 Initializing Web-based Omaha Card Reader")
 
     try:
         # Initialize omaha engine
-        omaha_engine = OmahaEngine(debug_mode=DEBUG_MODE, detection_interval=WAIT_TIME)
+        omaha_engine = OmahaEngine(country=COUNTRY, debug_mode=DEBUG_MODE, detection_interval=WAIT_TIME)
 
         # Initialize web service (keep OmahaWebApi separate)
         app_factory = OmahaWebApi(omaha_engine=omaha_engine)
