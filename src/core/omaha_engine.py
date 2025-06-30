@@ -36,9 +36,6 @@ class OmahaEngine:
     def add_observer(self, callback):
         self.notifier.add_observer(callback)
 
-    # def get_latest_results(self) -> dict:
-    #     return self.game_state_manager.get_latest_results()
-
     def detect_and_notify(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
         changed_images = self.image_capture_service.get_changed_images(timestamp_folder)
