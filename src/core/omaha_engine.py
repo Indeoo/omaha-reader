@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from src.core.domain.readed_card import ReadedCard
 from src.core.service.detection_notifier import DetectionNotifier
@@ -13,8 +14,9 @@ from src.core.domain.captured_image import CapturedWindow
 
 
 class OmahaEngine:
-    def __init__(self, country="canada", debug_mode: bool = True):
+    def __init__(self, country="canada", debug_mode: bool = True, detection_interval: int = 10):
         self.debug_mode = debug_mode
+        self.detection_interval = detection_interval
 
         self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
         self.notifier = DetectionNotifier()
@@ -32,8 +34,38 @@ class OmahaEngine:
             write_detection_files=False
         )
 
+        self.scheduler = BackgroundScheduler()
+        self._setup_scheduler()
+
+    def _setup_scheduler(self):
+        self.scheduler.add_job(
+            func=self.detect_and_notify,
+            trigger='interval',
+            seconds=self.detection_interval,
+            id='detect_and_notify',
+            name='Poker Detection Job',
+            replace_existing=True
+        )
+
     def add_observer(self, callback):
         self.notifier.add_observer(callback)
+
+    def start_scheduler(self):
+        if not self.scheduler.running:
+            self.scheduler.start()
+            print(f"✅ Detection scheduler started (interval: {self.detection_interval}s)")
+        else:
+            print("⚠️ Detection scheduler is already running")
+
+    def stop_scheduler(self):
+        if self.scheduler.running:
+            self.scheduler.shutdown(wait=True)
+            print("✅ Detection scheduler stopped")
+        else:
+            print("⚠️ Detection scheduler is not running")
+
+    def is_scheduler_running(self) -> bool:
+        return self.scheduler.running
 
     def detect_and_notify(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
