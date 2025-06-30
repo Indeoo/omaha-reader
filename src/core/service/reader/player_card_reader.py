@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple, Optional
 import numpy as np
 
-from src.core.reader.table_reader import TableReader
+from src.core.service.reader.table_reader import TableReader
 from src.core.domain.readed_card import ReadedCard
 
 

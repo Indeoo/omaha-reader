@@ -6,7 +6,7 @@ import os
 from flask import Flask, render_template, jsonify, Response
 from flask_cors import CORS
 
-from src.core.service.sse_manager import SSEManager
+from src.core.web.sse_manager import SSEManager
 
 
 class OmahaWebApi:
