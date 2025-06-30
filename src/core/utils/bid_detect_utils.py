@@ -1,7 +1,35 @@
+from typing import Dict
+
 import cv2
 import pytesseract
 
 from src.core.domain.captured_window import CapturedWindow
+
+
+BIDS_POSITIONS = {
+        1: (388, 334, 45, 15),
+        2: (195, 310, 45, 15),
+        3: (185, 215, 45, 15),
+        4: (450, 165, 45, 15),
+        5: (572, 207, 40, 25),
+        6: (562, 310, 45, 20),
+    }
+
+
+def detect_bids(captured_image: CapturedWindow) -> Dict[int, str]:
+    bids = {}
+
+    try:
+        for position_name, (x, y, w, h) in BIDS_POSITIONS.items():
+            bid = detect_single_bid(captured_image, x, y, w, h)
+            if bid:
+                bids[position_name] = float(bid)
+
+        return bids
+
+    except Exception as e:
+        print(f"❌ Error detecting bids: {str(e)}")
+        return {}
 
 
 def detect_single_bid(captured_image: CapturedWindow, x: int, y: int, w: int, h: int) -> str:

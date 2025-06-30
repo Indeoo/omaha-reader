@@ -9,7 +9,7 @@ from src.core.service.matcher.table_card_matcher import OmahaTableCard
 from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.service.state_repository import GameStateRepository
 from src.core.service.template_registry import TemplateRegistry
-from src.core.utils.bid_detect_utils import detect_single_bid
+from src.core.utils.bid_detect_utils import detect_bids
 from src.core.utils.opencv_utils import coords_to_search_region
 
 
@@ -24,11 +24,6 @@ class ActionDetectionResult:
         self.is_player_turn = is_player_turn
 
 
-class BidDetectionResult:
-    def __init__(self, bids: Dict[str, str]):
-        self.bids = bids
-
-
 class GameConfiguration:
     PLAYER_POSITIONS = {
         1: {'x': 300, 'y': 375, 'w': 40, 'h': 40},
@@ -40,15 +35,6 @@ class GameConfiguration:
     }
 
     POSITION_MARGIN = 10
-
-    BIDS_POSITIONS = {
-        1: (388, 334, 45, 15),
-        2: (195, 310, 45, 15),
-        3: (185, 215, 45, 15),
-        4: (450, 165, 45, 15),
-        5: (572, 207, 40, 25),
-        6: (562, 310, 45, 20),
-    }
 
     IMAGE_WIDTH = 784
     IMAGE_HEIGHT = 584
@@ -126,12 +112,12 @@ class PokerGameProcessor:
             current_game = self.state_repository.get_by_window(window_name)
             bids_before_update = current_game.current_bids
 
-            bids_result = self.detect_bids(captured_image)
-            bids_updated = self.state_repository.update_bids(window_name, bids_result.bids)
+            bids = detect_bids(captured_image)
+            bids_updated = self.state_repository.update_bids(window_name, bids)
 
             if bids_updated:
                 print(f"💰 Bids updated for {window_name} - reconstructing moves...")
-                self.move_reconstructor.process_bid(current_game, bids_before_update, bids_result.bids)
+                self.move_reconstructor.process_bid(current_game, bids_before_update, bids)
 
     def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
         player_cards = PlayerCardMatcher(
@@ -197,17 +183,3 @@ class PokerGameProcessor:
     def is_player_move(self, cv2_image, window_name) -> bool:
         return len(self.detect_actions(cv2_image, window_name).available_moves) > 0
 
-    def detect_bids(self, captured_image: CapturedWindow) -> BidDetectionResult:
-        bids = {}
-
-        try:
-            for position_name, (x, y, w, h) in self.config.BIDS_POSITIONS.items():
-                bid = detect_single_bid(captured_image, x, y, w, h)
-                if bid:
-                    bids[position_name] = float(bid)
-
-            return BidDetectionResult(bids)
-
-        except Exception as e:
-            print(f"❌ Error detecting bids: {str(e)}")
-            return BidDetectionResult({})
