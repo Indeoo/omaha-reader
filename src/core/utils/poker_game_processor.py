@@ -119,7 +119,8 @@ class PokerGameProcessor:
             bids_before_update = current_game.current_bids
 
             bids = detect_bids(captured_image)
-            write_dict(bids, timestamp_folder, captured_image.filename)
+            logger.info(f"    <UNK> Found bids: {bids}")
+            #write_dict(bids, timestamp_folder, captured_image.filename)
             bids_updated = self.state_repository.update_bids(window_name, bids)
 
             if bids_updated:
