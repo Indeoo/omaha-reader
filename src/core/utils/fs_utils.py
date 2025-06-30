@@ -7,21 +7,23 @@ from loguru import logger
 DEBUG_FOLDER = "src/test/tables/test_move"
 
 
-def create_timestamp_folder(DEBUG_MODE = False) -> str:
+def create_timestamp_folder(DEBUG_MODE=False) -> str:
     """
     Create timestamp folder path for current session
 
     Returns:
         String path to timestamp folder
     """
-    session_timestamp = datetime.now().strftime("%Y_%m_%d_%H%M%S")
+    now = datetime.now()
+    date_folder = now.strftime("%Y_%m_%d")
+    time_folder = now.strftime("%H%M%S")
 
     if DEBUG_MODE:
         # Debug mode - use existing folder
-        timestamp_folder = os.path.join(os.getcwd(),DEBUG_FOLDER)
+        timestamp_folder = os.path.join(os.getcwd(), DEBUG_FOLDER)
     else:
-        # Live mode - create new folder
-        timestamp_folder = os.path.join(os.getcwd(), f"resources/results/{session_timestamp}")
+        # Live mode - create new folder 
+        timestamp_folder = os.path.join(os.getcwd(), "resources/results", date_folder, time_folder)
 
     return timestamp_folder
 
