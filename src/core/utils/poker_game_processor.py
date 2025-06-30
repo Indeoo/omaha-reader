@@ -93,6 +93,7 @@ class PokerGameProcessor:
         table_cards = self.detect_table_cards(cv2_image)
 
         positions_result = None
+        is_new_street = False
 
         if is_new_game:
             positions_result = self.detect_positions(cv2_image)
@@ -129,14 +130,15 @@ class PokerGameProcessor:
                 print(f"💰 Bids updated for {window_name} - reconstructing moves...")
                 self.move_reconstructor.process_bid(current_game, bids_before_update, bids)
 
-        result = DetectionResult(
-            player_cards,
-            table_cards,
-            positions_result,
-            is_player_move,
-        )
+        if is_new_game or is_player_move or is_new_street:
+            result = DetectionResult(
+                player_cards,
+                table_cards,
+                positions_result,
+                is_player_move,
+            )
 
-        save_detection_result_image(timestamp_folder, captured_image, result)
+            save_detection_result_image(timestamp_folder, captured_image, result)
 
     def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
         player_cards = PlayerCardMatcher(
