@@ -10,7 +10,7 @@ from src.core.utils.template_matching_utils import (
 )
 
 
-class TableReader(ABC):
+class OmahaTableMatcher(ABC):
     """
     Base class for all table-based readers (cards, positions, etc.)
     Contains common template matching logic

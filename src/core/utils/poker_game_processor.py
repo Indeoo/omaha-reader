@@ -3,13 +3,13 @@ from typing import List, Dict, Optional
 import cv2
 import pytesseract
 
-from src.core.domain.captured_image import CapturedWindow
+from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.readed_card import ReadedCard
-from src.core.service.reader.player_card_reader import PlayerCardReader
-from src.core.service.reader.player_move_reader import PlayerActionReader
-from src.core.service.reader.player_position_reader import PlayerPositionReader
-from src.core.service.reader.table_card_reader import TableCardReader
+from src.core.service.matcher.player_card_reader import PlayerCardMatcher
+from src.core.service.matcher.player_move_reader import PlayerActionMatcher
+from src.core.service.matcher.player_position_reader import PlayerPositionMatcher
+from src.core.service.matcher.table_card_reader import OmahaTableCard
 from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.opencv_utils import coords_to_search_region
 
@@ -77,7 +77,7 @@ class PokerGameProcessor:
     def _init_readers(self):
         self._player_move_reader = None
         #if self.template_registry.has_action_templates():
-        self._player_move_reader = PlayerActionReader(self.template_registry.action_templates)
+        self._player_move_reader = PlayerActionMatcher(self.template_registry.action_templates)
         self._player_position_readers = {}
         self._init_all_player_position_readers()
 
@@ -96,7 +96,7 @@ class PokerGameProcessor:
                     image_height=self.config.IMAGE_HEIGHT
                 )
 
-                reader = PlayerPositionReader(self.template_registry.position_templates)
+                reader = PlayerPositionMatcher(self.template_registry.position_templates)
                 reader.search_region = search_region
                 self._player_position_readers[player_num] = reader
 
@@ -105,15 +105,15 @@ class PokerGameProcessor:
             print(f"❌ Error initializing player position readers: {str(e)}")
 
     def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
-        player_cards = PlayerCardReader(
+        player_cards = PlayerCardMatcher(
             self.template_registry.player_templates,
-            PlayerCardReader.DEFAULT_SEARCH_REGION
+            PlayerCardMatcher.DEFAULT_SEARCH_REGION
         ).read(cv2_image)
 
         return player_cards
 
     def detect_table_cards(self, cv2_image) -> List[ReadedCard]:
-        return TableCardReader(self.template_registry.table_templates, None).read(cv2_image)
+        return OmahaTableCard(self.template_registry.table_templates, None).read(cv2_image)
 
     def detect_positions(self, cv2_image) -> PositionDetectionResult:
         if not self.template_registry.has_position_templates() or not self._player_position_readers:

@@ -5,7 +5,7 @@ Extracted from DetectionService for better separation of concerns.
 """
 from typing import List, Dict
 
-from src.core.domain.captured_image import CapturedWindow
+from src.core.domain.captured_window import CapturedWindow
 from src.core.utils.capture_utils import capture_and_save_windows
 
 

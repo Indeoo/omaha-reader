@@ -1,15 +1,14 @@
-from typing import List, Dict, Tuple, Optional
+from typing import List, Dict, Optional, Tuple
 import numpy as np
 
-from src.core.service.reader.table_reader import TableReader
 from src.core.domain.readed_card import ReadedCard
+from src.core.service.matcher.omaha_matcher import OmahaTableMatcher
 
 
-class PlayerCardReader(TableReader):
-    """Player card reader for Omaha poker using template matching"""
+class OmahaTableCard(OmahaTableMatcher):
+    """Table card reader for community cards using template matching"""
 
-    # Default configuration for Omaha player cards
-    DEFAULT_SEARCH_REGION = (0.2, 0.5, 0.8, 0.95)  # (left, top, right, bottom)
+    # Default configuration for table cards
     DEFAULT_MATCH_THRESHOLD = 0.955
     DEFAULT_OVERLAP_THRESHOLD = 0.3
     DEFAULT_MIN_CARD_SIZE = 20
@@ -19,15 +18,16 @@ class PlayerCardReader(TableReader):
                  templates: Dict[str, np.ndarray],
                  search_region: Optional[Tuple[float, float, float, float]] = None):
         """
-        Initialize Omaha card reader
+        Initialize table card reader
 
         Args:
             templates: Dictionary of template_name -> template_image
             search_region: (left, top, right, bottom) as ratios of image size
+                          If None, searches entire image
         """
         super().__init__(
             templates=templates,
-            search_region=search_region or self.DEFAULT_SEARCH_REGION,
+            search_region=search_region,  # No default region - search entire image
             match_threshold=self.DEFAULT_MATCH_THRESHOLD,
             overlap_threshold=self.DEFAULT_OVERLAP_THRESHOLD,
             min_detection_size=self.DEFAULT_MIN_CARD_SIZE,
@@ -59,7 +59,7 @@ class PlayerCardReader(TableReader):
                 area=w * h,
                 template_name=detection['template_name'],
                 match_score=detection['match_score'],
-                is_valid=True,  # Player cards are considered valid if detected
+                is_valid=True,  # Table cards are considered valid if detected
                 scale=detection['scale']
             )
             readed_cards.append(readed_card)

@@ -1,6 +1,7 @@
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 
+from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.readed_card import ReadedCard
 from src.core.service.detection_notifier import DetectionNotifier
 from src.core.service.game_state_manager import GameStateManager
@@ -8,7 +9,6 @@ from src.core.service.image_capture_service import ImageCaptureService
 from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.utils.fs_utils import create_timestamp_folder
 from src.core.utils.poker_game_processor import PokerGameProcessor
-from src.core.domain.captured_image import CapturedWindow
 
 
 class OmahaEngine:

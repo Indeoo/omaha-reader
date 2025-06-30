@@ -1,7 +1,7 @@
 from typing import List, Dict, Tuple
 import numpy as np
 
-from src.core.service.reader.table_reader import TableReader
+from src.core.service.matcher.omaha_matcher import OmahaTableMatcher
 from src.core.utils.benchmark_utils import benchmark
 
 
@@ -19,7 +19,7 @@ class DetectedMove:
         return f"DetectedMove({self.move_type}, score={self.match_score:.3f}, center={self.center})"
 
 
-class PlayerActionReader(TableReader):
+class PlayerActionMatcher(OmahaTableMatcher):
     """Detects player move options (Fold, Call, Raise, etc.) in poker table images"""
 
     # Default configuration for move detection

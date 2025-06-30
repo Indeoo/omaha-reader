@@ -4,7 +4,7 @@ import ctypes
 
 from PIL import ImageGrab, Image
 
-from src.core.domain.captured_image import CapturedWindow
+from src.core.domain.captured_window import CapturedWindow
 from src.core.utils.fs_utils import get_image_names
 from src.core.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
