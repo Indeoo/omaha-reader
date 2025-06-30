@@ -1,26 +1,21 @@
-from typing import List, Dict, Optional
-
-import cv2
-import pytesseract
+from typing import List, Dict
 
 from src.core.domain.captured_window import CapturedWindow
-from src.core.domain.detection_result import DetectionResult
 from src.core.domain.readed_card import ReadedCard
-from src.core.service.matcher.player_card_reader import PlayerCardMatcher
-from src.core.service.matcher.player_move_reader import PlayerActionMatcher
-from src.core.service.matcher.player_position_reader import PlayerPositionMatcher
-from src.core.service.matcher.table_card_reader import OmahaTableCard
+from src.core.service.matcher.player_action_matcher import PlayerActionMatcher
+from src.core.service.matcher.player_card_matcher import PlayerCardMatcher
+from src.core.service.matcher.player_position_matcher import PlayerPositionMatcher
+from src.core.service.matcher.table_card_matcher import OmahaTableCard
+from src.core.service.move_reconstructor import MoveReconstructor
+from src.core.service.state_repository import GameStateRepository
 from src.core.service.template_registry import TemplateRegistry
+from src.core.utils.bid_detect_utils import detect_single_bid
 from src.core.utils.opencv_utils import coords_to_search_region
 
 
 class PositionDetectionResult:
     def __init__(self, player_positions: Dict[int, str]):
         self.player_positions = player_positions
-
-    @property
-    def has_positions(self) -> bool:
-        return bool(self.player_positions)
 
 
 class ActionDetectionResult:
@@ -62,21 +57,23 @@ class GameConfiguration:
 class PokerGameProcessor:
     def __init__(
             self,
+            state_repository: GameStateRepository,
             country: str = "canada",
             project_root: str = None,
             save_result_images=True,
             write_detection_files=True,
     ):
+        self.state_repository = state_repository
         self.save_result_images = save_result_images
         self.write_detection_files = write_detection_files
         self.config = GameConfiguration()
+        self.move_reconstructor = MoveReconstructor()
 
         self.template_registry = TemplateRegistry(country, project_root)
         self._init_readers()
 
     def _init_readers(self):
         self._player_move_reader = None
-        #if self.template_registry.has_action_templates():
         self._player_move_reader = PlayerActionMatcher(self.template_registry.action_templates)
         self._player_position_readers = {}
         self._init_all_player_position_readers()
@@ -103,6 +100,38 @@ class PokerGameProcessor:
                 print(f"✅ Player {player_num} position reader initialized with search region: {search_region}")
         except Exception as e:
             print(f"❌ Error initializing player position readers: {str(e)}")
+
+    def process_window(self, captured_image: CapturedWindow):
+        window_name = captured_image.window_name
+        cv2_image = captured_image.get_cv2_image()
+
+        player_cards = self.detect_player_cards(cv2_image)
+        is_new_game = self.state_repository.is_new_game(window_name, player_cards)
+        table_cards = self.detect_table_cards(cv2_image)
+
+        if is_new_game:
+            positions_result = self.detect_positions(cv2_image)
+            self.state_repository.start_new_game(window_name, player_cards, table_cards, positions_result.player_positions)
+        else:
+            previous_table_cards = self.state_repository.get_table_cards(window_name)
+            is_new_street = ReadedCard.format_cards_simple(table_cards) != ReadedCard.format_cards_simple(
+                previous_table_cards)
+
+            if is_new_street:
+                self.state_repository.update_table_cards(window_name, table_cards)
+
+        is_player_move = self.is_player_move(cv2_image, window_name)
+
+        if is_player_move:
+            current_game = self.state_repository.get_by_window(window_name)
+            bids_before_update = current_game.current_bids
+
+            bids_result = self.detect_bids(captured_image)
+            bids_updated = self.state_repository.update_bids(window_name, bids_result.bids)
+
+            if bids_updated:
+                print(f"💰 Bids updated for {window_name} - reconstructing moves...")
+                self.move_reconstructor.process_bid(current_game, bids_before_update, bids_result.bids)
 
     def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
         player_cards = PlayerCardMatcher(
@@ -173,7 +202,7 @@ class PokerGameProcessor:
 
         try:
             for position_name, (x, y, w, h) in self.config.BIDS_POSITIONS.items():
-                bid = self.detect_single_bid(captured_image, x, y, w, h)
+                bid = detect_single_bid(captured_image, x, y, w, h)
                 if bid:
                     bids[position_name] = float(bid)
 
@@ -182,68 +211,3 @@ class PokerGameProcessor:
         except Exception as e:
             print(f"❌ Error detecting bids: {str(e)}")
             return BidDetectionResult({})
-
-    def detect_single_bid(self, captured_image: CapturedWindow, x: int, y: int, w: int, h: int) -> str:
-        try:
-            cv2_image = captured_image.get_cv2_image()
-            gray = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
-
-            crop = gray[y: y + h, x: x + w]
-
-            _, thresh = cv2.threshold(
-                crop, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU
-            )
-
-            upscaled = cv2.resize(
-                thresh, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC
-            )
-
-            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-            dilated = cv2.dilate(upscaled, kernel, iterations=1)
-
-            config = (
-                "--psm 7 --oem 3 "
-                "-c tessedit_char_whitelist=0123456789. "
-                "-c load_system_dawg=0 -c load_freq_dawg=0"
-            )
-            text = pytesseract.image_to_string(dilated, config=config).strip()
-
-            return text
-
-        except Exception as e:
-            print(f"❌ Error detecting bids at ({x}, {y}): {str(e)}")
-            return ""
-
-    # def should_detect_positions(self, cards_result: CardDetectionResult) -> bool:
-    #     return cards_result.has_cards and self.template_registry.has_position_templates()
-
-    # def should_detect_moves(self, cards_result: CardDetectionResult) -> bool:
-    #     return bool(cards_result.player_cards) and self.template_registry.has_move_templates()
-
-    def should_detect_bids(self, player_cards: List[ReadedCard]) -> bool:
-        return len(player_cards) > 0
-
-    def combine_detection_results(self,
-                                  captured_image: CapturedWindow,
-                                  player_cards: List[ReadedCard],
-                                  table_cards: List[ReadedCard],
-                                  positions_result: Optional[PositionDetectionResult] = None,
-                                  action_detection_result: Optional[ActionDetectionResult] = None,
-                                  bids_result: Optional[BidDetectionResult] = None) -> DetectionResult:
-        player_positions = positions_result.player_positions if positions_result else {}
-        is_player_turn = action_detection_result.is_player_turn if action_detection_result else False
-
-        if bids_result and bids_result.bids:
-            print(f"💰 Bids detected:")
-            for position, bid in bids_result.bids.items():
-                print(f"    {position}: {bid}")
-
-        return DetectionResult(
-            window_name=captured_image.window_name,
-            filename=captured_image.filename,
-            captured_image=captured_image,
-            player_cards=player_cards,
-            table_cards=table_cards,
-            positions=player_positions,
-            is_player_move=is_player_turn
-        )

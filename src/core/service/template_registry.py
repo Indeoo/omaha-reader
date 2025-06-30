@@ -54,29 +54,5 @@ class TemplateRegistry:
             print(f"❌ Error loading {category} templates: {str(e)}")
             return {}
 
-    def reload_templates(self):
-        print(f"🔄 Reloading all templates for {self.country}")
-        self._player_templates = None
-        self._table_templates = None
-        self._position_templates = None
-        self._move_templates = None
-
-    def has_player_templates(self) -> bool:
-        return bool(self.player_templates)
-
-    def has_table_templates(self) -> bool:
-        return bool(self.table_templates)
-
     def has_position_templates(self) -> bool:
         return bool(self.position_templates)
-
-    def has_action_templates(self) -> bool:
-        return bool(self.action_templates)
-
-    def get_template_stats(self) -> Dict[str, int]:
-        return {
-            'player_cards': len(self.player_templates),
-            'table_cards': len(self.table_templates),
-            'positions': len(self.position_templates),
-            'turn_options': len(self.action_templates)
-        }

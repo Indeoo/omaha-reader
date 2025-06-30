@@ -20,24 +20,7 @@ class GameStateRepository:
     def get_table_cards(self, window_name: str):
         return self.get_by_window(window_name).table_cards
 
-    def update_single_game(self, window_name: str, new_game: Game) -> tuple[bool, Optional[Game]]:
-        with self._lock:
-            old_game = self.games.get(window_name)
-            self.games[window_name] = new_game
-
-            has_changed = (
-                old_game is None or
-                new_game.get_player_cards_string() != old_game.get_player_cards_string() or
-                new_game.get_table_cards_string() != old_game.get_table_cards_string() or
-                new_game.get_positions_string() != old_game.get_positions_string()
-            )
-
-            if has_changed:
-                self.last_update = datetime.now().isoformat()
-
-            return has_changed, old_game
-
-    def new_game(self, window_name: str, player_cards=None, table_cards=None, positions=None) -> Game:
+    def start_new_game(self, window_name: str, player_cards=None, table_cards=None, positions=None) -> Game:
         with self._lock:
             new_game = Game(
                 player_cards=player_cards or [],

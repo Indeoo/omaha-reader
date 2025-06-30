@@ -51,7 +51,7 @@ class OmahaWebApi:
 
         @app.route('/health')
         def health():
-            latest_results = self.state_repository.get_latest_results()
+            latest_results = self.state_repository.get_latest_results_dict()
             return jsonify({
                 'status': 'ok',
                 'connected_clients': len(self.socketio.server.manager.rooms.get('/', {})),
@@ -66,7 +66,7 @@ class OmahaWebApi:
             print(f"🔌 New client connected")
 
             # Send current state immediately
-            latest_results = self.state_repository.get_latest_results()
+            latest_results = self.state_repository.get_latest_results_dict()
             if latest_results['detections']:
                 emit('detection_update', {
                     'type': 'detection_update',
@@ -77,9 +77,6 @@ class OmahaWebApi:
         @self.socketio.on('disconnect')
         def handle_disconnect():
             print(f"🔌 Client disconnected")
-
-    def set_wait_time(self, wait_time: int):
-        self.wait_time = wait_time
 
     def get_socketio(self):
         return self.socketio

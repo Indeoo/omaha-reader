@@ -1,11 +1,8 @@
 import os
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from src.core.domain.captured_window import CapturedWindow
-from src.core.domain.readed_card import ReadedCard
 from src.core.service.detection_notifier import DetectionNotifier
 from src.core.service.image_capture_service import ImageCaptureService
-from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.service.state_repository import GameStateRepository
 from src.core.utils.fs_utils import create_timestamp_folder
 from src.core.utils.poker_game_processor import PokerGameProcessor
@@ -19,12 +16,12 @@ class OmahaEngine:
         self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
         self.notifier = DetectionNotifier()
         self.state_repository = GameStateRepository()
-        self.move_reconstructor = MoveReconstructor()
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
 
-        self._poker_game_processor = PokerGameProcessor(
+        self.poker_game_processor = PokerGameProcessor(
+            self.state_repository,
             country=country,
             project_root=project_root,
             save_result_images=False,
@@ -77,42 +74,10 @@ class OmahaEngine:
             try:
                 print(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
                 print("-" * 40)
-                self._process_window(captured_image)
+                self.poker_game_processor.process_window(captured_image)
 
             except Exception as e:
                 print(f"❌ Error processing {captured_image.window_name}: {str(e)}")
-
-    def _process_window(self, captured_image: CapturedWindow):
-        window_name = captured_image.window_name
-        cv2_image = captured_image.get_cv2_image()
-
-        player_cards = self._poker_game_processor.detect_player_cards(cv2_image)
-        is_new_game = self.state_repository.is_new_game(window_name, player_cards)
-        table_cards = self._poker_game_processor.detect_table_cards(cv2_image)
-
-        if is_new_game:
-            positions_result = self._poker_game_processor.detect_positions(cv2_image)
-            self.state_repository.new_game(window_name, player_cards, table_cards, positions_result.player_positions)
-        else:
-            previous_table_cards = self.state_repository.get_table_cards(window_name)
-            is_new_street = ReadedCard.format_cards_simple(table_cards) != ReadedCard.format_cards_simple(
-                previous_table_cards)
-
-            if is_new_street:
-                self.state_repository.update_table_cards(window_name, table_cards)
-
-        is_player_move = self._poker_game_processor.is_player_move(cv2_image, window_name)
-
-        if is_player_move:
-            current_game = self.state_repository.get_by_window(window_name)
-            bids_before_update = current_game.current_bids
-
-            bids_result = self._poker_game_processor.detect_bids(captured_image)
-            bids_updated = self.state_repository.update_bids(window_name, bids_result.bids)
-
-            if bids_updated:
-                print(f"💰 Bids updated for {window_name} - reconstructing moves...")
-                self.move_reconstructor.process_bid(current_game, bids_before_update, bids_result.bids)
 
     def _notify_observers(self):
         notification_data = self.state_repository.get_notification_data()
