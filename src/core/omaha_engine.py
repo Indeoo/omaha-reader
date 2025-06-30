@@ -20,7 +20,6 @@ class OmahaEngine:
         self.notifier = DetectionNotifier()
         self.game_state_manager = GameStateManager()
         self.state_repository = self.game_state_manager.repository
-
         self.move_reconstructor = MoveReconstructor()
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
