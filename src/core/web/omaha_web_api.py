@@ -17,6 +17,7 @@ class OmahaWebApi:
 
         # Register detection service observer
         self.omaha_engine.add_observer(self._on_detection_update)
+        self.game_state_manager = self.omaha_engine.game_state_manager
 
     def _on_detection_update(self, data: dict):
         self.sse_manager.broadcast(data)
@@ -50,7 +51,7 @@ class OmahaWebApi:
                     yield f"data: {json.dumps({'type': 'connected', 'client_id': client_id})}\n\n"
 
                     # Send current state immediately
-                    latest_results = self.omaha_engine.get_latest_results()
+                    latest_results = self.game_state_manager.get_latest_results()
                     if latest_results['detections']:
                         initial_data = {
                             'type': 'detection_update',
@@ -92,7 +93,7 @@ class OmahaWebApi:
 
         @app.route('/health')
         def health():
-            latest_results = self.omaha_engine.get_latest_results()
+            latest_results = self.game_state_manager.get_latest_results()
             return jsonify({
                 'status': 'ok',
                 'sse_clients': self.sse_manager.get_client_count(),
