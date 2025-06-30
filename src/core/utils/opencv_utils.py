@@ -135,3 +135,68 @@ def coords_to_search_region(x: int, y: int, w: int, h: int,
     bottom = max(0.0, min(1.0, bottom))
 
     return (left, top, right, bottom)
+
+
+def match_template_at_scale(
+        search_image: np.ndarray,
+        template: np.ndarray,
+        template_name: str,
+        scale: float,
+        template_w: int,
+        template_h: int,
+        offset: Tuple[int, int],
+        match_threshold: float = 0.955,
+        min_card_size: int = 20
+) -> List[Dict]:
+    """
+    Perform template matching at a specific scale
+
+    Args:
+        search_image: Image region to search in
+        template: Template image
+        template_name: Name of the template
+        scale: Scale factor
+        template_w: Template width
+        template_h: Template height
+        offset: (x, y) offset of search region
+        match_threshold: Minimum match score to consider
+        min_card_size: Minimum card size in pixels
+
+    Returns:
+        List of detection dictionaries
+    """
+    scaled_w = int(template_w * scale)
+    scaled_h = int(template_h * scale)
+
+    # Skip if template becomes too small or too large
+    if (scaled_w < min_card_size or scaled_h < min_card_size or
+            scaled_w > search_image.shape[1] or scaled_h > search_image.shape[0]):
+        return []
+
+    # Resize template
+    scaled_template = cv2.resize(template, (scaled_w, scaled_h))
+
+    # Perform template matching
+    result = cv2.matchTemplate(search_image, scaled_template, cv2.TM_CCORR_NORMED)
+
+    # Find all locations where match is above threshold
+    locations = np.where(result >= match_threshold)
+    detections = []
+
+    for y, x in zip(*locations):
+        match_score = result[y, x]
+        center_x = x + scaled_w // 2
+        center_y = y + scaled_h // 2
+
+        detection = {
+            'template_name': template_name,
+            'match_score': float(match_score),
+            'bounding_rect': (x + offset[0], y + offset[1], scaled_w, scaled_h),
+            'center': (center_x + offset[0], center_y + offset[1]),
+            'scale': scale,
+            'template_size': (template_w, template_h),
+            'scaled_size': (scaled_w, scaled_h)
+        }
+        detections.append(detection)
+
+    return detections
