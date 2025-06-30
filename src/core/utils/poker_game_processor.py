@@ -6,10 +6,10 @@ import pytesseract
 from src.core.domain.captured_image import CapturedWindow
 from src.core.domain.detection_result import DetectionResult
 from src.core.domain.readed_card import ReadedCard
-from src.core.service.reader import PlayerCardReader
-from src.core.service.reader import PlayerActionReader
-from src.core.service.reader import PlayerPositionReader
-from src.core.service.reader import TableCardReader
+from src.core.service.reader.player_card_reader import PlayerCardReader
+from src.core.service.reader.player_move_reader import PlayerActionReader
+from src.core.service.reader.player_position_reader import PlayerPositionReader
+from src.core.service.reader.table_card_reader import TableCardReader
 from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.opencv_utils import coords_to_search_region
 
