@@ -14,4 +14,4 @@ def load_logger(timestamp_folder):
                       "<cyan>{line}</cyan> - <white>{"
                       "message}</white>",
                filter=lambda record: not record["extra"].get("console_only", False),
-               lazy=True)  # This delays file creation until first write
+               enqueue=True)
