@@ -90,19 +90,6 @@ class OmahaWebApi:
                 'backend_capture_interval': getattr(self, 'wait_time', 5)
             })
 
-        @app.route('/api/force-detect', methods=['POST'])
-        def force_detect():
-            try:
-                self.omaha_engine.force_detect()
-                return jsonify({
-                    'status': 'success',
-                })
-            except Exception as e:
-                return jsonify({
-                    'status': 'error',
-                    'message': str(e)
-                }), 500
-
         @app.route('/health')
         def health():
             latest_results = self.omaha_engine.get_latest_results()

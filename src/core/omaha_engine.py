@@ -47,16 +47,6 @@ class OmahaEngine:
             self._process_windows(changed_images)
             self._notify_observers()
 
-    def force_detect(self):
-        timestamp_folder = create_timestamp_folder(self.debug_mode)
-        captured_windows = self.image_capture_service.capture_windows(timestamp_folder)
-
-        if captured_windows:
-            print(f"🔍 Force processing {len(captured_windows)} images")
-            self._process_windows(captured_windows)
-            self._notify_observers()
-            print(f"🔄 Force detection completed - notified observers")
-
     def _process_windows(self, captured_windows):
         for i, captured_image in enumerate(captured_windows):
             try:
