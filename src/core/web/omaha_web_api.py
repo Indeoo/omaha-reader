@@ -8,9 +8,12 @@ from flask_socketio import SocketIO, emit
 
 class OmahaWebApi:
 
-    def __init__(self, omaha_engine):
+    def __init__(self, omaha_engine, show_table_cards=True, show_positions=True, show_moves=True):
         self.omaha_engine = omaha_engine
         self.socketio = None
+        self.show_table_cards = show_table_cards
+        self.show_positions = show_positions
+        self.show_moves = show_moves
 
         # Register detection service observer
         self.omaha_engine.add_observer(self._on_detection_update)
@@ -46,7 +49,10 @@ class OmahaWebApi:
         @app.route('/api/config')
         def get_config():
             return jsonify({
-                'backend_capture_interval': getattr(self, 'wait_time', int(os.getenv('WAIT_TIME', '10')))
+                'backend_capture_interval': getattr(self, 'wait_time', int(os.getenv('WAIT_TIME', '10'))),
+                'show_table_cards': self.show_table_cards,
+                'show_positions': self.show_positions,
+                'show_moves': self.show_moves
             })
 
         @app.route('/health')

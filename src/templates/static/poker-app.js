@@ -1,5 +1,8 @@
 let config = {
-    backend_capture_interval: 5
+    backend_capture_interval: 5,
+    show_table_cards: true,
+    show_positions: true,
+    show_moves: true
 };
 let socket = null;
 let previousDetections = [];
@@ -65,6 +68,10 @@ function createPlayerCardsSection(detection, isUpdate) {
 }
 
 function createTableCardsSection(detection, isUpdate) {
+    if (!config.show_table_cards) {
+        return '';
+    }
+
     const cardsClass = isUpdate ? 'cards-block new-cards' : 'cards-block';
     const streetClass = detection.street && detection.street.startsWith('ERROR') ? 'street-indicator error' : 'street-indicator';
     const streetDisplay = detection.street ? `<span class="${streetClass}">${detection.street}</span>` : '';
@@ -80,34 +87,60 @@ function createTableCardsSection(detection, isUpdate) {
     }
 
     return `
-        <div class="cards-label">Table Cards: ${streetDisplay}</div>
-        <div class="cards-container">${cardsHtml}</div>
+        <div class="table-cards-column">
+            <div class="cards-label">Table Cards: ${streetDisplay}</div>
+            <div class="cards-container">${cardsHtml}</div>
+        </div>
     `;
 }
 
 function createPositionsSection(detection, isUpdate) {
-    const positionsClass = isUpdate ? 'positions-block new-positions' : 'positions-block';
-
-    if (detection.positions && detection.positions.length > 0) {
-        const positionsHtml = detection.positions.map(position =>
-            `<div class="position">${position.player} ${position.name}</div>`
-        ).join('');
-
-        return `<div class="${positionsClass}">${positionsHtml}</div>`;
+    if (!config.show_positions) {
+        return '';
     }
 
-    return '<div class="no-positions">No position detected</div>';
+    const positionsClass = isUpdate ? 'positions-block new-positions' : 'positions-block';
+
+    let positionsHtml = '';
+    if (detection.positions && detection.positions.length > 0) {
+        const positions = detection.positions.map(position =>
+            `<div class="position">${position.player} ${position.name}</div>`
+        ).join('');
+        positionsHtml = `<div class="${positionsClass}">${positions}</div>`;
+    } else {
+        positionsHtml = '<div class="no-positions">No position detected</div>';
+    }
+
+    return `
+        <div class="positions-column">
+            <div class="cards-label">Positions:</div>
+            <div class="positions-container">
+                ${positionsHtml}
+            </div>
+        </div>
+    `;
 }
 
 function createMovesSection(detection, isUpdate) {
+    if (!config.show_moves) {
+        return '';
+    }
+
     if (!detection.moves || detection.moves.length === 0) {
-        return '<div class="no-moves">No moves detected</div>';
+        return `
+            <div class="cards-section">
+                <div class="cards-label">Moves History:</div>
+                <div class="moves-by-street">
+                    <div class="no-moves">No moves detected</div>
+                </div>
+            </div>
+        `;
     }
 
     const movesClass = isUpdate ? 'street-moves-block new-moves' : 'street-moves-block';
 
-    return detection.moves.map(streetData => {
-        const movesHtml = streetData.moves.map(move => {
+    const movesHtml = detection.moves.map(streetData => {
+        const moves = streetData.moves.map(move => {
             let moveText = `${move.player_label}: ${move.action}`;
             if (move.amount > 0) {
                 moveText += ` $${move.amount}`;
@@ -118,41 +151,53 @@ function createMovesSection(detection, isUpdate) {
         return `
             <div class="${movesClass}">
                 <div class="street-moves-header">${streetData.street}</div>
-                <div class="street-moves-list">${movesHtml}</div>
+                <div class="street-moves-list">${moves}</div>
             </div>
         `;
     }).join('');
+
+    return `
+        <div class="cards-section">
+            <div class="cards-label">Moves History:</div>
+            <div class="moves-by-street">
+                ${movesHtml}
+            </div>
+        </div>
+    `;
 }
 
 function createTableContainer(detection, isUpdate) {
     const tableClass = isUpdate ? 'table-container updated' : 'table-container';
 
+    const tableCardsSection = createTableCardsSection(detection, isUpdate);
+    const positionsSection = createPositionsSection(detection, isUpdate);
+    const movesSection = createMovesSection(detection, isUpdate);
+
+    // Build main cards section conditionally
+    let mainCardsContent = `
+        <div class="player-cards-column">
+            <div class="cards-label">Player Cards:</div>
+            <div class="player-section">
+                ${createPlayerCardsSection(detection, isUpdate)}
+            </div>
+        </div>
+    `;
+
+    if (tableCardsSection) {
+        mainCardsContent += tableCardsSection;
+    }
+
+    if (positionsSection) {
+        mainCardsContent += positionsSection;
+    }
+
     return `
         <div class="${tableClass}">
             <div class="table-name">${detection.window_name}</div>
             <div class="main-cards-section">
-                <div class="player-cards-column">
-                    <div class="cards-label">Player Cards:</div>
-                    <div class="player-section">
-                        ${createPlayerCardsSection(detection, isUpdate)}
-                    </div>
-                </div>
-                <div class="table-cards-column">
-                    ${createTableCardsSection(detection, isUpdate)}
-                </div>
-                <div class="positions-column">
-                    <div class="cards-label">Positions:</div>
-                    <div class="positions-container">
-                        ${createPositionsSection(detection, isUpdate)}
-                    </div>
-                </div>
+                ${mainCardsContent}
             </div>
-            <div class="cards-section">
-                <div class="cards-label">Moves History:</div>
-                <div class="moves-by-street">
-                    ${createMovesSection(detection, isUpdate)}
-                </div>
-            </div>
+            ${movesSection}
         </div>
     `;
 }
@@ -254,6 +299,7 @@ async function loadConfig() {
         const data = await response.json();
         config = data;
         updateTimerDisplay();
+        console.log('Loaded config:', config);
     } catch (error) {
         console.error('Error loading config:', error);
     }

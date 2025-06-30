@@ -11,6 +11,11 @@ WAIT_TIME = int(os.getenv('WAIT_TIME', '10'))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'true').lower() == 'true'
 COUNTRY = os.getenv('COUNTRY', "canada").lower()
 
+# UI Display Configuration
+SHOW_TABLE_CARDS = os.getenv('SHOW_TABLE_CARDS', 'true').lower() == 'true'
+SHOW_POSITIONS = os.getenv('SHOW_POSITIONS', 'true').lower() == 'true'
+SHOW_MOVES = os.getenv('SHOW_MOVES', 'true').lower() == 'true'
+
 def main():
     print("🎯 Initializing Web-based Omaha Card Reader")
 
@@ -19,7 +24,12 @@ def main():
         omaha_engine = OmahaEngine(country=COUNTRY, debug_mode=DEBUG_MODE, detection_interval=WAIT_TIME)
 
         # Initialize web service (keep OmahaWebApi separate)
-        app_factory = OmahaWebApi(omaha_engine=omaha_engine)
+        app_factory = OmahaWebApi(
+            omaha_engine=omaha_engine,
+            show_table_cards=SHOW_TABLE_CARDS,
+            show_positions=SHOW_POSITIONS,
+            show_moves=SHOW_MOVES
+        )
         app = app_factory.create_app()
         socketio = app_factory.get_socketio()
 
