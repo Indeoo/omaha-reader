@@ -66,15 +66,15 @@ class OmahaEngine:
         changed_images = self.image_capture_service.get_changed_images(timestamp_folder)
 
         if changed_images:
-            self._process_windows(changed_images)
+            self._process_windows(changed_images, timestamp_folder)
             self._notify_observers()
 
-    def _process_windows(self, captured_windows):
+    def _process_windows(self, captured_windows, timestamp_folder):
         for i, captured_image in enumerate(captured_windows):
             try:
                 print(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
                 print("-" * 40)
-                self.poker_game_processor.process_window(captured_image)
+                self.poker_game_processor.process_window(captured_image, timestamp_folder)
 
             except Exception as e:
                 print(f"❌ Error processing {captured_image.window_name}: {str(e)}")

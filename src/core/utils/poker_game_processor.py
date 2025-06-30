@@ -10,6 +10,7 @@ from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.service.state_repository import GameStateRepository
 from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.bid_detect_utils import detect_bids
+from src.core.utils.fs_utils import write_dict
 from src.core.utils.opencv_utils import coords_to_search_region
 
 
@@ -86,7 +87,7 @@ class PokerGameProcessor:
         except Exception as e:
             print(f"❌ Error initializing player position readers: {str(e)}")
 
-    def process_window(self, captured_image: CapturedWindow):
+    def process_window(self, captured_image: CapturedWindow, timestamp_folder):
         window_name = captured_image.window_name
         cv2_image = captured_image.get_cv2_image()
 
@@ -110,6 +111,7 @@ class PokerGameProcessor:
             bids_before_update = current_game.current_bids
 
             bids = detect_bids(captured_image)
+            write_dict(bids, timestamp_folder, window_name)
             bids_updated = self.state_repository.update_bids(window_name, bids)
 
             if bids_updated:

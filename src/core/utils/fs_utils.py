@@ -1,3 +1,4 @@
+import json
 import os
 from datetime import datetime
 
@@ -30,3 +31,13 @@ def get_image_names(timestamp_folder):
                    if f.lower().endswith(image_extensions) and not f.lower().endswith('_result.png')
                    and not f.lower() == 'full_screen.png']
     return image_files
+
+
+def write_dict(bids_data, timestamp_folder, window_name):
+    # Write as key-value pairs
+    file_path = os.path.join(timestamp_folder, f"bids_{window_name}.txt")
+
+    with open(file_path, "w") as file:
+        json.dump(bids_data, file, indent=4)
+
+    print(f"Bids written to: {file_path}")
