@@ -21,3 +21,12 @@ def create_timestamp_folder(DEBUG_MODE = False) -> str:
         timestamp_folder = os.path.join(os.getcwd(), f"Dropbox/data_screenshots/{session_timestamp}")
 
     return timestamp_folder
+
+
+def get_image_names(timestamp_folder):
+    # Get all image files in the folder
+    image_extensions = ('.png')
+    image_files = [f for f in os.listdir(timestamp_folder)
+                   if f.lower().endswith(image_extensions) and not f.lower().endswith('_result.png')
+                   and not f.lower() == 'full_screen.png']
+    return image_files

@@ -5,6 +5,7 @@ import ctypes
 from PIL import ImageGrab, Image
 
 from src.core.domain.captured_image import CapturedWindow
+from src.core.utils.fs_utils import get_image_names
 from src.core.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
 
 
@@ -97,11 +98,7 @@ def _load_images_from_folder(timestamp_folder: str) -> List[CapturedWindow]:
         print(f"❌ Debug folder not found: {timestamp_folder}")
         return captured_images
 
-    # Get all image files in the folder
-    image_extensions = ('.png')
-    image_files = [f for f in os.listdir(timestamp_folder)
-                   if f.lower().endswith(image_extensions) and not f.lower().endswith('_result.png')
-                   and not f.lower() == 'full_screen.png']
+    image_files = get_image_names(timestamp_folder)
 
     print(f"🔍 Loading {len(image_files)} images from debug folder: {timestamp_folder}")
 
