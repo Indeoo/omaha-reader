@@ -3,6 +3,7 @@ from enum import Enum
 from dataclasses import dataclass
 
 from src.core.domain.street import Street
+from src.core.service.matcher.player_position_matcher import DetectedPosition
 
 
 class ActionType(Enum):
@@ -100,7 +101,7 @@ class MoveReconstructor:
 
         return moves
 
-    def _get_betting_order(self, positions: Dict[int, str]) -> List[int]:
+    def _get_betting_order(self, positions: List[DetectedPosition]) -> List[int]:
         """
         Determine betting order based on positions
         Standard order: SB -> BB -> UTG -> MP -> CO -> BTN
@@ -108,7 +109,8 @@ class MoveReconstructor:
         position_order = ['SB', 'BB', 'EP', 'MP', 'CO', 'BTN']
 
         # Create mapping of position to player
-        position_to_player = {pos: player for player, pos in positions.items()}
+        #position_to_player = {pos: player for player, pos in positions.items()}
+        position_to_player = {pos.position_name: i + 1 for i, pos in enumerate(positions)}
 
         # Build betting order
         betting_order = []
@@ -117,7 +119,8 @@ class MoveReconstructor:
                 betting_order.append(position_to_player[pos])
 
         # Add any players not in standard positions
-        for player_num in positions.keys():
+        for i in range(len(positions)):
+            player_num = i + 1
             if player_num not in betting_order:
                 betting_order.append(player_num)
 

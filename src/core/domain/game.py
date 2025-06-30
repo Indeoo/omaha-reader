@@ -72,7 +72,7 @@ class Game:
         if not self.positions:
             return ""
         position_parts = []
-        for player_num, position in sorted(self.positions.items()):
+        for player_num, position in enumerate(self.positions, 1):
             player_label = f"P{player_num}"
             position_parts.append(f"{player_label}:{position}")
         return ", ".join(position_parts)
@@ -99,11 +99,11 @@ class Game:
             return []
 
         formatted = []
-        for player_num, position_name in sorted(self.positions.items()):
+        for player_num, position  in enumerate(self.positions, 1):
             formatted.append({
                 'player': player_num,
                 'player_label': f'Player {player_num}',
-                'name': position_name,
+                'name': position.position_name,
                 'is_main_player': player_num == 1
             })
         return formatted
