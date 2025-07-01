@@ -62,21 +62,6 @@ class Game:
             all_moves.extend(street_moves)
         return all_moves
 
-    def get_player_cards_string(self) -> str:
-        return ReadedCard.format_cards_simple(self.player_cards)
-
-    def get_table_cards_string(self) -> str:
-        return ReadedCard.format_cards_simple(self.table_cards)
-
-    def get_positions_string(self) -> str:
-        if not self.positions:
-            return ""
-        position_parts = []
-        for player_num, position in enumerate(self.positions, 1):
-            player_label = f"P{player_num}"
-            position_parts.append(f"{player_label}:{position}")
-        return ", ".join(position_parts)
-
     def get_moves_summary(self) -> str:
         if not self.move_history:
             return "No moves"
@@ -178,9 +163,6 @@ class Game:
             'positions': self.get_positions_for_web(),
             'moves': self.get_moves_for_web(),
             'bids': self.get_bids_for_web(),
-            'player_cards_string': self.get_player_cards_string(),
-            'table_cards_string': self.get_table_cards_string(),
-            'positions_string': self.get_positions_string(),
             'moves_summary': self.get_moves_summary(),
             'street': self.get_street_display()
         }

@@ -69,11 +69,10 @@ class GameStateRepository:
             if game is None:
                 return False
 
-            old_table_cards_string = game.get_table_cards_string()
+            old_table_cards = game.table_cards
             game.table_cards = table_cards or []
-            new_table_cards_string = game.get_table_cards_string()
 
-            if old_table_cards_string != new_table_cards_string:
+            if old_table_cards != game.table_cards:
                 self.last_update = datetime.now().isoformat()
                 return True
 
@@ -85,10 +84,7 @@ class GameStateRepository:
         if existing_game is None:
             return True
 
-        current_player_cards_string = ReadedCard.format_cards_simple(player_cards)
-        existing_player_cards_string = existing_game.get_player_cards_string()
-
-        return current_player_cards_string != existing_player_cards_string
+        return player_cards != existing_game.player_cards
 
     def get_latest_results_dict(self) -> dict:
         with self._lock:

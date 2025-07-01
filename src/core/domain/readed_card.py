@@ -66,43 +66,43 @@ class ReadedCard:
         }
         return suit_unicode.get(suit.upper(), suit)
 
-    @staticmethod
-    def get_suit_color_class(suit: str) -> str:
-        """
-        Get CSS color class for card suit (for web display)
+    # @staticmethod
+    # def get_suit_color_class(suit: str) -> str:
+    #     """
+    #     Get CSS color class for card suit (for web display)
+    #
+    #     Args:
+    #         suit: Single character suit ('S', 'H', 'D', 'C')
+    #
+    #     Returns:
+    #         Color class name
+    #     """
+    #     suit_colors = {
+    #         'S': 'black',  # Spades
+    #         'H': 'red',  # Hearts
+    #         'D': 'blue',  # Diamonds
+    #         'C': 'green'  # Clubs
+    #     }
+    #     return suit_colors.get(suit.upper(), 'black')
 
-        Args:
-            suit: Single character suit ('S', 'H', 'D', 'C')
-
-        Returns:
-            Color class name
-        """
-        suit_colors = {
-            'S': 'black',  # Spades
-            'H': 'red',  # Hearts
-            'D': 'blue',  # Diamonds
-            'C': 'green'  # Clubs
-        }
-        return suit_colors.get(suit.upper(), 'black')
-
-    @staticmethod
-    def get_suit_ansi_color(suit: str) -> str:
-        """
-        Get ANSI color code for card suit (for console display)
-
-        Args:
-            suit: Single character suit ('S', 'H', 'D', 'C')
-
-        Returns:
-            ANSI color code
-        """
-        suit_colors = {
-            'S': '\033[90m',  # Dark Gray for Spades
-            'H': '\033[91m',  # Red for Hearts
-            'D': '\033[94m',  # Blue for Diamonds
-            'C': '\033[92m'  # Green for Clubs
-        }
-        return suit_colors.get(suit.upper(), '\033[0m')
+    # @staticmethod
+    # def get_suit_ansi_color(suit: str) -> str:
+    #     """
+    #     Get ANSI color code for card suit (for console display)
+    #
+    #     Args:
+    #         suit: Single character suit ('S', 'H', 'D', 'C')
+    #
+    #     Returns:
+    #         ANSI color code
+    #     """
+    #     suit_colors = {
+    #         'S': '\033[90m',  # Dark Gray for Spades
+    #         'H': '\033[91m',  # Red for Hearts
+    #         'D': '\033[94m',  # Blue for Diamonds
+    #         'C': '\033[92m'  # Green for Clubs
+    #     }
+    #     return suit_colors.get(suit.upper(), '\033[0m')
 
     def format_with_unicode(self) -> str:
         """
@@ -135,25 +135,25 @@ class ReadedCard:
             card_with_unicode += f"[{self.match_score:.2f}]"
         return card_with_unicode
 
-    def format_with_ansi_color(self, include_score: bool = False) -> str:
-        """
-        Format card with ANSI color codes for console display
-
-        Args:
-            include_score: Whether to include match score
-
-        Returns:
-            Colored string for console output
-        """
-        if not self.template_name or len(self.template_name) < 2:
-            return self.template_name or "UNKNOWN"
-
-        suit = self.template_name[-1].upper()
-        color_code = self.get_suit_ansi_color(suit)
-        reset_code = '\033[0m'
-
-        formatted = self.format_with_score(include_score)
-        return f"{color_code}{formatted}{reset_code}"
+    # def format_with_ansi_color(self, include_score: bool = False) -> str:
+    #     """
+    #     Format card with ANSI color codes for console display
+    #
+    #     Args:
+    #         include_score: Whether to include match score
+    #
+    #     Returns:
+    #         Colored string for console output
+    #     """
+    #     if not self.template_name or len(self.template_name) < 2:
+    #         return self.template_name or "UNKNOWN"
+    #
+    #     suit = self.template_name[-1].upper()
+    #     color_code = self.get_suit_ansi_color(suit)
+    #     reset_code = '\033[0m'
+    #
+    #     formatted = self.format_with_score(include_score)
+    #     return f"{color_code}{formatted}{reset_code}"
 
     def get_summary(self) -> str:
         """
@@ -230,36 +230,21 @@ class ReadedCard:
             return ""
         return " ".join(card.format_with_score(include_scores) for card in cards)
 
-    @staticmethod
-    def format_cards_ansi(cards: List['ReadedCard'], include_scores: bool = False) -> str:
-        """
-        Format a list of ReadedCard objects with ANSI colors for console
-
-        Args:
-            cards: List of ReadedCard objects
-            include_scores: Whether to include match scores
-
-        Returns:
-            ANSI colored string for console output
-        """
-        if not cards:
-            return ""
-        return " ".join(card.format_with_ansi_color(include_scores) for card in cards)
-
-    # Legacy method for backward compatibility
-    @staticmethod
-    def format_cards(cards: List['ReadedCard'], show_probabilities: bool = True) -> str:
-        """
-        Legacy format method - returns simple concatenated template names
-
-        Args:
-            cards: List of ReadedCard objects
-            show_probabilities: Ignored for backward compatibility
-
-        Returns:
-            Formatted string like "4S6DJH"
-        """
-        return ReadedCard.format_cards_simple(cards)
+    # @staticmethod
+    # def format_cards_ansi(cards: List['ReadedCard'], include_scores: bool = False) -> str:
+    #     """
+    #     Format a list of ReadedCard objects with ANSI colors for console
+    #
+    #     Args:
+    #         cards: List of ReadedCard objects
+    #         include_scores: Whether to include match scores
+    #
+    #     Returns:
+    #         ANSI colored string for console output
+    #     """
+    #     if not cards:
+    #         return ""
+    #     return " ".join(card.format_with_ansi_color(include_scores) for card in cards)
 
     def __str__(self) -> str:
         """String representation using the summary"""
@@ -268,3 +253,9 @@ class ReadedCard:
     def __repr__(self) -> str:
         """Detailed representation for debugging"""
         return f"ReadedCard(index={self.card_index}, {self.get_detailed_summary()})"
+
+    def __eq__(self, other):
+        if not isinstance(other, ReadedCard):
+            return False
+        return (self.template_name == other.template_name and
+                self.match_score == other.match_score)
