@@ -16,7 +16,6 @@ from src.core.utils.bid_detect_utils import detect_bids
 from src.core.utils.detect_utils import save_detection_result_image
 from src.core.utils.opencv_utils import coords_to_search_region
 
-
 PLAYER_POSITIONS = {
     1: {'x': 300, 'y': 375, 'w': 40, 'h': 40},
     2: {'x': 35, 'y': 330, 'w': 40, 'h': 40},
@@ -87,11 +86,14 @@ class PokerGameProcessor:
         is_new_game = self.state_repository.is_new_game(window_name, player_cards)
         table_cards = self.detect_table_cards(cv2_image)
 
-        positions_result = None
+        detection_result_builder = DetectionResult.builder().with_player_cards(player_cards).with_table_cards(
+            table_cards)
+
         is_new_street = False
 
         if is_new_game:
             positions_result = self.detect_positions(cv2_image)
+            detection_result_builder.with_positions(positions_result)
 
             logger.info(f"    ✅ Found positions:")
             for i, position_result in enumerate(positions_result, 1):
@@ -112,6 +114,7 @@ class PokerGameProcessor:
                 self.state_repository.update_table_cards(window_name, table_cards)
 
         is_player_move = self.is_player_move(cv2_image, window_name)
+        detection_result_builder.with_player_move(is_player_move)
 
         if is_player_move:
             current_game = self.state_repository.get_by_window(window_name)
@@ -119,7 +122,6 @@ class PokerGameProcessor:
 
             bids = detect_bids(captured_image)
             logger.info(f"    <UNK> Found bids: {bids}")
-            #write_dict(bids, timestamp_folder, captured_image.filename)
             bids_updated = self.state_repository.update_bids(window_name, bids)
 
             if bids_updated:
@@ -127,14 +129,7 @@ class PokerGameProcessor:
                 self.move_reconstructor.process_bid(current_game, bids_before_update, bids)
 
         if is_new_game or is_player_move or is_new_street:
-            result = DetectionResult(
-                player_cards,
-                table_cards,
-                positions_result,
-                is_player_move,
-            )
-
-            save_detection_result_image(timestamp_folder, captured_image, result)
+            save_detection_result_image(timestamp_folder, captured_image, detection_result_builder.build())
 
     def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
         player_cards = PlayerCardMatcher(
