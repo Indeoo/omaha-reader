@@ -1,5 +1,5 @@
 import threading
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from datetime import datetime
 
 from src.core.domain.game import Game
@@ -32,6 +32,19 @@ class GameStateRepository:
             self.last_update = datetime.now().isoformat()
 
             return new_game
+
+    def remove_windows(self, window_names: List[str]) -> bool:
+        with self._lock:
+            removed_any = False
+            for window_name in window_names:
+                if window_name in self.games:
+                    del self.games[window_name]
+                    removed_any = True
+
+            if removed_any:
+                self.last_update = datetime.now().isoformat()
+
+            return removed_any
 
     def update_bids(self, window_name: str, current_bids) -> bool:
         with self._lock:
@@ -91,7 +104,6 @@ class GameStateRepository:
                 'detections': [game.to_dict(window_name) for window_name, game in self.games.items()],
                 'last_update': self.last_update
             }
-
 
     def is_new_street(self, table_cards, window_name):
         previous_table_cards = self.get_table_cards(window_name)

@@ -67,10 +67,19 @@ class OmahaEngine:
     def detect_and_notify(self):
         timestamp_folder = create_timestamp_folder(self.debug_mode)
         load_logger(timestamp_folder)
-        changed_images = self.image_capture_service.get_changed_images(timestamp_folder)
+        window_changes = self.image_capture_service.get_changed_images(timestamp_folder)
 
-        if changed_images:
-            self._process_windows(changed_images, timestamp_folder)
+        changes_detected = False
+
+        if window_changes.changed_images:
+            self._process_windows(window_changes.changed_images, timestamp_folder)
+            changes_detected = True
+
+        if window_changes.removed_windows:
+            self._handle_removed_windows(window_changes.removed_windows)
+            changes_detected = True
+
+        if changes_detected:
             self._notify_observers()
 
     def _process_windows(self, captured_windows, timestamp_folder):
@@ -82,6 +91,13 @@ class OmahaEngine:
 
             except Exception as e:
                 logger.error(f"❌ Error processing {captured_image.window_name}: {str(e)}")
+
+    def _handle_removed_windows(self, removed_window_names):
+        logger.info(f"🗑️ Removing {len(removed_window_names)} closed windows from state")
+        for window_name in removed_window_names:
+            logger.info(f"    Removing: {window_name}")
+
+        self.state_repository.remove_windows(removed_window_names)
 
     def _notify_observers(self):
         notification_data = self.state_repository.get_notification_data()
