@@ -14,7 +14,6 @@ from src.core.service.state_repository import GameStateRepository
 from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.bid_detect_utils import detect_bids
 from src.core.utils.detect_utils import save_detection_result_image
-from src.core.utils.fs_utils import write_dict
 from src.core.utils.opencv_utils import coords_to_search_region
 
 

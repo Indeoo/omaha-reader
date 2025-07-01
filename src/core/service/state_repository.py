@@ -86,7 +86,7 @@ class GameStateRepository:
 
         return player_cards != existing_game.player_cards
 
-    def get_latest_results_dict(self) -> dict:
+    def get_all(self) -> dict:
         with self._lock:
             return {
                 'detections': [game.to_dict(window_name) for window_name, game in self.games.items()],
