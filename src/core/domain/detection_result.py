@@ -3,7 +3,7 @@ from typing import List, Dict, Any, Optional
 from src.core.domain.readed_card import ReadedCard
 
 
-class DetectionResult:
+class GameSnapshot:
 
     def __init__(
             self,
@@ -19,7 +19,7 @@ class DetectionResult:
 
     @staticmethod
     def builder():
-        return DetectionResult.DetectionResultBuilder()
+        return GameSnapshot.Builder()
 
     @property
     def has_cards(self) -> bool:
@@ -48,7 +48,7 @@ class DetectionResult:
                 f"player_cards={player_count}, table_cards={table_count}, "
                 f"positions={position_count}, status={move_status})")
 
-    class DetectionResultBuilder:
+    class Builder:
 
         def __init__(self):
             self._player_cards: Optional[List[ReadedCard]] = None
@@ -56,24 +56,24 @@ class DetectionResult:
             self._positions: Optional[List[Any]] = None
             self._is_player_move: bool = False
 
-        def with_player_cards(self, player_cards: List[ReadedCard]) -> 'DetectionResult.DetectionResultBuilder':
+        def with_player_cards(self, player_cards: List[ReadedCard]) -> 'GameSnapshot.Builder':
             self._player_cards = player_cards
             return self
 
-        def with_table_cards(self, table_cards: List[ReadedCard]) -> 'DetectionResult.DetectionResultBuilder':
+        def with_table_cards(self, table_cards: List[ReadedCard]) -> 'GameSnapshot.Builder':
             self._table_cards = table_cards
             return self
 
-        def with_positions(self, positions: List[Any]) -> 'DetectionResult.DetectionResultBuilder':
+        def with_positions(self, positions: List[Any]) -> 'GameSnapshot.Builder':
             self._positions = positions
             return self
 
-        def with_player_move(self, is_player_move: bool = True) -> 'DetectionResult.DetectionResultBuilder':
+        def with_player_move(self, is_player_move: bool = True) -> 'GameSnapshot.Builder':
             self._is_player_move = is_player_move
             return self
 
-        def build(self) -> 'DetectionResult':
-            return DetectionResult(
+        def build(self) -> 'GameSnapshot':
+            return GameSnapshot(
                 player_cards=self._player_cards,
                 table_cards=self._table_cards,
                 positions=self._positions,

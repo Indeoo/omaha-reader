@@ -3,7 +3,7 @@ from typing import List, Dict
 from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
-from src.core.domain.detection_result import DetectionResult
+from src.core.domain.detection_result import GameSnapshot
 from src.core.domain.readed_card import ReadedCard
 from src.core.service.matcher.player_action_matcher import PlayerActionMatcher
 from src.core.service.matcher.player_card_matcher import PlayerCardMatcher
@@ -86,14 +86,14 @@ class PokerGameProcessor:
         is_new_game = self.state_repository.is_new_game(window_name, player_cards)
         table_cards = self.detect_table_cards(cv2_image)
 
-        detection_result_builder = DetectionResult.builder().with_player_cards(player_cards).with_table_cards(
+        game_snapshot_builder = GameSnapshot.builder().with_player_cards(player_cards).with_table_cards(
             table_cards)
 
         is_new_street = False
 
         if is_new_game:
             positions_result = self.detect_positions(cv2_image)
-            detection_result_builder.with_positions(positions_result)
+            game_snapshot_builder.with_positions(positions_result)
 
             logger.info(f"    ✅ Found positions:")
             for i, position_result in enumerate(positions_result, 1):
@@ -114,7 +114,7 @@ class PokerGameProcessor:
                 self.state_repository.update_table_cards(window_name, table_cards)
 
         is_player_move = self.is_player_move(cv2_image, window_name)
-        detection_result_builder.with_player_move(is_player_move)
+        game_snapshot_builder.with_player_move(is_player_move)
 
         if is_player_move:
             current_game = self.state_repository.get_by_window(window_name)
@@ -129,7 +129,7 @@ class PokerGameProcessor:
                 self.move_reconstructor.process_bid(current_game, bids_before_update, bids)
 
         if is_new_game or is_player_move or is_new_street:
-            save_detection_result_image(timestamp_folder, captured_image, detection_result_builder.build())
+            save_detection_result_image(timestamp_folder, captured_image, game_snapshot_builder.build())
 
     def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
         player_cards = PlayerCardMatcher(

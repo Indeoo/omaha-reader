@@ -5,11 +5,11 @@ from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.readed_card import ReadedCard
-from src.core.domain.detection_result import DetectionResult
+from src.core.domain.detection_result import GameSnapshot
 from src.core.utils.opencv_utils import save_opencv_image, draw_detected_cards, draw_detected_positions
 
 
-def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, result: DetectionResult):
+def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, result: GameSnapshot):
     window_name = captured_image.window_name
     filename = captured_image.filename
 
