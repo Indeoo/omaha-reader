@@ -2,6 +2,7 @@ import threading
 from typing import Dict, Optional, List
 from datetime import datetime
 
+from src.core.domain.detection_result import GameSnapshot
 from src.core.domain.game import Game
 from src.core.domain.readed_card import ReadedCard
 
@@ -17,22 +18,6 @@ class GameStateRepository:
         with self._lock:
             return self.games.get(window_name)
 
-    def get_table_cards(self, window_name: str):
-        return self.get_by_window(window_name).table_cards
-
-    def start_new_game(self, window_name: str, player_cards=None, table_cards=None, positions=None) -> Game:
-        with self._lock:
-            new_game = Game(
-                player_cards=player_cards or [],
-                table_cards=table_cards or [],
-                positions=positions or {}
-            )
-
-            self.games[window_name] = new_game
-            self.last_update = datetime.now().isoformat()
-
-            return new_game
-
     def remove_windows(self, window_names: List[str]) -> bool:
         with self._lock:
             removed_any = False
@@ -45,38 +30,6 @@ class GameStateRepository:
                 self.last_update = datetime.now().isoformat()
 
             return removed_any
-
-    def update_bids(self, window_name: str, current_bids) -> bool:
-        with self._lock:
-            game = self.games.get(window_name)
-
-            if game is None:
-                return False
-
-            old_bids = game.current_bids.copy()
-            game.current_bids = current_bids or {}
-
-            if old_bids != game.current_bids:
-                self.last_update = datetime.now().isoformat()
-                return True
-
-            return False
-
-    def update_table_cards(self, window_name: str, table_cards) -> bool:
-        with self._lock:
-            game = self.games.get(window_name)
-
-            if game is None:
-                return False
-
-            old_table_cards = game.table_cards
-            game.table_cards = table_cards or []
-
-            if old_table_cards != game.table_cards:
-                self.last_update = datetime.now().isoformat()
-                return True
-
-            return False
 
     def is_new_game(self, window_name: str, player_cards) -> bool:
         existing_game = self.get_by_window(window_name)
@@ -101,8 +54,9 @@ class GameStateRepository:
                 'last_update': self.last_update
             }
 
-    def is_new_street(self, table_cards, window_name):
-        previous_table_cards = self.get_table_cards(window_name)
-        is_new_street = ReadedCard.format_cards_simple(table_cards) != ReadedCard.format_cards_simple(
-            previous_table_cards)
-        return is_new_street
+    def create_by_snapshot(self, window_name: str, game_snapshot: GameSnapshot):
+        game = Game(player_cards=game_snapshot.player_cards, table_cards=game_snapshot.table_cards,
+                    positions=game_snapshot.positions, )
+        self.games[window_name] = game
+
+        return game

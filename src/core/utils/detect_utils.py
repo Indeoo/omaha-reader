@@ -9,7 +9,7 @@ from src.core.domain.detection_result import GameSnapshot
 from src.core.utils.opencv_utils import save_opencv_image, draw_detected_cards, draw_detected_positions
 
 
-def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, result: GameSnapshot):
+def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
     window_name = captured_image.window_name
     filename = captured_image.filename
 
@@ -19,10 +19,10 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
 
         drawn_items = []
 
-        has_cards = result.has_cards
-        player_cards = result.player_cards
-        table_cards = result.table_cards
-        positions = result.positions
+        has_cards = game_snapshot.has_cards
+        player_cards = game_snapshot.player_cards
+        table_cards = game_snapshot.table_cards
+        positions = game_snapshot.positions
 
         if has_cards:
             if player_cards:

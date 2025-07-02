@@ -47,9 +47,7 @@ class PokerGameProcessor:
         self.move_reconstructor = MoveReconstructor()
 
         self.template_registry = TemplateRegistry(country, project_root)
-        self._init_readers()
 
-    def _init_readers(self):
         self._player_move_reader = None
         self._player_move_reader = PlayerActionMatcher(self.template_registry.action_templates)
         self._player_position_readers = {}
@@ -86,58 +84,45 @@ class PokerGameProcessor:
         is_new_game = self.state_repository.is_new_game(window_name, player_cards)
         table_cards = self.detect_table_cards(cv2_image)
 
-        game_snapshot_builder = GameSnapshot.builder().with_player_cards(player_cards).with_table_cards(
-            table_cards)
-
-        is_new_street = False
-
-        if is_new_game:
-            positions_result = self.detect_positions(cv2_image)
-            game_snapshot_builder.with_positions(positions_result)
-
-            logger.info(f"    ✅ Found positions:")
-            for i, position_result in enumerate(positions_result, 1):
-                player_num = i
-                position = position_result.position_name
-                position_type = f"Player {player_num}"
-                logger.info(f"        {position_type}: {position}")
-
-            self.state_repository.start_new_game(
-                window_name,
-                player_cards,
-                table_cards,
-                positions_result
-            )
-        else:
-            is_new_street = self.state_repository.is_new_street(table_cards, window_name)
-            if is_new_street:
-                self.state_repository.update_table_cards(window_name, table_cards)
+        bids = detect_bids(captured_image.get_cv2_image())
+        game_snapshot_builder = GameSnapshot.builder().with_player_cards(player_cards).with_table_cards(table_cards).with_bids(bids)
 
         is_player_move = self.is_player_move(cv2_image, window_name)
-        game_snapshot_builder.with_player_move(is_player_move)
+        game_snapshot = game_snapshot_builder.build()
 
-        if is_player_move:
-            current_game = self.state_repository.get_by_window(window_name)
-            bids_before_update = current_game.current_bids
+        current_game = self.state_repository.get_by_window(window_name)
 
-            bids = detect_bids(captured_image)
-            logger.info(f"    <UNK> Found bids: {bids}")
-            bids_updated = self.state_repository.update_bids(window_name, bids)
+        is_new_street = self.is_new_street(current_game, game_snapshot)
 
-            if bids_updated:
-                logger.info(f"💰 Bids updated for {window_name} - reconstructing moves...")
-                self.move_reconstructor.process_bid(current_game, bids_before_update, bids)
+        if self.state_repository.is_new_game(window_name, player_cards):
+            current_game = self.state_repository.create_by_snapshot(window_name, game_snapshot)
+        else:
+            if self.is_new_street(current_game, game_snapshot):
+                current_game.table_cards = game_snapshot.table_cards
 
         if is_new_game or is_player_move or is_new_street:
-            save_detection_result_image(timestamp_folder, captured_image, game_snapshot_builder.build())
+            save_detection_result_image(timestamp_folder, captured_image, game_snapshot)
+
+        if game_snapshot.is_player_move:
+            current_game = self.state_repository.get_by_window(window_name)
+
+            # current_street = current_game.get_street()
+            # self.state_repository.update_bids(window_name, bids)
+
+            # moves = self.move_reconstructor.reconstruct_moves(bids, bids_before_update, current_street, game_snapshot.positions)
+            # current_game.add_moves(moves, current_street)
+
+    def is_new_street(self, game, game_snapshot):
+        if game == None:
+            return True
+
+        return game.table_cards != game_snapshot.table_cards
 
     def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
-        player_cards = PlayerCardMatcher(
+        return PlayerCardMatcher(
             self.template_registry.player_templates,
             PlayerCardMatcher.DEFAULT_SEARCH_REGION
         ).read(cv2_image)
-
-        return player_cards
 
     def detect_table_cards(self, cv2_image) -> List[ReadedCard]:
         return OmahaTableCard(self.template_registry.table_templates, None).read(cv2_image)
@@ -160,6 +145,13 @@ class PokerGameProcessor:
                 except Exception as e:
                     logger.error(f"❌ Error checking player {player_num} position: {str(e)}")
 
+            logger.info(f"    ✅ Found positions:")
+            for i, position_result in enumerate(player_positions, 1):
+                player_num = i
+                position = position_result.position_name
+                position_type = f"P {player_num}"
+                logger.info(f"        {position_type}: {position}")
+
             return player_positions
 
         except Exception as e:
@@ -167,9 +159,6 @@ class PokerGameProcessor:
             return []
 
     def detect_actions(self, cv2_image, window_name: str = "") -> List:
-        if not self._player_move_reader:
-            return []
-
         try:
             detected_moves = self._player_move_reader.read(cv2_image)
 

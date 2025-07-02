@@ -4,8 +4,6 @@ import cv2
 import pytesseract
 from loguru import logger
 
-from src.core.domain.captured_window import CapturedWindow
-
 
 BIDS_POSITIONS = {
         1: (388, 334, 45, 15),
@@ -17,14 +15,19 @@ BIDS_POSITIONS = {
     }
 
 
-def detect_bids(captured_image: CapturedWindow) -> Dict[int, str]:
+def detect_bids(cv2_image) -> Dict[int, float]:
     bids = {}
 
     try:
+        logger.info(f"    <UNK> Found bids: {bids}")
+
         for position_name, (x, y, w, h) in BIDS_POSITIONS.items():
-            bid = detect_single_bid(captured_image, x, y, w, h)
+            bid = detect_single_bid(cv2_image, x, y, w, h)
             if bid:
                 bids[position_name] = float(bid)
+
+        for position_name, bid_value in bids.items():
+            logger.info(f"Position {position_name}: {bid_value}")
 
         return bids
 
@@ -33,9 +36,8 @@ def detect_bids(captured_image: CapturedWindow) -> Dict[int, str]:
         return {}
 
 
-def detect_single_bid(captured_image: CapturedWindow, x: int, y: int, w: int, h: int) -> str:
+def detect_single_bid(cv2_image, x: int, y: int, w: int, h: int) -> str:
     try:
-        cv2_image = captured_image.get_cv2_image()
         gray = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
 
         crop = gray[y: y + h, x: x + w]

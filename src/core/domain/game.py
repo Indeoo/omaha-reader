@@ -13,13 +13,13 @@ class Game:
             player_cards: List[ReadedCard] = None,
             table_cards: List[ReadedCard] = None,
             positions: Dict[int, str] = None,
-            current_bids: Dict[int, float] = None,
+            #current_bids: Dict[int, float] = None,
             move_history: Dict[Street, List] = None
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.positions = positions or {}
-        self.current_bids = current_bids or {}
+        #self.current_bids = current_bids or {}
         self.move_history = move_history or defaultdict(list)
         self.timestamp = datetime.now()
 
@@ -49,9 +49,6 @@ class Game:
 
     def reset_move_history(self):
         self.move_history = defaultdict(list)
-
-    def reset_bids_for_new_street(self):
-        self.current_bids = {}
 
     def get_moves_for_street(self, street: Street) -> List:
         return self.move_history.get(street, [])
@@ -162,7 +159,7 @@ class Game:
             'table_cards': self.get_table_cards_for_web(),
             'positions': self.get_positions_for_web(),
             'moves': self.get_moves_for_web(),
-            'bids': self.get_bids_for_web(),
+            #'bids': self.get_bids_for_web(),
             'moves_summary': self.get_moves_summary(),
             'street': self.get_street_display()
         }
