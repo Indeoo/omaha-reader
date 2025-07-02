@@ -26,7 +26,7 @@ class ImageCaptureService:
         captured_windows = self.capture_windows(timestamp_folder)
 
         if not captured_windows:
-            console_logger.error("🚫 No poker tables detected")
+            console_logger.warning("🚫 No poker tables detected")
             # All previously tracked windows are now removed
             removed_windows = list(self._window_hashes.keys())
             self._window_hashes.clear()

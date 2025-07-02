@@ -42,8 +42,7 @@ def main():
         logger.info("\nPress Ctrl+C to stop the server\n")
 
         # Start web service (this blocks)
-        #socketio.run(app, host='0.0.0.0', port=5002, debug=False)
-        socketio.run(app, host='0.0.0.0', port=5002, debug=False, allow_unsafe_werkzeug=True, use_reloader=False, log_output=False)
+        socketio.run(app, host='0.0.0.0', port=5001, debug=False, allow_unsafe_werkzeug=True, use_reloader=False, log_output=False)
 
     except KeyboardInterrupt:
         logger.info("\n🛑 Stopping services...")
