@@ -24,7 +24,7 @@ def detect_bids(cv2_image) -> Dict[int, float]:
         for position_name, (x, y, w, h) in BIDS_POSITIONS.items():
             bid = detect_single_bid(cv2_image, x, y, w, h)
             if bid:
-                bids[position_name] = float(bid)
+                bids[position_name] = bid
 
         for position_name, bid_value in bids.items():
             logger.info(f"Position {position_name}: {bid_value}")
