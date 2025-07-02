@@ -8,6 +8,7 @@ from src.core.omaha_engine import OmahaEngine
 
 load_dotenv()
 # Configuration
+PORT = int(os.getenv('PORT', '5001'))
 WAIT_TIME = int(os.getenv('WAIT_TIME', '10'))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'true').lower() == 'true'
 COUNTRY = os.getenv('COUNTRY', "canada").lower()
@@ -38,11 +39,11 @@ def main():
         omaha_engine.start_scheduler()
 
         logger.info(f"✅ Web server starting...")
-        logger.info(f"📍 Open http://localhost:5001 in your browser")
+        logger.info(f"📍 Open http://localhost:{PORT} in your browser")
         logger.info("\nPress Ctrl+C to stop the server\n")
 
         # Start web service (this blocks)
-        socketio.run(app, host='0.0.0.0', port=5001, debug=False, allow_unsafe_werkzeug=True, use_reloader=False, log_output=False)
+        socketio.run(app, host='0.0.0.0', port=PORT, debug=False, allow_unsafe_werkzeug=True, use_reloader=False, log_output=False)
 
     except KeyboardInterrupt:
         logger.info("\n🛑 Stopping services...")
