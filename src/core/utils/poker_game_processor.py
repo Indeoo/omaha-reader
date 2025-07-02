@@ -83,9 +83,10 @@ class PokerGameProcessor:
         player_cards = self.detect_player_cards(cv2_image)
         is_new_game = self.state_repository.is_new_game(window_name, player_cards)
         table_cards = self.detect_table_cards(cv2_image)
+        positions = self.detect_positions(cv2_image)
 
         bids = detect_bids(captured_image.get_cv2_image())
-        game_snapshot_builder = GameSnapshot.builder().with_player_cards(player_cards).with_table_cards(table_cards).with_bids(bids)
+        game_snapshot_builder = GameSnapshot.builder().with_player_cards(player_cards).with_table_cards(table_cards).with_bids(bids).with_positions(positions)
 
         is_player_move = self.is_player_move(cv2_image, window_name)
         game_snapshot = game_snapshot_builder.build()
