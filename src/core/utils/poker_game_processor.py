@@ -101,8 +101,8 @@ class PokerGameProcessor:
             if self.is_new_street(current_game, game_snapshot):
                 current_game.table_cards = game_snapshot.table_cards
 
-        if is_new_game or is_player_move or is_new_street:
-            save_detection_result_image(timestamp_folder, captured_image, game_snapshot)
+        #if is_new_game or is_player_move or is_new_street:
+        save_detection_result_image(timestamp_folder, captured_image, game_snapshot)
 
         if game_snapshot.is_player_move:
             current_game = self.state_repository.get_by_window(window_name)
