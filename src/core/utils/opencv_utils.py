@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple
 
 import cv2
 import numpy as np
@@ -119,6 +119,26 @@ def draw_detected_positions(image, positions):
             2,
             0.6
         )
+
+    return result
+
+
+def draw_detected_bids(
+        image: np.ndarray,
+        detected_bids: List,
+        color: Tuple[int, int, int] = (255, 0, 255),  # Magenta for bids
+        thickness: int = 2,
+        font_scale: float = 0.6
+) -> np.ndarray:
+    result = image.copy()
+
+    for bid in detected_bids:
+        label = f"P{bid.position}: ${bid.amount_text}"
+        x, y, w, h = bid.bounding_rect
+
+        cv2.rectangle(result, (x, y), (x + w, y + h), color, thickness)
+        cv2.putText(result, label, (x, y - 10),
+                    cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness)
 
     return result
 

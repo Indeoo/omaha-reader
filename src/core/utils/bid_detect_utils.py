@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List, Tuple
 
 import cv2
 import pytesseract
@@ -15,25 +15,40 @@ BIDS_POSITIONS = {
     }
 
 
-def detect_bids(cv2_image) -> Dict[int, float]:
-    bids = {}
+class DetectedBid:
+    def __init__(self, position: int, amount_text: str, bounding_rect: Tuple[int, int, int, int],
+                 center: Tuple[int, int]):
+        self.position = position
+        self.amount_text = amount_text
+        self.bounding_rect = bounding_rect
+        self.center = center
+
+    def __repr__(self):
+        return f"DetectedBid(pos={self.position}, amount='{self.amount_text}', center={self.center})"
+
+
+def detect_bids(cv2_image) -> List[DetectedBid]:
+    detected_bids = []
 
     try:
-        logger.info(f"    <UNK> Found bids: {bids}")
-
         for position_name, (x, y, w, h) in BIDS_POSITIONS.items():
-            bid = detect_single_bid(cv2_image, x, y, w, h)
-            if bid:
-                bids[position_name] = bid
+            bid_text = detect_single_bid(cv2_image, x, y, w, h)
+            if bid_text:
+                center = (x + w // 2, y + h // 2)
+                detected_bid = DetectedBid(
+                    position=position_name,
+                    amount_text=bid_text,
+                    bounding_rect=(x, y, w, h),
+                    center=center
+                )
+                detected_bids.append(detected_bid)
+                logger.info(f"Position {position_name}: {bid_text}")
 
-        for position_name, bid_value in bids.items():
-            logger.info(f"Position {position_name}: {bid_value}")
-
-        return bids
+        return detected_bids
 
     except Exception as e:
         logger.error(f"❌ Error detecting bids: {str(e)}")
-        return {}
+        return []
 
 
 def detect_single_bid(cv2_image, x: int, y: int, w: int, h: int) -> str:

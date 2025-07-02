@@ -10,13 +10,13 @@ class GameSnapshot:
             player_cards: Optional[List[ReadedCard]] = None,
             table_cards: Optional[List[ReadedCard]] = None,
             positions: Optional[List[Any]] = None,
-            bids: Dict[int, float] = None,
+            bids: Optional[List[Any]] = None,
             is_player_move: bool = False
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.positions = positions or []
-        self.bids = bids
+        self.bids = bids or []
         self.is_player_move = is_player_move
 
     @staticmethod
@@ -31,13 +31,19 @@ class GameSnapshot:
     def has_positions(self) -> bool:
         return bool(self.positions)
 
+    @property
+    def has_bids(self) -> bool:
+        return bool(self.bids)
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             'player_cards': self.player_cards,
             'table_cards': self.table_cards,
             'positions': self.positions,
+            'bids': self.bids,
             'has_cards': self.has_cards,
             'has_positions': self.has_positions,
+            'has_bids': self.has_bids,
             'is_player_move': self.is_player_move
         }
 
@@ -45,10 +51,11 @@ class GameSnapshot:
         player_count = len(self.player_cards)
         table_count = len(self.table_cards)
         position_count = len(self.positions)
+        bid_count = len(self.bids)
         move_status = "MOVE" if self.is_player_move else "WAIT"
         return (f"DetectionResult("
                 f"player_cards={player_count}, table_cards={table_count}, "
-                f"positions={position_count}, status={move_status})")
+                f"positions={position_count}, bids={bid_count}, status={move_status})")
 
     class Builder:
 
@@ -71,7 +78,7 @@ class GameSnapshot:
             self._positions = positions
             return self
 
-        def with_bids(self, bids: bool = True) -> 'GameSnapshot.Builder':
+        def with_bids(self, bids: List[Any]) -> 'GameSnapshot.Builder':
             self._bids = bids
             return self
 
@@ -84,5 +91,6 @@ class GameSnapshot:
                 player_cards=self._player_cards,
                 table_cards=self._table_cards,
                 positions=self._positions,
+                bids=self._bids,
                 is_player_move=self._is_player_move
             )

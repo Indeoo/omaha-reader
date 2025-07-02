@@ -4,9 +4,10 @@ import numpy as np
 from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
-from src.core.domain.readed_card import ReadedCard
 from src.core.domain.detection_result import GameSnapshot
-from src.core.utils.opencv_utils import save_opencv_image, draw_detected_cards, draw_detected_positions
+from src.core.domain.readed_card import ReadedCard
+from src.core.utils.opencv_utils import draw_detected_positions, save_opencv_image, draw_detected_bids, \
+    draw_detected_cards
 
 
 def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
@@ -23,6 +24,7 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
         player_cards = game_snapshot.player_cards
         table_cards = game_snapshot.table_cards
         positions = game_snapshot.positions
+        bids = game_snapshot.bids
 
         if has_cards:
             if player_cards:
@@ -37,6 +39,10 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
         if positions:
             result_image = draw_detected_positions(result_image, positions)
             drawn_items.append(f"{len(positions)} positions")
+
+        if bids:
+            result_image = draw_detected_bids(result_image, bids)
+            drawn_items.append(f"{len(bids)} bids")
 
         result_filename = filename.replace('.png', '_result.png')
         save_opencv_image(result_image, timestamp_folder, result_filename)

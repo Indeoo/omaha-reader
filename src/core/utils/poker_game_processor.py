@@ -85,8 +85,9 @@ class PokerGameProcessor:
         table_cards = self.detect_table_cards(cv2_image)
         positions = self.detect_positions(cv2_image)
 
-        bids = detect_bids(captured_image.get_cv2_image())
-        game_snapshot_builder = GameSnapshot.builder().with_player_cards(player_cards).with_table_cards(table_cards).with_bids(bids).with_positions(positions)
+        detected_bids = detect_bids(cv2_image)
+        game_snapshot_builder = GameSnapshot.builder().with_player_cards(player_cards).with_table_cards(
+            table_cards).with_bids(detected_bids).with_positions(positions)
 
         is_player_move = self.is_player_move(cv2_image, window_name)
         game_snapshot = game_snapshot_builder.build()
@@ -101,18 +102,10 @@ class PokerGameProcessor:
             if self.is_new_street(current_game, game_snapshot):
                 current_game.table_cards = game_snapshot.table_cards
 
-        #if is_new_game or is_player_move or is_new_street:
         save_detection_result_image(timestamp_folder, captured_image, game_snapshot)
 
         if game_snapshot.is_player_move:
             current_game = self.state_repository.get_by_window(window_name)
-
-            # current_street = current_game.get_street()
-            # self.state_repository.update_bids(window_name, bids)
-
-            # moves = self.move_reconstructor.reconstruct_moves(bids, bids_before_update, current_street, game_snapshot.positions)
-            # current_game.add_moves(moves, current_street)
-
     def is_new_street(self, game, game_snapshot):
         if game == None:
             return True
