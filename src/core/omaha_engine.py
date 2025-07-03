@@ -6,7 +6,7 @@ from loguru import logger
 from src.core.service.detection_notifier import DetectionNotifier
 from src.core.service.image_capture_service import ImageCaptureService
 from src.core.service.state_repository import GameStateRepository
-from src.core.utils.fs_utils import create_timestamp_folder
+from src.core.utils.fs_utils import create_timestamp_folder, create_window_folder
 from src.core.utils.logs import load_logger
 from src.core.utils.poker_game_processor import PokerGameProcessor
 
@@ -65,14 +65,14 @@ class OmahaEngine:
         return self.scheduler.running
 
     def detect_and_notify(self):
-        timestamp_folder = create_timestamp_folder(self.debug_mode)
-        load_logger(timestamp_folder)
-        window_changes = self.image_capture_service.get_changed_images(timestamp_folder)
+        base_timestamp_folder = create_timestamp_folder(self.debug_mode)
+        load_logger(base_timestamp_folder)
+        window_changes = self.image_capture_service.get_changed_images(base_timestamp_folder)
 
         changes_detected = False
 
         if window_changes.changed_images:
-            self._handle_changed_windows(window_changes.changed_images, timestamp_folder)
+            self._handle_changed_windows(window_changes.changed_images, base_timestamp_folder)
             changes_detected = True
 
         if window_changes.removed_windows:
@@ -82,12 +82,16 @@ class OmahaEngine:
         if changes_detected:
             self._notify_observers()
 
-    def _handle_changed_windows(self, captured_windows, timestamp_folder):
+    def _handle_changed_windows(self, captured_windows, base_timestamp_folder):
         for i, captured_image in enumerate(captured_windows):
             try:
                 logger.info(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
                 logger.info("-" * 40)
-                self.poker_game_processor.process_window(captured_image, timestamp_folder)
+
+                # Create window-specific folder
+                window_folder = create_window_folder(base_timestamp_folder, captured_image.window_name)
+
+                self.poker_game_processor.process_window(captured_image, window_folder)
 
             except Exception as e:
                 logger.error(f"❌ Error processing {captured_image.window_name}: {str(e)}")
