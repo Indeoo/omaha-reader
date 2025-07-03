@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
-"""
-Image capture service that handles window capture and change detection.
-Extracted from DetectionService for better separation of concerns.
-"""
 from typing import List, Dict, NamedTuple
+import os
 
 from loguru import logger
 
@@ -22,12 +19,11 @@ class ImageCaptureService:
         self.debug_mode = debug_mode
         self._window_hashes: Dict[str, str] = {}
 
-    def get_changed_images(self, timestamp_folder) -> WindowChanges:
-        captured_windows = self.capture_windows(timestamp_folder)
+    def get_changed_images(self, base_timestamp_folder) -> WindowChanges:
+        captured_windows = self.capture_windows(base_timestamp_folder)
 
         if not captured_windows:
             console_logger.warning("🚫 No poker tables detected")
-            # All previously tracked windows are now removed
             removed_windows = list(self._window_hashes.keys())
             self._window_hashes.clear()
             return WindowChanges(changed_images=[], removed_windows=removed_windows)
@@ -45,11 +41,9 @@ class ImageCaptureService:
             if self._window_hashes.get(window_name) != current_hash:
                 changed_images.append(captured_window)
 
-        # Find removed windows
         previous_window_names = set(self._window_hashes.keys())
         removed_windows = list(previous_window_names - current_window_names)
 
-        # Update stored hashes
         self._window_hashes = current_hashes
 
         if changed_images:

@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Dict
 import ctypes
 
 from PIL import ImageGrab, Image
@@ -7,16 +7,15 @@ from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
 from src.core.utils.fs_utils import get_image_names
-from src.core.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, write_windows_list
+from src.core.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, \
+    write_windows_list
 
 
 def _capture_windows(windows) -> List[CapturedWindow]:
     logger.info(f"Found {len(windows)} windows to capture")
 
-    # List to store all captured images
     captured_images = []
 
-    # Capture each window and store in memory
     for i, window in enumerate(windows, 1):
         hwnd = window['hwnd']
         title = window['title']
@@ -27,17 +26,13 @@ def _capture_windows(windows) -> List[CapturedWindow]:
 
         logger.info(f"Capturing window {i}/{len(windows)}: {title} ({process})")
 
-        # Create filename
-        safe_title =  "".join([c if c.isalnum() else "_" for c in title])[:50]
+        safe_title = "".join([c if c.isalnum() else "_" for c in title])[:50]
         safe_title = f"{i:02d}_{safe_title}"
-        #safe_process = "".join([c if c.isalnum() else "_" for c in process])[:20]
         filename = f"{safe_title}.png"
 
-        # First try using PrintWindow method (ignores overlapping)
         img = careful_capture_window(hwnd, width, height)
         capture_method = "PrintWindow (no overlap)"
 
-        # If that fails, fall back to screen region capture
         if img is None:
             logger.info("  Using fallback method: screen region capture")
             img = capture_screen_region(rect)
@@ -64,31 +59,34 @@ def get_poker_window_info(poker_window_name):
     return windows
 
 
-def save_images(
+def save_images_to_window_folders(
         captured_images: List[CapturedWindow],
-        timestamp_folder: str = None
+        base_folder: str,
+        window_folder_mapping: Dict[str, str]
 ):
-    logger.info(f"\nSaving {len(captured_images)} captured images...")
+    logger.info(f"\nSaving {len(captured_images)} captured images to window-specific folders...")
     successes = 0
-
-    logger.info(f"Screenshots will be saved to: {timestamp_folder}")
 
     for i, captured_image in enumerate(captured_images, 1):
         try:
-            filepath = os.path.join(timestamp_folder, captured_image.filename)
+            window_name = captured_image.window_name
+            window_folder = window_folder_mapping.get(window_name, base_folder)
+
+            # Ensure the window folder exists
+            os.makedirs(window_folder, exist_ok=True)
+
+            filepath = os.path.join(window_folder, captured_image.filename)
             if captured_image.save(filepath):
-                logger.info(f"  ✓ Saved {i}/{len(captured_images)}: {captured_image.filename}")
+                logger.info(f"  ✓ Saved {i}/{len(captured_images)}: {captured_image.filename} → {window_folder}")
                 successes += 1
             else:
                 logger.info(f"  ✗ Failed to save {captured_image.filename}")
         except Exception as e:
             logger.info(f"  ✗ Failed to save {captured_image.filename}: {e}")
 
-    # Print summary
-    logger.info("\n---- Capture Summary ----")
+    logger.info(f"\n---- Capture Summary ----")
     logger.info(f"Images captured in memory: {len(captured_images)}")
     logger.info(f"Successfully saved to disk: {successes}")
-    logger.info(f"Screenshots saved to: {timestamp_folder}")
     logger.info("Screenshot process completed.")
 
 
@@ -108,7 +106,7 @@ def _load_images_from_folder(timestamp_folder: str) -> List[CapturedWindow]:
             filepath = os.path.join(timestamp_folder, filename)
             image = Image.open(filepath)
 
-            window_name = filename.replace('.png', '')  # Use full filename without extension
+            window_name = filename.replace('.png', '')
 
             captured_image = CapturedWindow(
                 image=image,
@@ -127,7 +125,6 @@ def _load_images_from_folder(timestamp_folder: str) -> List[CapturedWindow]:
 
 def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, debug=False) -> List[CapturedWindow]:
     if debug:
-        # Debug mode: load images from existing folder
         captured_images = _load_images_from_folder(timestamp_folder)
         if captured_images:
             logger.info(f"✅ Loaded {len(captured_images)} images from debug folder")
@@ -135,15 +132,11 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
             logger.error("❌ No images loaded from debug folder")
         return captured_images
 
-    # Try to enable DPI awareness
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except:
         ctypes.windll.user32.SetProcessDPIAware()
 
-    # Normal mode: capture windows
-
-    # Get all window info
     windows = get_poker_window_info("Pot Limit Omaha")
     if len(windows) > 0:
         logger.info(f"Found {len(windows)} poker windows with titles:")
@@ -153,7 +146,6 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
 
     captured_images = _capture_windows(windows=windows)
 
-    # Save windows with the same timestamp
     if save_windows:
         try:
             full_screen = ImageGrab.grab()
@@ -168,9 +160,25 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
         except Exception as e:
             logger.error(f"Error capturing full screen: {e}")
 
-        # Write the window list to windows.txt
+        # Create window folder mapping - each window gets its own folder
+        window_folder_mapping = {}
+        for captured_image in captured_images:
+            if captured_image.window_name != 'full_screen':
+                # Create sanitized folder name
+                safe_window_name = "".join(
+                    [c if c.isalnum() or c in ('_', '-', ' ') else "_" for c in captured_image.window_name])
+                safe_window_name = safe_window_name.strip().replace(' ', '_')
+                window_folder = os.path.join(timestamp_folder, safe_window_name)
+                window_folder_mapping[captured_image.window_name] = window_folder
+            else:
+                # Full screen goes to base folder
+                window_folder_mapping[captured_image.window_name] = timestamp_folder
+
+        # Save images to their respective window folders
+        save_images_to_window_folders(captured_images, timestamp_folder, window_folder_mapping)
+
+        # Write the window list to base folder
         write_windows_list(windows, timestamp_folder)
-        save_images(captured_images, timestamp_folder)
 
         # Remove full screen from the list before returning
         captured_images = [img for img in captured_images if img.window_name != 'full_screen']
