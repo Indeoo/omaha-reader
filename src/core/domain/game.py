@@ -152,9 +152,17 @@ class Game:
     def has_moves(self) -> bool:
         return bool(self.move_history and any(self.move_history.values()))
 
+    def get_player_cards_string(self) -> str:
+        return ReadedCard.format_cards_simple(self.player_cards)
+
+    def get_table_cards_string(self) -> str:
+        return ReadedCard.format_cards_simple(self.table_cards)
+
     def to_dict(self, window_name: str):
         return {
             'window_name': window_name,
+            'player_cards_string': self.get_player_cards_string(),
+            'table_cards_string': self.get_table_cards_string(),
             'player_cards': self.get_player_cards_for_web(),
             'table_cards': self.get_table_cards_for_web(),
             'positions': self.get_positions_for_web(),
