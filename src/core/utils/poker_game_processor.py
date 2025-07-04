@@ -86,8 +86,8 @@ class PokerGameProcessor:
             logger.info("Not player's move, only update user cards")
             detected_player_cards = self.detect_player_cards(cv2_image)
 
-            game_snapshot_builder = GameSnapshot.builder().with_player_cards(detected_player_cards).build()
-            save_detection_result_image(timestamp_folder, captured_image, game_snapshot_builder.build())
+            game_snapshot = GameSnapshot.builder().with_player_cards(detected_player_cards).build()
+            save_detection_result_image(timestamp_folder, captured_image, game_snapshot.build())
             return
 
 
