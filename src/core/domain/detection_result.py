@@ -16,7 +16,7 @@ class GameSnapshot:
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
-        self.positions = positions or []
+        self.positions = positions or {}
         self.bids = bids or []
         self.is_player_move = is_player_move
 
