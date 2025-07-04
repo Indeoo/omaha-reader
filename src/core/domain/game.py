@@ -18,7 +18,8 @@ class Game:
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
-        self.positions = positions or {}
+        if positions is not None:
+            self.positions = positions.values() or {}
         #self.current_bids = current_bids or {}
         self.move_history = move_history or defaultdict(list)
         self.timestamp = datetime.now()
