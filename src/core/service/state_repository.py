@@ -60,11 +60,18 @@ class GameStateRepository:
             }
 
     def create_by_snapshot(self, window_name: str, game_snapshot: GameSnapshot):
-        game = Game(
-            player_cards=game_snapshot.player_cards,
-            table_cards=game_snapshot.table_cards,
-            positions=game_snapshot.positions,
-        )
+        if game_snapshot.positions is None:
+            game = Game(
+                player_cards=game_snapshot.player_cards,
+                table_cards=game_snapshot.table_cards,
+            )
+        else:
+            game = Game(
+                player_cards=game_snapshot.player_cards,
+                table_cards=game_snapshot.table_cards,
+                positions=game_snapshot.positions,
+            )
+
         self.games[window_name] = game
 
         return game
