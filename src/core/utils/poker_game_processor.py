@@ -87,8 +87,13 @@ class PokerGameProcessor:
             detected_player_cards = self.detect_player_cards(cv2_image)
 
             game_snapshot = GameSnapshot.builder().with_player_cards(detected_player_cards).build()
+
             current_game = self.state_repository.get_by_window(window_name)
-            current_game.player_cards = detected_player_cards
+
+            if current_game is None:
+                self.state_repository.create_by_snapshot(window_name, game_snapshot)
+            else:
+                current_game.player_cards = detected_player_cards
 
             save_detection_result_image(timestamp_folder, captured_image, game_snapshot)
             return
