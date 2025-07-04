@@ -37,7 +37,7 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
                 drawn_items.append(f"{len(table_cards)} table cards")
 
         if positions:
-            result_image = draw_detected_positions(result_image, positions)
+            result_image = draw_detected_positions(result_image, positions.values())
             drawn_items.append(f"{len(positions)} positions")
 
         if bids:

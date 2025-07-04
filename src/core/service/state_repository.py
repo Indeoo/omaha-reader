@@ -2,9 +2,10 @@ import threading
 from typing import Dict, Optional, List
 from datetime import datetime
 
+from loguru import logger
+
 from src.core.domain.detection_result import GameSnapshot
 from src.core.domain.game import Game
-from src.core.domain.readed_card import ReadedCard
 
 
 class GameStateRepository:
@@ -31,13 +32,17 @@ class GameStateRepository:
 
             return removed_any
 
-    def is_new_game(self, window_name: str, player_cards) -> bool:
+    def is_new_game(self, window_name: str, player_cards, detected_positions) -> bool:
         existing_game = self.get_by_window(window_name)
 
         if existing_game is None:
             return True
 
-        return player_cards != existing_game.player_cards
+        is_new_game = player_cards != existing_game.player_cards and detected_positions != existing_game.positions
+
+        logger.info(f"{window_name} new game == {is_new_game}")
+
+        return is_new_game
 
     def get_all(self) -> dict:
         with self._lock:
@@ -55,8 +60,11 @@ class GameStateRepository:
             }
 
     def create_by_snapshot(self, window_name: str, game_snapshot: GameSnapshot):
-        game = Game(player_cards=game_snapshot.player_cards, table_cards=game_snapshot.table_cards,
-                    positions=game_snapshot.positions, )
+        game = Game(
+            player_cards=game_snapshot.player_cards,
+            table_cards=game_snapshot.table_cards,
+            positions=game_snapshot.positions.values(),
+        )
         self.games[window_name] = game
 
         return game

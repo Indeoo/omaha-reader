@@ -1,6 +1,7 @@
 from typing import List, Dict, Any, Optional
 
 from src.core.domain.readed_card import ReadedCard
+from src.core.service.matcher.player_position_matcher import DetectedPosition
 
 
 class GameSnapshot:
@@ -74,7 +75,7 @@ class GameSnapshot:
             self._table_cards = table_cards
             return self
 
-        def with_positions(self, positions: List[Any]) -> 'GameSnapshot.Builder':
+        def with_positions(self, positions: Dict[int, DetectedPosition]) -> 'GameSnapshot.Builder':
             self._positions = positions
             return self
 
