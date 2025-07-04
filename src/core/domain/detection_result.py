@@ -10,7 +10,7 @@ class GameSnapshot:
             self,
             player_cards: Optional[List[ReadedCard]] = None,
             table_cards: Optional[List[ReadedCard]] = None,
-            positions: Optional[List[Any]] = None,
+            positions: Optional[Dict[int, DetectedPosition]] = None,
             bids: Optional[List[Any]] = None,
             is_player_move: bool = False
     ):
@@ -63,7 +63,7 @@ class GameSnapshot:
         def __init__(self):
             self._player_cards: Optional[List[ReadedCard]] = None
             self._table_cards: Optional[List[ReadedCard]] = None
-            self._positions: Optional[List[Any]] = None
+            self._positions: Optional[Dict[int, DetectedPosition]] = None
             self._bids: Optional[List[Any]] = None
             self._is_player_move: bool = False
 
