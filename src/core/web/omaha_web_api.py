@@ -18,7 +18,7 @@ class OmahaWebApi:
 
         # Register detection service observer
         self.omaha_engine.add_observer(self._on_detection_update)
-        self.game_state_repository = self.omaha_engine.game_state_repository
+        self.game_state_service = self.omaha_engine.game_state_service
 
     def _on_detection_update(self, data: dict):
         if self.socketio:
@@ -58,7 +58,7 @@ class OmahaWebApi:
 
         @app.route('/health')
         def health():
-            latest_results = self.game_state_repository.get_all()
+            latest_results = self.game_state_service.get_all_games()
             return jsonify({
                 'status': 'ok',
                 'connected_clients': len(self.socketio.server.manager.rooms.get('/', {})),
@@ -73,7 +73,7 @@ class OmahaWebApi:
             logger.info(f"🔌 New client connected")
 
             # Send current state immediately
-            latest_results = self.game_state_repository.get_all()
+            latest_results = self.game_state_service.get_all_games()
             if latest_results['detections']:
                 emit('detection_update', {
                     'type': 'detection_update',

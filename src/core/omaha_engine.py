@@ -4,6 +4,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from loguru import logger
 
 from src.core.service.detection_notifier import DetectionNotifier
+from src.core.service.game_state_service import GameStateService
 from src.core.service.image_capture_service import ImageCaptureService
 from src.core.service.state_repository import GameStateRepository
 from src.core.utils.fs_utils import create_timestamp_folder, create_window_folder
@@ -19,12 +20,13 @@ class OmahaEngine:
         self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
         self.notifier = DetectionNotifier()
         self.game_state_repository = GameStateRepository()
+        self.game_state_service = GameStateService(self.game_state_repository)
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
 
         self.poker_game_processor = PokerGameProcessor(
-            self.game_state_repository,
+            self.game_state_service,
             country=country,
             project_root=project_root,
             save_result_images=False,
@@ -101,9 +103,9 @@ class OmahaEngine:
         for window_name in removed_window_names:
             logger.info(f"    Removing: {window_name}")
 
-        self.game_state_repository.remove_windows(removed_window_names)
+        self.game_state_service.remove_windows(removed_window_names)
 
     def _notify_observers(self):
-        notification_data = self.game_state_repository.get_notification_data()
+        notification_data = self.game_state_service.get_notification_data()
         self.notifier.notify_observers(notification_data)
         logger.info(f"🔄 Detection changed - notified observers at {notification_data['last_update']}")
