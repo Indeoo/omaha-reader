@@ -17,6 +17,8 @@ COUNTRY = os.getenv('COUNTRY', "canada").lower()
 SHOW_TABLE_CARDS = os.getenv('SHOW_TABLE_CARDS', 'true').lower() == 'true'
 SHOW_POSITIONS = os.getenv('SHOW_POSITIONS', 'true').lower() == 'true'
 SHOW_MOVES = os.getenv('SHOW_MOVES', 'true').lower() == 'true'
+SHOW_SOLVER_LINK = os.getenv('SHOW_SOLVER_LINK', 'true').lower() == 'true'  # Add this line
+
 
 def main():
     logger.info("🎯 Initializing Web-based Omaha Card Reader")
@@ -30,7 +32,8 @@ def main():
             omaha_engine=omaha_engine,
             show_table_cards=SHOW_TABLE_CARDS,
             show_positions=SHOW_POSITIONS,
-            show_moves=SHOW_MOVES
+            show_moves=SHOW_MOVES,
+            show_solver_link=SHOW_SOLVER_LINK  # Add this line
         )
         app = app_factory.create_app()
         socketio = app_factory.get_socketio()

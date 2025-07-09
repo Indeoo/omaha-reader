@@ -2,7 +2,8 @@ let config = {
     backend_capture_interval: 5,
     show_table_cards: true,
     show_positions: true,
-    show_moves: true
+    show_moves: true,
+    show_solver_link: true
 };
 let socket = null;
 let previousDetections = [];
@@ -166,12 +167,32 @@ function createMovesSection(detection, isUpdate) {
     `;
 }
 
+function createSolverLinkSection(detection, isUpdate) {
+    if (!config.show_solver_link || !detection.solver_link) {
+        return '';
+    }
+
+    const linkClass = isUpdate ? 'solver-link-block new-solver-link' : 'solver-link-block';
+
+    return `
+        <div class="cards-section">
+            <div class="cards-label">Solver Analysis !!!BETA!!!:</div>
+            <div class="${linkClass}">
+                <a href="${detection.solver_link}" target="_blank" class="solver-link">
+                    Open in FlopHero 🔗
+                </a>
+            </div>
+        </div>
+    `;
+}
+
 function createTableContainer(detection, isUpdate) {
     const tableClass = isUpdate ? 'table-container updated' : 'table-container';
 
     const tableCardsSection = createTableCardsSection(detection, isUpdate);
     const positionsSection = createPositionsSection(detection, isUpdate);
     const movesSection = createMovesSection(detection, isUpdate);
+    const solverLinkSection = createSolverLinkSection(detection, isUpdate);
 
     // Build main cards section conditionally
     let mainCardsContent = `
@@ -198,6 +219,7 @@ function createTableContainer(detection, isUpdate) {
                 ${mainCardsContent}
             </div>
             ${movesSection}
+            ${solverLinkSection}
         </div>
     `;
 }
@@ -229,6 +251,9 @@ function renderCards(detections, isUpdate = false) {
             });
             document.querySelectorAll('.new-cards').forEach(el => {
                 el.classList.remove('new-cards');
+            });
+            document.querySelectorAll('.new-solver-link').forEach(el => {
+                el.classList.remove('new-solver-link');
             });
         }, 2000);
     }

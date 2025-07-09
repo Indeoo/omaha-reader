@@ -9,12 +9,14 @@ from loguru import logger
 
 class OmahaWebApi:
 
-    def __init__(self, omaha_engine, show_table_cards=True, show_positions=True, show_moves=True):
+    def __init__(self, omaha_engine, show_table_cards=True, show_positions=True, show_moves=True,
+                 show_solver_link=True):
         self.omaha_engine = omaha_engine
         self.socketio = None
         self.show_table_cards = show_table_cards
         self.show_positions = show_positions
         self.show_moves = show_moves
+        self.show_solver_link = show_solver_link  # Add this line
 
         # Register detection service observer
         self.omaha_engine.add_observer(self._on_detection_update)
@@ -53,17 +55,8 @@ class OmahaWebApi:
                 'backend_capture_interval': getattr(self, 'wait_time', int(os.getenv('WAIT_TIME', '10'))),
                 'show_table_cards': self.show_table_cards,
                 'show_positions': self.show_positions,
-                'show_moves': self.show_moves
-            })
-
-        @app.route('/health')
-        def health():
-            latest_results = self.game_state_service.get_all_games()
-            return jsonify({
-                'status': 'ok',
-                'connected_clients': len(self.socketio.server.manager.rooms.get('/', {})),
-                'last_update': latest_results['last_update'],
-                'detection_service_available': True,
+                'show_moves': self.show_moves,
+                'show_solver_link': self.show_solver_link  # Add this line
             })
 
     def _setup_socketio_events(self):

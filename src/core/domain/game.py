@@ -158,6 +158,15 @@ class Game:
     def get_table_cards_string(self) -> str:
         return ReadedCard.format_cards_simple(self.table_cards)
 
+    def get_solver_link_for_web(self) -> Optional[str]:
+        from src.core.service.flophero_link_service import FlopHeroLinkService
+
+        # Only generate link if we have meaningful data
+        if not self.has_cards() and not self.has_moves():
+            return None
+
+        return FlopHeroLinkService.generate_link(self)
+
     def to_dict(self, window_name: str):
         return {
             'window_name': window_name,
@@ -167,7 +176,7 @@ class Game:
             'table_cards': self.get_table_cards_for_web(),
             'positions': self.get_positions_for_web(),
             'moves': self.get_moves_for_web(),
-            #'bids': self.get_bids_for_web(),
             'moves_summary': self.get_moves_summary(),
-            'street': self.get_street_display()
+            'street': self.get_street_display(),
+            'solver_link': self.get_solver_link_for_web()  # Add this line
         }
