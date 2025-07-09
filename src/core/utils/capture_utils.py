@@ -11,6 +11,8 @@ from src.core.utils.windows_utils import get_window_info, careful_capture_window
 
 
 def _capture_windows(windows) -> List[CapturedWindow]:
+    windows.sort(key=lambda w: w['hwnd'])
+
     logger.info(f"Found {len(windows)} windows to capture")
 
     captured_images = []

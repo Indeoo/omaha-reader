@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from typing import List, Dict, NamedTuple
-import os
 
 from loguru import logger
 
