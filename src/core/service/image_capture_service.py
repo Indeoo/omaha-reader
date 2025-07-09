@@ -20,7 +20,11 @@ class ImageCaptureService:
         self._window_hashes: Dict[str, str] = {}
 
     def get_changed_images(self, base_timestamp_folder) -> WindowChanges:
-        captured_windows = self.capture_windows(base_timestamp_folder)
+        captured_windows = capture_and_save_windows(
+            timestamp_folder=base_timestamp_folder,
+            save_windows=not self.debug_mode,
+            debug=self.debug_mode
+        )
 
         if not captured_windows:
             console_logger.warning("🚫 No poker tables detected")
@@ -56,10 +60,3 @@ class ImageCaptureService:
             logger.info("📊 All windows unchanged")
 
         return WindowChanges(changed_images=changed_images, removed_windows=removed_windows)
-
-    def capture_windows(self, timestamp_folder: str) -> List[CapturedWindow]:
-        return capture_and_save_windows(
-            timestamp_folder=timestamp_folder,
-            save_windows=not self.debug_mode,
-            debug=self.debug_mode
-        )

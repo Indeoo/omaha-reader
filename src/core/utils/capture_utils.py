@@ -31,22 +31,20 @@ def _capture_windows(windows) -> List[CapturedWindow]:
         filename = f"{safe_title}.png"
 
         img = careful_capture_window(hwnd, width, height)
-        capture_method = "PrintWindow (no overlap)"
 
         if img is None:
             logger.info("  Using fallback method: screen region capture")
             img = capture_screen_region(rect)
-            capture_method = "Screen region (with overlap)"
 
         if img:
             captured_image = CapturedWindow(
                 image=img,
                 filename=filename,
-                window_name=f"{i}_{title}",
-                description=f"{title} - {capture_method}"
+                window_name=safe_title,
+                description=f"{safe_title}"
             )
             captured_images.append(captured_image)
-            logger.info(f"  ✓ Captured using {capture_method}")
+            logger.info(f"  ✓ Captured images")
         else:
             logger.error(f"  ✗ Failed to capture")
 
