@@ -45,12 +45,17 @@ class GameStateService:
             logger.info(f"Created new game for {window_name}")
         else:
             current_game = self.state_repository.get_by_window(window_name)
-            if is_new_street:
-                current_game.table_cards = game_snapshot.table_cards
-                logger.info(f"Updated table cards for {window_name} - new street")
+            if current_game is None:
+                # Game doesn't exist, create it
+                current_game = self.state_repository.create_by_snapshot(window_name, game_snapshot)
+                logger.info(f"Created missing game for {window_name}")
+            else:
+                if is_new_street:
+                    current_game.table_cards = game_snapshot.table_cards
+                    logger.info(f"Updated table cards for {window_name} - new street")
 
-            # Always update player cards
-            current_game.player_cards = game_snapshot.player_cards
+                # Always update player cards
+                current_game.player_cards = game_snapshot.player_cards
 
         return current_game
 
