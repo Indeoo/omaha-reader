@@ -10,10 +10,13 @@ from src.core.service.state_repository import GameStateRepository
 from src.core.utils.fs_utils import create_timestamp_folder, create_window_folder
 from src.core.utils.logs import load_logger
 from src.core.utils.poker_game_processor import PokerGameProcessor
+from src.core.utils.windows_utils import initialize_platform
 
 
 class OmahaEngine:
     def __init__(self, country="canada", debug_mode: bool = True, detection_interval: int = 10):
+        initialize_platform()
+
         self.debug_mode = debug_mode
         self.detection_interval = detection_interval
 

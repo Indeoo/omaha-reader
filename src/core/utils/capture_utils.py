@@ -1,6 +1,5 @@
 import os
 from typing import List, Dict
-import ctypes
 
 from PIL import ImageGrab, Image
 from loguru import logger
@@ -129,11 +128,6 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
         else:
             logger.error("❌ No images loaded from debug folder")
         return captured_images
-
-    try:
-        ctypes.windll.shcore.SetProcessDpiAwareness(1)
-    except:
-        ctypes.windll.user32.SetProcessDPIAware()
 
     windows = get_poker_window_info("Pot Limit Omaha")
     if len(windows) > 0:

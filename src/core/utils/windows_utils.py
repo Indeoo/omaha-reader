@@ -1,4 +1,5 @@
 import ctypes
+import sys
 from datetime import datetime
 import os
 
@@ -186,3 +187,21 @@ def write_windows_list(windows, output_folder):
 
     except Exception as e:
         logger.error(f"Error writing windows list: {e}")
+
+
+def initialize_platform():
+    """Initialize platform-specific settings"""
+    if sys.platform == "win32":
+        _initialize_windows_dpi()
+
+def _initialize_windows_dpi():
+    """Set Windows DPI awareness once per process"""
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        logger.info("✅ Windows DPI awareness set")
+    except:
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+            logger.info("✅ Windows DPI awareness set (fallback)")
+        except:
+            logger.warning("⚠️ Could not set DPI awareness")
