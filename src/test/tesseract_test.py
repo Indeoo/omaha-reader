@@ -8,10 +8,14 @@ import re
 from loguru import logger
 from matplotlib import pyplot as plt
 
+from src.core.utils.bid_detect_utils import detect_bids
+from src.core.utils.opencv_utils import draw_detected_bids
+
 
 class TestPytesseract(unittest.TestCase):
     def testPot(self):
-        img = Image.open(f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
+        img = Image.open(
+            f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
 
         # # Load full image and preprocess
         gray_full = img.convert("L")
@@ -39,11 +43,10 @@ class TestPytesseract(unittest.TestCase):
         logger.info(total_pot)
         logger.info(main_pot)
 
-
     def testBalances(self):
         # Load and preprocess image
-        img = cv2.imread(f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
-
+        img = cv2.imread(
+            f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
 
         # Load full image and convert to grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -96,11 +99,10 @@ class TestPytesseract(unittest.TestCase):
         # cv2.waitKey(0)
         # cv2.destroyAllWindows()
 
-
     def testReadBid(self):
         # Load and preprocess image
-        img_path = f"src/test/tables/test_move/5_move.png"
-        #img = cv2.imread(f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
+        img_path = f"src/test/tables/test_move/4_move.png"
+        # img = cv2.imread(f"Dropbox/data_screenshots/_20250610_023049/_20250610_025342/02_unknown__2_50__5_Pot_Limit_Omaha.png")
 
         img = cv2.imread(img_path)
         # Convert BGR to RGB for display
@@ -164,3 +166,21 @@ class TestPytesseract(unittest.TestCase):
             'POSITION2': (200, 310, 40, 15),  # 215 + 95
             'POSITION1': (386, 334, 45, 15)  # 214 + 120
         }
+
+    def test_detect_bids(self):
+        img_path = f"src/test/tables/test_move/4_move.png"
+        img = cv2.imread(img_path)
+
+        bids = detect_bids(img)
+
+        result_image = draw_detected_bids(img, bids)
+
+        # Convert BGR to RGB for matplotlib display
+        result_image_rgb = cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB)
+
+        # Display with matplotlib
+        plt.figure(figsize=(12, 8))
+        plt.imshow(result_image_rgb)
+        plt.title("Detected Bids")
+        plt.axis('off')
+        plt.show()
