@@ -4,6 +4,7 @@ import cv2
 import pytesseract
 from loguru import logger
 
+from src.core.domain.detected_bid import DetectedBid
 
 BIDS_POSITIONS = {
         1: (388, 334, 45, 15),
@@ -13,18 +14,6 @@ BIDS_POSITIONS = {
         5: (572, 207, 40, 25),
         6: (562, 310, 45, 20),
     }
-
-
-class DetectedBid:
-    def __init__(self, position: int, amount_text: str, bounding_rect: Tuple[int, int, int, int],
-                 center: Tuple[int, int]):
-        self.position = position
-        self.amount_text = amount_text
-        self.bounding_rect = bounding_rect
-        self.center = center
-
-    def __repr__(self):
-        return f"DetectedBid(pos={self.position}, amount='{self.amount_text}', center={self.center})"
 
 
 def detect_bids(cv2_image) -> List[DetectedBid]:

@@ -4,6 +4,7 @@ from collections import defaultdict
 
 from src.core.domain.readed_card import ReadedCard
 from src.core.domain.street import Street
+from src.core.domain.detected_bid import DetectedBid
 
 
 class Game:
@@ -166,6 +167,46 @@ class Game:
             return None
 
         return FlopHeroLinkService.generate_link(self)
+
+    def get_total_bids_for_street(self, street: Street) -> List[DetectedBid]:
+        """Get total bid amounts for each player on a specific street as DetectedBid objects"""
+        from src.core.utils.bid_detect_utils import DetectedBid, BIDS_POSITIONS
+
+        moves = self.get_moves_for_street(street)
+        if not moves:
+            return []
+
+        # Get the latest total contribution for each player on this street
+        player_bids = {}
+        for move in moves:
+            if move.action_type.value != 'fold':  # Only count non-fold moves
+                player_bids[move.player_number] = move.total_pot_contribution
+
+        # Convert to DetectedBid objects
+        detected_bids = []
+        for player_num, bid_amount in player_bids.items():
+            if bid_amount > 0 and player_num in BIDS_POSITIONS:
+                x, y, w, h = BIDS_POSITIONS[player_num]
+                center = (x + w // 2, y + h // 2)
+
+                detected_bid = DetectedBid(
+                    position=player_num,
+                    amount_text=f"{bid_amount:.1f}" if bid_amount != int(bid_amount) else str(int(bid_amount)),
+                    bounding_rect=(x, y, w, h),
+                    center=center
+                )
+                detected_bids.append(detected_bid)
+
+        # Sort by position number for consistent ordering
+        return sorted(detected_bids, key=lambda bid: bid.position)
+
+    def get_current_street_total_bids(self) -> List[DetectedBid]:
+        """Get total bids for the current street based on table cards"""
+        current_street = self.get_street()
+        if current_street is None:
+            return []
+
+        return self.get_total_bids_for_street(current_street)
 
     def to_dict(self, window_name: str):
         return {
