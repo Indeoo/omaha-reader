@@ -9,5 +9,12 @@ class DetectedBid:
         self.bounding_rect = bounding_rect
         self.center = center
 
+    @property
+    def amount(self) -> float:
+        try:
+            return float(self.amount_text)
+        except (ValueError, TypeError):
+            return 0.0
+
     def __repr__(self):
         return f"DetectedBid(pos={self.position}, amount='{self.amount_text}', center={self.center})"

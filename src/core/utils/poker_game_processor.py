@@ -54,10 +54,10 @@ class PokerGameProcessor:
                                                                      is_new_street)
 
         if is_new_game:
-            self.move_reconstructor.process_bid(current_game, [], detected_bids)
+            self.move_reconstructor.process_bid(current_game, {}, detected_bids)
         else:
             if is_new_street:
-                previous_bids = []
+                previous_bids = {}
             else:
                 previous_bids = current_game.get_total_bids_for_street(current_game.get_street())
 

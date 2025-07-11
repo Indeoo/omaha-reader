@@ -7,6 +7,8 @@ import numpy as np
 from PIL import Image
 from loguru import logger
 
+from src.core.domain.detected_bid import DetectedBid
+
 
 def pil_to_cv2(pil_image: Image.Image) -> np.ndarray:
     if pil_image.mode in ('RGBA', 'LA'):
@@ -122,17 +124,16 @@ def draw_detected_positions(image, positions):
 
     return result
 
-
 def draw_detected_bids(
         image: np.ndarray,
-        detected_bids: List,
+        detected_bids: Dict[int, DetectedBid],
         color: Tuple[int, int, int] = (255, 0, 255),  # Magenta for bids
         thickness: int = 2,
         font_scale: float = 0.6
 ) -> np.ndarray:
     result = image.copy()
 
-    for bid in detected_bids:
+    for bid in detected_bids.values():
         label = f"P{bid.position}: ${bid.amount_text}"
         x, y, w, h = bid.bounding_rect
 

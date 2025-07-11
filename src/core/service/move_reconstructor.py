@@ -6,6 +6,7 @@ from loguru import logger
 
 from src.core.domain.street import Street
 from src.core.service.matcher.player_position_matcher import DetectedPosition
+from src.core.domain.detected_bid import DetectedBid
 
 
 class ActionType(Enum):
@@ -49,20 +50,8 @@ class MoveReconstructor:
                 player_label = f"P{move.player_number}"
                 logger.info(f"        {player_label}: {action_desc}")
 
-    def reconstruct_moves(self, current_bids: Dict[int, float], previous_bids: Dict[int, float],
+    def reconstruct_moves(self, current_bids: Dict[int, DetectedBid], previous_bids: Dict[int, DetectedBid],
                           current_street: Street, positions: Dict[int, str]) -> List[Move]:
-        """
-        Reconstruct moves between two game states by comparing bid changes
-
-        Args:
-            current_bids: Current bid amounts for each player
-            previous_bids: Previous bid amounts for each player
-            current_street: Current street being played
-            positions: Player positions (for betting order)
-
-        Returns:
-            List of moves that occurred between states
-        """
         if not current_bids:
             return []
 
@@ -72,8 +61,8 @@ class MoveReconstructor:
         all_players = set(list(current_bids.keys()) + list(previous_bids.keys()))
 
         # Find the highest bid in current state to determine betting level
-        max_current_bid = max(current_bids.values()) if current_bids else 0.0
-        max_previous_bid = max(previous_bids.values()) if previous_bids else 0.0
+        max_current_bid = max((bid.amount for bid in current_bids.values()), default=0.0)
+        max_previous_bid = max((bid.amount for bid in previous_bids.values()), default=0.0)
 
         # Determine betting order based on positions
         betting_order = self._get_betting_order(positions)
@@ -82,17 +71,20 @@ class MoveReconstructor:
             if player_num not in all_players:
                 continue
 
-            current_bid = current_bids.get(player_num, 0.0)
-            previous_bid = previous_bids.get(player_num, 0.0)
+            current_bid = current_bids.get(player_num)
+            previous_bid = previous_bids.get(player_num)
+
+            current_amount = current_bid.amount if current_bid else 0.0
+            previous_amount = previous_bid.amount if previous_bid else 0.0
 
             # Skip if no change
-            if current_bid == previous_bid:
+            if current_amount == previous_amount:
                 continue
 
             move = self._determine_move_type(
                 player_num=player_num,
-                current_bid=current_bid,
-                previous_bid=previous_bid,
+                current_bid=current_amount,
+                previous_bid=previous_amount,
                 max_current_bid=max_current_bid,
                 max_previous_bid=max_previous_bid,
                 current_street=current_street
@@ -104,23 +96,15 @@ class MoveReconstructor:
         return moves
 
     def _get_betting_order(self, positions: List[DetectedPosition]) -> List[int]:
-        """
-        Determine betting order based on positions
-        Standard order: SB -> BB -> UTG -> MP -> CO -> BTN
-        """
         position_order = ['SB', 'BB', 'EP', 'MP', 'CO', 'BTN']
 
-        # Create mapping of position to player
-        #position_to_player = {pos: player for player, pos in positions.items()}
         position_to_player = {pos.position_name: i + 1 for i, pos in enumerate(positions)}
 
-        # Build betting order
         betting_order = []
         for pos in position_order:
             if pos in position_to_player:
                 betting_order.append(position_to_player[pos])
 
-        # Add any players not in standard positions
         for i in range(len(positions)):
             player_num = i + 1
             if player_num not in betting_order:
@@ -131,9 +115,6 @@ class MoveReconstructor:
     def _determine_move_type(self, player_num: int, current_bid: float, previous_bid: float,
                              max_current_bid: float, max_previous_bid: float,
                              current_street: Street) -> Optional[Move]:
-        """
-        Determine what type of move a player made based on bid changes
-        """
         bid_change = current_bid - previous_bid
 
         # Player folded (had money before, now has 0)

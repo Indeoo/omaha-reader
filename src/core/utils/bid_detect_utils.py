@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple
 
 import cv2
 import pytesseract
@@ -16,8 +16,8 @@ BIDS_POSITIONS = {
     }
 
 
-def detect_bids(cv2_image) -> List[DetectedBid]:
-    detected_bids = []
+def detect_bids(cv2_image) -> Dict[int, DetectedBid]:
+    detected_bids = {}
 
     try:
         for position_name, (x, y, w, h) in BIDS_POSITIONS.items():
@@ -30,14 +30,14 @@ def detect_bids(cv2_image) -> List[DetectedBid]:
                     bounding_rect=(x, y, w, h),
                     center=center
                 )
-                detected_bids.append(detected_bid)
+                detected_bids[position_name] = detected_bid
                 logger.info(f"Position {position_name}: {bid_text}")
 
         return detected_bids
 
     except Exception as e:
         logger.error(f"❌ Error detecting bids: {str(e)}")
-        return []
+        return {}
 
 
 def detect_single_bid(cv2_image, x: int, y: int, w: int, h: int) -> str:

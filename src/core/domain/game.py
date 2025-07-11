@@ -14,13 +14,11 @@ class Game:
             player_cards: List[ReadedCard] = None,
             table_cards: List[ReadedCard] = None,
             positions: Dict[int, str] = None,
-            #current_bids: Dict[int, float] = None,
             move_history: Dict[Street, List] = None
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.positions = positions or {}
-        #self.current_bids = current_bids or {}
         self.move_history = move_history or defaultdict(list)
         self.timestamp = datetime.now()
 
@@ -168,13 +166,12 @@ class Game:
 
         return FlopHeroLinkService.generate_link(self)
 
-    def get_total_bids_for_street(self, street: Street) -> List[DetectedBid]:
-        """Get total bid amounts for each player on a specific street as DetectedBid objects"""
+    def get_total_bids_for_street(self, street: Street) -> Dict[int, DetectedBid]:
         from src.core.utils.bid_detect_utils import DetectedBid, BIDS_POSITIONS
 
         moves = self.get_moves_for_street(street)
         if not moves:
-            return []
+            return {}
 
         # Get the latest total contribution for each player on this street
         player_bids = {}
@@ -183,7 +180,7 @@ class Game:
                 player_bids[move.player_number] = move.total_pot_contribution
 
         # Convert to DetectedBid objects
-        detected_bids = []
+        detected_bids = {}
         for player_num, bid_amount in player_bids.items():
             if bid_amount > 0 and player_num in BIDS_POSITIONS:
                 x, y, w, h = BIDS_POSITIONS[player_num]
@@ -195,16 +192,14 @@ class Game:
                     bounding_rect=(x, y, w, h),
                     center=center
                 )
-                detected_bids.append(detected_bid)
+                detected_bids[player_num] = detected_bid
 
-        # Sort by position number for consistent ordering
-        return sorted(detected_bids, key=lambda bid: bid.position)
+        return detected_bids
 
-    def get_current_street_total_bids(self) -> List[DetectedBid]:
-        """Get total bids for the current street based on table cards"""
+    def get_current_street_total_bids(self) -> Dict[int, DetectedBid]:
         current_street = self.get_street()
         if current_street is None:
-            return []
+            return {}
 
         return self.get_total_bids_for_street(current_street)
 
@@ -219,5 +214,5 @@ class Game:
             'moves': self.get_moves_for_web(),
             'moves_summary': self.get_moves_summary(),
             'street': self.get_street_display(),
-            'solver_link': self.get_solver_link_for_web()  # Add this line
+            'solver_link': self.get_solver_link_for_web()
         }
