@@ -5,6 +5,7 @@ from collections import defaultdict
 from src.core.domain.readed_card import ReadedCard
 from src.core.domain.street import Street
 from src.core.domain.detected_bid import DetectedBid
+from src.core.service.matcher.player_position_matcher import DetectedPosition
 
 
 class Game:
@@ -13,7 +14,7 @@ class Game:
             self,
             player_cards: List[ReadedCard] = None,
             table_cards: List[ReadedCard] = None,
-            positions: Dict[int, str] = None,
+            positions: Dict[int, DetectedPosition] = None,
             move_history: Dict[Street, List] = None
     ):
         self.player_cards = player_cards or []
@@ -80,7 +81,7 @@ class Game:
             return []
 
         formatted = []
-        for player_num, position  in enumerate(self.positions, 1):
+        for player_num, position  in enumerate(self.positions.values(), 1):
             formatted.append({
                 'player': player_num,
                 'player_label': f'Player {player_num}',
@@ -117,6 +118,7 @@ class Game:
                 })
 
         return moves_by_street
+
     def get_bids_for_web(self) -> List[Dict]:
         bids_data = []
         for player_num, bid_amount in sorted(self.current_bids.items()):

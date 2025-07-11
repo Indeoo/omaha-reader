@@ -51,7 +51,7 @@ class MoveReconstructor:
                 logger.info(f"        {player_label}: {action_desc}")
 
     def reconstruct_moves(self, current_bids: Dict[int, DetectedBid], previous_bids: Dict[int, DetectedBid],
-                          current_street: Street, positions: Dict[int, str]) -> List[Move]:
+                          current_street: Street, positions: Dict[int, DetectedPosition]) -> List[Move]:
         if not current_bids:
             return []
 
@@ -95,10 +95,10 @@ class MoveReconstructor:
 
         return moves
 
-    def _get_betting_order(self, positions: List[DetectedPosition]) -> List[int]:
+    def _get_betting_order(self, positions: Dict[int, DetectedPosition]) -> List[int]:
         position_order = ['SB', 'BB', 'EP', 'MP', 'CO', 'BTN']
 
-        position_to_player = {pos.position_name: i + 1 for i, pos in enumerate(positions)}
+        position_to_player = {pos.position_name: i + 1 for i, pos in enumerate(positions.values())}
 
         betting_order = []
         for pos in position_order:
