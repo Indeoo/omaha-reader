@@ -96,7 +96,7 @@ class OmahaEngine:
                 # Create window-specific folder
                 window_folder = create_window_folder(base_timestamp_folder, captured_image.window_name)
 
-                self.poker_game_processor.process_window(captured_image, window_folder)
+                self.poker_game_processor.process(captured_image, window_folder)
 
             except Exception as e:
                 logger.error(f"❌ Error processing {captured_image.window_name}: {str(e)}")

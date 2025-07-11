@@ -24,7 +24,7 @@ class PokerGameProcessor:
         self.move_reconstructor = MoveReconstructor()
         self.detect_utils = DetectUtils(country=country, project_root=project_root)
 
-    def process_window(self, captured_image: CapturedWindow, timestamp_folder):
+    def process(self, captured_image: CapturedWindow, timestamp_folder):
         window_name = captured_image.window_name
         cv2_image = captured_image.get_cv2_image()
 
