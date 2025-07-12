@@ -44,13 +44,15 @@ def detect_bids(cv2_image: np.ndarray) -> Dict[int, DetectedBid]:
             region = cv2_image[y:y + h, x:x + w]
             processed_regions[position] = _preprocess_bid_region(region)
 
-        # Visualize all processed regions
-        for position, processed_region in processed_regions.items():
-            import matplotlib.pyplot as plt
-            plt.figure(figsize=(4, 4))
-            plt.imshow(processed_region, cmap='gray')
-            plt.title(f'Position {position}')
-            plt.show()
+        # Visualize all processed regions on single plot
+        import matplotlib.pyplot as plt
+        fig, axes = plt.subplots(2, 3, figsize=(12, 8))
+        axes = axes.ravel()
+        for idx, (position, processed_region) in enumerate(processed_regions.items()):
+            axes[idx].imshow(processed_region, cmap='gray')
+            axes[idx].set_title(f'Position {position}')
+        plt.tight_layout()
+        plt.show()
 
         # Process each region for bids
         for position, processed_region in processed_regions.items():
