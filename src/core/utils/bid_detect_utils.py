@@ -10,10 +10,10 @@ from src.core.domain.detected_bid import DetectedBid
 PLAYER_BID_POSITIONS = {
     1: (390, 333, 40, 15),  # Bottom center (hero)
     2: (200, 310, 40, 15),  # Left side
-    3: (185, 212, 45, 15),  # Top left
+    3: (200, 212, 45, 15),  # Top left
     4: (462, 165, 45, 15),  # Top center
-    5: (577, 212, 40, 15),  # Top right
-    6: (578, 310, 30, 20),  # Right side
+    5: (578, 212, 30, 15),  # Top right
+    6: (578, 310, 25, 15),  # Right side
 }
 
 # OCR configuration optimized for bid amounts
@@ -24,7 +24,7 @@ TESSERACT_CONFIG = (
 )
 
 
-def detect_bids(cv2_image: np.ndarray) -> Dict[int, DetectedBid]:
+def detect_bids(cv2_image: np.ndarray, debug = False) -> Dict[int, DetectedBid]:
     """
     Detect bid amounts for all player positions
 
@@ -45,14 +45,15 @@ def detect_bids(cv2_image: np.ndarray) -> Dict[int, DetectedBid]:
             processed_regions[position] = _preprocess_bid_region(region)
 
         # Visualize all processed regions on single plot
-        import matplotlib.pyplot as plt
-        fig, axes = plt.subplots(2, 3, figsize=(12, 8))
-        axes = axes.ravel()
-        for idx, (position, processed_region) in enumerate(processed_regions.items()):
-            axes[idx].imshow(processed_region, cmap='gray')
-            axes[idx].set_title(f'Position {position}')
-        plt.tight_layout()
-        plt.show()
+        if debug:
+            import matplotlib.pyplot as plt
+            fig, axes = plt.subplots(2, 3, figsize=(12, 8))
+            axes = axes.ravel()
+            for idx, (position, processed_region) in enumerate(processed_regions.items()):
+                axes[idx].imshow(processed_region, cmap='gray')
+                axes[idx].set_title(f'Position {position}')
+            plt.tight_layout()
+            plt.show()
 
         # Process each region for bids
         for position, processed_region in processed_regions.items():
@@ -181,7 +182,7 @@ def _combine_bid_detections(detections: List[Dict]) -> str:
     return detections[0]['text']
 
 
-def _preprocess_bid_region(region: np.ndarray, scale_factor = 16) -> np.ndarray:
+def _preprocess_bid_region(region: np.ndarray, scale_factor = 8) -> np.ndarray:
     """
     Preprocess image region for optimal OCR performance
 
