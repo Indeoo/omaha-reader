@@ -11,7 +11,7 @@ PLAYER_BID_POSITIONS = {
     1: (390, 333, 40, 15),  # Bottom center (hero)
     2: (200, 310, 40, 15),  # Left side
     3: (185, 212, 45, 15),  # Top left
-    4: (464, 165, 45, 15),  # Top center
+    4: (462, 165, 45, 15),  # Top center
     5: (577, 212, 40, 15),  # Top right
     6: (578, 310, 30, 20),  # Right side
 }
@@ -181,7 +181,7 @@ def _combine_bid_detections(detections: List[Dict]) -> str:
     return detections[0]['text']
 
 
-def _preprocess_bid_region(region: np.ndarray) -> np.ndarray:
+def _preprocess_bid_region(region: np.ndarray, scale_factor = 16) -> np.ndarray:
     """
     Preprocess image region for optimal OCR performance
 
@@ -202,26 +202,15 @@ def _preprocess_bid_region(region: np.ndarray) -> np.ndarray:
     else:
         gray = region.copy()
 
+    upscaled = cv2.resize(gray, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+
     # Binary threshold with inversion (text becomes white on black)
     # THRESH_BINARY_INV: Inverts the output so that text (which is usually darker) becomes white (255) on black (0) background
     # THRESH_OTSU: Automatically determines the optimal threshold value based on image histogram
     # This makes OCR more effective as it works better with white text on black background
-    _, thresh = cv2.threshold(gray, 133, 255, cv2.THRESH_BINARY_INV)  # Start with 120
+    _, thresh = cv2.threshold(upscaled, 133, 255, cv2.THRESH_BINARY_INV)  # Start with 120
 
-    scale_factor = 64
-
-    #upscaled = cv2.resize(thresh, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
-    upscaled = cv2.resize(thresh, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
-    #upscaled = thresh
-
-    # Dilate to connect decimal points with numbers
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 1))  # Horizontal only
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))  # Smaller
-
-    dilated = cv2.dilate(upscaled, kernel, iterations=0)
-
-    return dilated
+    return thresh
 
 
 def _is_valid_bid_text(text: str) -> bool:
