@@ -1,37 +1,63 @@
-from typing import Dict, Tuple
-
+from typing import Dict, Tuple, Optional
 import cv2
 import pytesseract
+import numpy as np
 from loguru import logger
 
 from src.core.domain.detected_bid import DetectedBid
 
-BIDS_POSITIONS = {
-        1: (388, 334, 45, 15),
-        2: (200, 310, 40, 15),
-        3: (185, 212, 45, 15),
-        4: (450, 165, 45, 15),
-        5: (572, 207, 40, 25),
-        6: (562, 310, 45, 20),
-    }
+# Player position coordinates (position_id: (x, y, width, height))
+PLAYER_BID_POSITIONS = {
+    1: (388, 334, 45, 15),  # Bottom center (hero)
+    2: (200, 310, 40, 15),  # Left side
+    3: (185, 212, 45, 15),  # Top left
+    4: (450, 165, 45, 15),  # Top center
+    5: (572, 207, 40, 25),  # Top right
+    6: (562, 310, 45, 20),  # Right side
+}
+
+# OCR configuration optimized for bid amounts
+TESSERACT_CONFIG = (
+    "--psm 7 --oem 3 "
+    "-c tessedit_char_whitelist=0123456789. "
+    "-c load_system_dawg=0 -c load_freq_dawg=0"
+)
 
 
-def detect_bids(cv2_image) -> Dict[int, DetectedBid]:
+def detect_bids(cv2_image: np.ndarray) -> Dict[int, DetectedBid]:
+    """
+    Detect bid amounts for all player positions
+
+    Args:
+        cv2_image: Full poker table screenshot
+
+    Returns:
+        Dictionary mapping position number to DetectedBid object
+    """
     detected_bids = {}
 
     try:
-        for position_name, (x, y, w, h) in BIDS_POSITIONS.items():
-            bid_text = detect_single_bid(cv2_image, x, y, w, h)
-            if bid_text:
-                center = (x + w // 2, y + h // 2)
-                detected_bid = DetectedBid(
-                    position=position_name,
-                    amount_text=bid_text,
-                    bounding_rect=(x, y, w, h),
-                    center=center
-                )
-                detected_bids[position_name] = detected_bid
-                logger.info(f"Position {position_name}: {bid_text}")
+        for position, bounds in PLAYER_BID_POSITIONS.items():
+            # Extract region
+            x, y, w, h = bounds
+            region = cv2_image[y:y + h, x:x + w]
+
+            # Preprocess for OCR
+            processed_region = _preprocess_bid_region(region)
+
+            # Visualization for debugging
+            import matplotlib.pyplot as plt
+            plt.figure(figsize=(4, 4))
+            plt.imshow(processed_region, cmap='gray')
+            plt.title(f'Position {position}')
+            plt.show()
+
+            bid_text = _extract_bid_text(processed_region, bounds)
+
+            if bid_text and _is_valid_bid_text(bid_text):
+                detected_bid = _create_detected_bid(position, bid_text, bounds)
+                detected_bids[position] = detected_bid
+                logger.info(f"Position {position}: ${bid_text}")
 
         return detected_bids
 
@@ -40,32 +66,98 @@ def detect_bids(cv2_image) -> Dict[int, DetectedBid]:
         return {}
 
 
-def detect_single_bid(cv2_image, x: int, y: int, w: int, h: int) -> str:
+def _extract_bid_text(processed_region, bounds: Tuple[int, int, int, int]) -> str:
+    """Extract bid text from specific image region using OCR"""
     try:
-        gray = cv2.cvtColor(cv2_image, cv2.COLOR_BGR2GRAY)
-
-        crop = gray[y: y + h, x: x + w]
-
-        _, thresh = cv2.threshold(
-            crop, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU
-        )
-
-        upscaled = cv2.resize(
-            thresh, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC
-        )
-
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-        dilated = cv2.dilate(upscaled, kernel, iterations=1)
-
-        config = (
-            "--psm 7 --oem 3 "
-            "-c tessedit_char_whitelist=0123456789. "
-            "-c load_system_dawg=0 -c load_freq_dawg=0"
-        )
-        text = pytesseract.image_to_string(dilated, config=config).strip()
+        # Extract text
+        text = pytesseract.image_to_string(processed_region, config=TESSERACT_CONFIG).strip()
 
         return text
 
     except Exception as e:
-        logger.error(f"❌ Error detecting bids at ({x}, {y}): {str(e)}")
+        logger.error(f"❌ Error extracting bid text at {bounds}: {str(e)}")
         return ""
+
+
+def _preprocess_bid_region(region: np.ndarray) -> np.ndarray:
+    """
+    Preprocess image region for optimal OCR performance
+
+    Steps:
+    1. Convert to grayscale
+    2. Apply binary threshold with inversion (white text on black background):
+       - This converts the grayscale image to a binary image where pixels are either 0 (black) or 255 (white)
+       - The inversion (THRESH_BINARY_INV) makes text appear as white pixels on a black background
+       - OTSU's method automatically determines the optimal threshold value based on the image histogram
+       - This preprocessing step significantly improves OCR accuracy as most OCR engines work better with
+         white text on black background
+    3. Upscale 4x to make decimal points more visible
+    4. Apply morphological dilation to connect small elements
+    """
+    # Convert to grayscale
+    if len(region.shape) == 3:
+        gray = cv2.cvtColor(region, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = region.copy()
+
+    # Binary threshold with inversion (text becomes white on black)
+    # THRESH_BINARY_INV: Inverts the output so that text (which is usually darker) becomes white (255) on black (0) background
+    # THRESH_OTSU: Automatically determines the optimal threshold value based on image histogram
+    # This makes OCR more effective as it works better with white text on black background
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+
+    # Upscale for better decimal point recognition
+    upscaled = cv2.resize(thresh, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC)
+
+    # Dilate to connect decimal points with numbers
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    dilated = cv2.dilate(upscaled, kernel, iterations=1)
+
+    return dilated
+
+
+def _is_valid_bid_text(text: str) -> bool:
+    """Check if extracted text represents a valid bid amount"""
+    if not text:
+        return False
+
+    # Remove any whitespace
+    text = text.strip()
+
+    # Check if text contains only digits and at most one decimal point
+    if not text.replace('.', '').replace(',', '').isdigit():
+        return False
+
+    # Check decimal point count
+    if text.count('.') > 1:
+        return False
+
+    # Try to convert to float to ensure it's a valid number
+    try:
+        amount = float(text)
+        return amount >= 0
+    except ValueError:
+        return False
+
+
+def _create_detected_bid(position: int, bid_text: str, bounds: Tuple[int, int, int, int]) -> DetectedBid:
+    """Create DetectedBid object from extracted data"""
+    x, y, w, h = bounds
+    center = (x + w // 2, y + h // 2)
+
+    return DetectedBid(
+        position=position,
+        amount_text=bid_text,
+        bounding_rect=bounds,
+        center=center
+    )
+
+
+def get_bid_position_bounds(position: int) -> Optional[Tuple[int, int, int, int]]:
+    """Get bounding box coordinates for a specific player position"""
+    return PLAYER_BID_POSITIONS.get(position)
+
+
+def get_all_bid_positions() -> Dict[int, Tuple[int, int, int, int]]:
+    """Get all player bid position coordinates"""
+    return PLAYER_BID_POSITIONS.copy()
