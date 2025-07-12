@@ -10,7 +10,7 @@ from src.core.utils.opencv_utils import draw_detected_bids
 class TestDetectBids(unittest.TestCase):
 
     def test_detect_bids(self):
-        img_path = f"src/test/resources/bids/4_move.png"
+        img_path = f"src/test/resources/bids/3_move.png"
         img = cv2.imread(img_path)
 
         bids = detect_bids(img)

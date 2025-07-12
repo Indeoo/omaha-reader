@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, List
 import cv2
 import pytesseract
 import numpy as np
@@ -8,12 +8,12 @@ from src.core.domain.detected_bid import DetectedBid
 
 # Player position coordinates (position_id: (x, y, width, height))
 PLAYER_BID_POSITIONS = {
-    1: (388, 334, 45, 15),  # Bottom center (hero)
+    1: (390, 333, 40, 15),  # Bottom center (hero)
     2: (200, 310, 40, 15),  # Left side
     3: (185, 212, 45, 15),  # Top left
-    4: (450, 165, 45, 15),  # Top center
-    5: (572, 207, 40, 25),  # Top right
-    6: (562, 310, 45, 20),  # Right side
+    4: (464, 165, 45, 15),  # Top center
+    5: (577, 212, 40, 15),  # Top right
+    6: (578, 310, 30, 20),  # Right side
 }
 
 # OCR configuration optimized for bid amounts
@@ -74,14 +74,111 @@ def detect_bids(cv2_image: np.ndarray) -> Dict[int, DetectedBid]:
 def _extract_bid_text(processed_region, bounds: Tuple[int, int, int, int]) -> str:
     """Extract bid text from specific image region using OCR"""
     try:
-        # Extract text
-        text = pytesseract.image_to_string(processed_region, config=TESSERACT_CONFIG).strip()
+        # Get detailed OCR data with confidence scores and positions
+        data = pytesseract.image_to_data(processed_region, config=TESSERACT_CONFIG, output_type=pytesseract.Output.DICT)
 
-        return text
+        # Filter for high-confidence text detections
+        valid_texts = []
+        for i in range(len(data['text'])):
+            text = data['text'][i].strip()
+            conf = int(data['conf'][i])
+
+            # Only consider non-empty text with decent confidence
+            if text and conf > 40:
+                valid_texts.append({
+                    'text': text,
+                    'conf': conf,
+                    'left': data['left'][i],
+                    'top': data['top'][i],
+                    'width': data['width'][i],
+                    'height': data['height'][i]
+                })
+
+        if not valid_texts:
+            return ""
+
+        # Sort by confidence (highest first)
+        valid_texts.sort(key=lambda x: x['conf'], reverse=True)
+
+        # Try to combine separate detections into a single bid amount
+        combined_text = _combine_bid_detections(valid_texts)
+
+        return combined_text
 
     except Exception as e:
         logger.error(f"❌ Error extracting bid text at {bounds}: {str(e)}")
         return ""
+
+
+def _combine_bid_detections(detections: List[Dict]) -> str:
+    """Combine multiple OCR detections into a single bid amount"""
+    if not detections:
+        return ""
+
+    # If only one detection, return it
+    if len(detections) == 1:
+        return detections[0]['text']
+
+    # Try to find number + decimal point combinations
+    numbers = []
+    decimal_points = []
+
+    for detection in detections:
+        text = detection['text']
+        if text.replace('.', '').isdigit():  # Contains only digits and maybe decimal
+            numbers.append(detection)
+        elif text == '.':
+            decimal_points.append(detection)
+
+    # If we have multiple numbers, try to combine them spatially
+    if len(numbers) > 1:
+        # Sort by horizontal position (left to right)
+        numbers.sort(key=lambda x: x['left'])
+
+        # Check if they're close enough horizontally to be part of same number
+        combined = ""
+        for i, num in enumerate(numbers):
+            if i == 0:
+                combined = num['text']
+            else:
+                # If close horizontally (within reasonable distance)
+                prev_right = numbers[i - 1]['left'] + numbers[i - 1]['width']
+                current_left = num['left']
+                gap = current_left - prev_right
+
+                if gap < 20:  # Adjust threshold based on your image scaling
+                    # Check if there's a decimal point between them
+                    decimal_between = any(
+                        prev_right <= dp['left'] <= current_left
+                        for dp in decimal_points
+                    )
+
+                    if decimal_between:
+                        combined += "." + num['text']
+                    else:
+                        combined += num['text']
+                else:
+                    # Too far apart, probably separate numbers
+                    break
+
+        return combined
+
+    # If we have one number and decimal points, try to construct full amount
+    if len(numbers) == 1 and decimal_points:
+        number_detection = numbers[0]
+        # Find decimal point closest to the number
+        closest_decimal = min(
+            decimal_points,
+            key=lambda dp: abs(dp['left'] - (number_detection['left'] + number_detection['width']))
+        )
+
+        # Check if decimal point is reasonably close
+        distance = abs(closest_decimal['left'] - (number_detection['left'] + number_detection['width']))
+        if distance < 15:  # Adjust threshold
+            return number_detection['text'] + ".0"  # Assume .0 if no fractional part detected
+
+    # Fallback: return the highest confidence detection
+    return detections[0]['text']
 
 
 def _preprocess_bid_region(region: np.ndarray) -> np.ndarray:
@@ -109,16 +206,20 @@ def _preprocess_bid_region(region: np.ndarray) -> np.ndarray:
     # THRESH_BINARY_INV: Inverts the output so that text (which is usually darker) becomes white (255) on black (0) background
     # THRESH_OTSU: Automatically determines the optimal threshold value based on image histogram
     # This makes OCR more effective as it works better with white text on black background
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    _, thresh = cv2.threshold(gray, 133, 255, cv2.THRESH_BINARY_INV)  # Start with 120
 
-    # Upscale for better decimal point recognition
-    scale_factor = 2
+    scale_factor = 64
 
+    #upscaled = cv2.resize(thresh, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
     upscaled = cv2.resize(thresh, None, fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_CUBIC)
+    #upscaled = thresh
 
     # Dilate to connect decimal points with numbers
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    dilated = cv2.dilate(upscaled, kernel, iterations=1)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 1))  # Horizontal only
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2, 2))  # Smaller
+
+    dilated = cv2.dilate(upscaled, kernel, iterations=0)
 
     return dilated
 
