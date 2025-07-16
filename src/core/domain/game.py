@@ -205,6 +205,10 @@ class Game:
 
         return self.get_total_bids_for_street(current_street)
 
+    def get_active_position(self):
+        return {player_num: position for player_num, position in self.positions.items()
+                if position.position_name != "NO"}
+
     def to_dict(self, window_name: str):
         return {
             'window_name': window_name,

@@ -35,7 +35,7 @@ class FlopHeroLinkService:
 
             # Add action parameters for each street
             params.update(FlopHeroLinkService._format_actions_for_flophero(game))
-            params["players"] = str(len(game.positions))
+            params["players"] = str(len(game.get_active_position()))
 
             # Build the URL
             query_string = urlencode(params)

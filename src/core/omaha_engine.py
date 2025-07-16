@@ -9,7 +9,7 @@ from src.core.service.image_capture_service import ImageCaptureService
 from src.core.service.state_repository import GameStateRepository
 from src.core.utils.fs_utils import create_timestamp_folder, create_window_folder
 from src.core.utils.logs import load_logger
-from src.core.utils.poker_game_processor import PokerGameProcessor
+from src.core.service.poker_game_processor import PokerGameProcessor
 from src.core.utils.windows_utils import initialize_platform
 
 
