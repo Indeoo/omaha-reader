@@ -13,6 +13,9 @@ ACTION_POSITIONS = {
     6: (580, 380, 99, 99),  # Right side
 }
 
+def get_street_actions(image: np.ndarray, project_root):
+    return get_player_actions(image, project_root)
+
 
 def get_player_actions(image: np.ndarray, project_root):
     template_registry = TemplateRegistry("canada", project_root)
@@ -27,7 +30,7 @@ def get_player_actions(image: np.ndarray, project_root):
             h=region[3],
         )
 
-        jurojin_action_matcher = JurojinActionMatcher(template_registry.action_templates, search_region=search_region)
+        jurojin_action_matcher = JurojinActionMatcher(template_registry.jurojin_action_templates, search_region=search_region)
         actions = jurojin_action_matcher.read(image)
         player_actions[player_id] = actions
 
