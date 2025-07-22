@@ -168,7 +168,7 @@ def match_template_at_scale(
         template_h: int,
         offset: Tuple[int, int],
         match_threshold: float = 0.955,
-        min_card_size: int = 20
+        min_card_size: int = 5
 ) -> List[Dict]:
     """
     Perform template matching at a specific scale
@@ -190,10 +190,10 @@ def match_template_at_scale(
     scaled_w = int(template_w * scale)
     scaled_h = int(template_h * scale)
 
-    # Skip if template becomes too small or too large
-    if (scaled_w < min_card_size or scaled_h < min_card_size or
-            scaled_w > search_image.shape[1] or scaled_h > search_image.shape[0]):
-        return []
+    # # Skip if template becomes too small or too large
+    # if (scaled_w < min_card_size or scaled_h < min_card_size or
+    #         scaled_w > search_image.shape[1] or scaled_h > search_image.shape[0]):
+    #     return []
 
     # Resize template
     scaled_template = cv2.resize(template, (scaled_w, scaled_h))

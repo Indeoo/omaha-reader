@@ -38,7 +38,7 @@ class PlayerActionMatcher(OmahaTableMatcher):
         520 / 584 + 0.02  # bottom: ~0.910 (with 2% margin)
     )
 
-    def __init__(self, templates: Dict[str, np.ndarray]):
+    def __init__(self, templates: Dict[str, np.ndarray], search_region = DEFAULT_SEARCH_REGION):
         """
         Initialize player move reader
 
@@ -47,7 +47,7 @@ class PlayerActionMatcher(OmahaTableMatcher):
         """
         super().__init__(
             templates=templates,
-            search_region=self.DEFAULT_SEARCH_REGION,
+            search_region=search_region,
             match_threshold=self.DEFAULT_MATCH_THRESHOLD,
             overlap_threshold=self.DEFAULT_OVERLAP_THRESHOLD,
             min_detection_size=self.DEFAULT_MIN_MOVE_SIZE,

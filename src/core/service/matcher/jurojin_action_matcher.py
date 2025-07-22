@@ -12,6 +12,13 @@ class DetectedAction:
         self.bounding_rect = bounding_rect
         self.match_score = match_score
 
+    def __repr__(self):
+        x, y, w, h = self.bounding_rect
+        return (f"DetectedAction(action='{self.detected_action}', "
+                f"center=({self.center[0]}, {self.center[1]}), "
+                f"bbox=({x}, {y}, {w}x{h}), "
+                f"score={self.match_score:.3f})")
+
 
 class JurojinActionMatcher(OmahaTableMatcher):
 
@@ -20,7 +27,7 @@ class JurojinActionMatcher(OmahaTableMatcher):
 
         for detection in detections:
             move = DetectedAction(
-                move_type=detection['template_name'],
+                detected_action=detection['template_name'],
                 center=detection['center'],
                 bounding_rect=detection['bounding_rect'],
                 match_score=detection['match_score']

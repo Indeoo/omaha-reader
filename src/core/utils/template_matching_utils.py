@@ -64,21 +64,6 @@ def find_single_template_matches(
         match_threshold: float = 0.955,
         min_card_size: int = 20
 ) -> List[Dict]:
-    """
-    Find all matches of a single template in the image at multiple scales
-
-    Args:
-        image: Input image
-        template: Template image
-        template_name: Name of the template
-        search_region: (left, top, right, bottom) as ratios of image size
-        scale_factors: List of scale factors to try
-        match_threshold: Minimum match score to consider
-        min_card_size: Minimum card size in pixels
-
-    Returns:
-        List of detection dictionaries
-    """
     if scale_factors is None:
         scale_factors = [1.0]
 
@@ -105,16 +90,6 @@ def extract_search_region(
         image: np.ndarray,
         search_region: Tuple[float, float, float, float] = None
 ) -> Tuple[np.ndarray, Tuple[int, int]]:
-    """
-    Extract the search region from the image
-
-    Args:
-        image: Input image
-        search_region: (left, top, right, bottom) as ratios of image size
-
-    Returns:
-        Tuple of (extracted region, (x_offset, y_offset))
-    """
     if search_region is None:
         return image, (0, 0)
 

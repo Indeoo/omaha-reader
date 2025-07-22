@@ -27,9 +27,8 @@ def get_player_actions(image: np.ndarray, project_root):
             h=region[3],
         )
 
-        jurojin_action_matcher = JurojinActionMatcher(template_registry.jurojin_action_templates, search_region=(0.0, 0.0, 1.0, 1.0))
+        jurojin_action_matcher = JurojinActionMatcher(template_registry.action_templates, search_region=search_region)
         actions = jurojin_action_matcher.read(image)
-        print(actions)
         player_actions[player_id] = actions
 
     return player_actions
