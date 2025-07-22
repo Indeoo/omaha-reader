@@ -6,9 +6,8 @@ from loguru import logger
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.detection_result import GameSnapshot
 from src.core.service.template_matcher_service import Detection, TemplateMatchService, MatchConfig
-from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.opencv_utils import draw_detected_positions, save_opencv_image, draw_detected_bids, \
-    draw_detected_cards, coords_to_search_region
+    draw_detected_cards
 
 
 PLAYER_POSITIONS = {
@@ -32,28 +31,28 @@ class DetectUtils:
             country: str = "canada",
             project_root: str = None,
     ):
-        self.template_registry = TemplateRegistry(country, project_root)
+        #self.template_registry = TemplateRegistry(country, project_root)
         self._position_search_regions = {}
-        self._init_position_search_regions()
-
-    def _init_position_search_regions(self):
-        if not self.template_registry.has_position_templates():
-            return
-
-        try:
-            for player_num, coords in PLAYER_POSITIONS.items():
-                search_region = coords_to_search_region(
-                    x=coords['x'] - POSITION_MARGIN,
-                    y=coords['y'] - POSITION_MARGIN,
-                    w=coords['w'] + 2 * POSITION_MARGIN,
-                    h=coords['h'] + 2 * POSITION_MARGIN,
-                    image_width=IMAGE_WIDTH,
-                    image_height=IMAGE_HEIGHT
-                )
-                self._position_search_regions[player_num] = search_region
-                logger.info(f"✅ Player {player_num} position search region: {search_region}")
-        except Exception as e:
-            logger.error(f"❌ Error initializing position search regions: {str(e)}")
+    #     self._init_position_search_regions()
+    #
+    # def _init_position_search_regions(self):
+    #     if not self.template_registry.has_position_templates():
+    #         return
+    #
+    #     try:
+    #         for player_num, coords in PLAYER_POSITIONS.items():
+    #             search_region = coords_to_search_region(
+    #                 x=coords['x'] - POSITION_MARGIN,
+    #                 y=coords['y'] - POSITION_MARGIN,
+    #                 w=coords['w'] + 2 * POSITION_MARGIN,
+    #                 h=coords['h'] + 2 * POSITION_MARGIN,
+    #                 image_width=IMAGE_WIDTH,
+    #                 image_height=IMAGE_HEIGHT
+    #             )
+    #             self._position_search_regions[player_num] = search_region
+    #             logger.info(f"✅ Player {player_num} position search region: {search_region}")
+    #     except Exception as e:
+    #         logger.error(f"❌ Error initializing position search regions: {str(e)}")
 
     def save_detection_result_image(self, timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
         window_name = captured_image.window_name
@@ -121,15 +120,12 @@ class DetectUtils:
         )
 
     def detect_player_cards(self, cv2_image) -> List[Detection]:
-        return TemplateMatchService.find_player_cards(cv2_image, self.template_registry.player_templates)
+        return TemplateMatchService.find_player_cards(cv2_image)
 
     def detect_table_cards(self, cv2_image) -> List[Detection]:
-        return TemplateMatchService.find_table_cards(cv2_image, self.template_registry.table_templates)
+        return TemplateMatchService.find_table_cards(cv2_image)
 
     def detect_positions(self, cv2_image) -> Dict[int, Detection]:
-        if not self.template_registry.has_position_templates() or not self._position_search_regions:
-            return {}
-
         try:
             player_positions = {}
 
@@ -141,9 +137,7 @@ class DetectUtils:
                         min_size=15,
                         sort_by='score'
                     )
-                    detected_positions = TemplateMatchService.find_matches(
-                        cv2_image, self.template_registry.position_templates, config
-                    )
+                    detected_positions = TemplateMatchService.find_matches(cv2_image, config)
 
                     if detected_positions:
                         best_position = detected_positions[0]
@@ -164,7 +158,7 @@ class DetectUtils:
 
     def detect_actions(self, cv2_image, window_name: str = "") -> List[Detection]:
         try:
-            detected_moves = TemplateMatchService.find_actions(cv2_image, self.template_registry.action_templates)
+            detected_moves = TemplateMatchService.find_actions(cv2_image)
 
             if detected_moves:
                 move_types = [move.name for move in detected_moves]

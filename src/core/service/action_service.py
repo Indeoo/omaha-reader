@@ -1,7 +1,6 @@
 import numpy as np
 
 from src.core.service.template_matcher_service import TemplateMatchService
-from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.opencv_utils import coords_to_search_region
 
 ACTION_POSITIONS = {
@@ -13,13 +12,11 @@ ACTION_POSITIONS = {
     6: (580, 380, 99, 99),  # Right side
 }
 
-def get_street_actions(image: np.ndarray, project_root):
-    return get_player_actions(image, project_root)
+def get_street_actions(image: np.ndarray):
+    return get_player_actions(image)
 
 
-def get_player_actions(image: np.ndarray, project_root):
-    template_registry = TemplateRegistry("canada", project_root)
-
+def get_player_actions(image: np.ndarray):
     player_actions = {}
 
     for player_id, region in ACTION_POSITIONS.items():
@@ -30,7 +27,7 @@ def get_player_actions(image: np.ndarray, project_root):
             h=region[3],
         )
 
-        actions = TemplateMatchService.find_jurojin_actions(image, template_registry.jurojin_action_templates, search_region=search_region)
+        actions = TemplateMatchService.find_jurojin_actions(image, search_region=search_region)
         player_actions[player_id] = actions
 
     return player_actions

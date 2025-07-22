@@ -1,9 +1,11 @@
+import os
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple, Any
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 
+from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.template_matching_utils import (
     find_single_template_matches,
     filter_overlapping_detections,
@@ -87,6 +89,10 @@ class Detection:
 
 
 class TemplateMatchService:
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
+    TEMPLATE_REGISTRY = TemplateRegistry("canada", project_root)
+
     @staticmethod
     def find_matches(image: np.ndarray, templates: Dict[str, np.ndarray],
                      config: MatchConfig = None) -> List[Detection]:
@@ -138,50 +144,49 @@ class TemplateMatchService:
 
     # Convenience methods for specific use cases
     @staticmethod
-    def find_player_cards(image: np.ndarray, templates: Dict[str, np.ndarray]) -> List[Detection]:
+    def find_player_cards(image: np.ndarray) -> List[Detection]:
         config = MatchConfig(
             search_region=(0.2, 0.5, 0.8, 0.95),
             threshold=0.955,
             sort_by='x'
         )
-        return TemplateMatchService.find_matches(image, templates, config)
+        return TemplateMatchService.find_matches(image, TemplateMatchService.TEMPLATE_REGISTRY.player_templates, config)
 
     @staticmethod
-    def find_table_cards(image: np.ndarray, templates: Dict[str, np.ndarray]) -> List[Detection]:
+    def find_table_cards(image: np.ndarray) -> List[Detection]:
         config = MatchConfig(
             search_region=None,  # Search entire image
             threshold=0.955,
             sort_by='x'
         )
-        return TemplateMatchService.find_matches(image, templates, config)
+        return TemplateMatchService.find_matches(image, TemplateMatchService.TEMPLATE_REGISTRY.table_templates, config)
 
     @staticmethod
-    def find_positions(image: np.ndarray, templates: Dict[str, np.ndarray]) -> List[Detection]:
+    def find_positions(image: np.ndarray) -> List[Detection]:
         config = MatchConfig(
             search_region=None,
             threshold=0.99,  # Higher threshold for UI elements
             min_size=15,
             sort_by='score'
         )
-        return TemplateMatchService.find_matches(image, templates, config)
+        return TemplateMatchService.find_matches(image, TemplateMatchService.TEMPLATE_REGISTRY.position_templates, config)
 
     @staticmethod
-    def find_actions(image: np.ndarray, templates: Dict[str, np.ndarray]) -> List[Detection]:
+    def find_actions(image: np.ndarray) -> List[Detection]:
         config = MatchConfig(
             search_region=(0.376, 0.768, 0.95, 0.910),  # Action button area
             threshold=0.95,
             min_size=20,
             sort_by='x'
         )
-        return TemplateMatchService.find_matches(image, templates, config)
+        return TemplateMatchService.find_matches(image, TemplateMatchService.TEMPLATE_REGISTRY.action_templates, config)
 
     @staticmethod
-    def find_jurojin_actions(image: np.ndarray, templates: Dict[str, np.ndarray],
-                           search_region: Tuple[float, float, float, float]) -> List[Detection]:
+    def find_jurojin_actions(image: np.ndarray, search_region: Tuple[float, float, float, float]) -> List[Detection]:
         config = MatchConfig(
             search_region=search_region,
             threshold=0.955,
             min_size=20,
             sort_by='x'
         )
-        return TemplateMatchService.find_matches(image, templates, config)
+        return TemplateMatchService.find_matches(image, TemplateMatchService.TEMPLATE_REGISTRY.jurojin_action_templates, config)
