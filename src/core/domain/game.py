@@ -5,7 +5,7 @@ from collections import defaultdict
 from src.core.domain.readed_card import ReadedCard
 from src.core.domain.street import Street
 from src.core.domain.detected_bid import DetectedBid
-from src.core.service.matcher.player_position_matcher import DetectedPosition
+from src.core.service.template_matcher_service import Detection
 
 
 class Game:
@@ -14,7 +14,7 @@ class Game:
             self,
             player_cards: List[ReadedCard] = None,
             table_cards: List[ReadedCard] = None,
-            positions: Dict[int, DetectedPosition] = None,
+            positions: Dict[int, Detection] = None,
             move_history: Dict[Street, List] = None
     ):
         self.player_cards = player_cards or []

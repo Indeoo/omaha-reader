@@ -1,0 +1,187 @@
+from dataclasses import dataclass
+from typing import List, Dict, Optional, Tuple, Any
+import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+import multiprocessing
+
+from src.core.utils.template_matching_utils import (
+    find_single_template_matches,
+    filter_overlapping_detections,
+    sort_detections_by_position
+)
+
+
+@dataclass
+class MatchConfig:
+    search_region: Optional[Tuple[float, float, float, float]] = None
+    threshold: float = 0.955
+    overlap_threshold: float = 0.3
+    min_size: int = 20
+    scale_factors: List[float] = None
+    sort_by: str = 'x'  # 'x', 'y', 'score'
+    max_workers: int = 4
+
+    def __post_init__(self):
+        if self.scale_factors is None:
+            self.scale_factors = [1.0]
+        if self.max_workers <= 0:
+            self.max_workers = min(4, multiprocessing.cpu_count())
+
+
+class Detection:
+    def __init__(self, name: str, center: Tuple[int, int],
+                 bounding_rect: Tuple[int, int, int, int],
+                 match_score: float, scale: float = 1.0):
+        self.name = name
+        self.center = center
+        self.bounding_rect = bounding_rect
+        self.match_score = match_score
+        self.scale = scale
+
+    @property
+    def x(self) -> int:
+        return self.bounding_rect[0]
+
+    @property
+    def y(self) -> int:
+        return self.bounding_rect[1]
+
+    @property
+    def width(self) -> int:
+        return self.bounding_rect[2]
+
+    @property
+    def height(self) -> int:
+        return self.bounding_rect[3]
+
+    @property
+    def template_name(self) -> str:
+        return self.name
+
+    @property
+    def position_name(self) -> str:
+        return self.name
+
+    def format_with_unicode(self) -> str:
+        if not self.name or len(self.name) < 2:
+            return self.name or "UNKNOWN"
+
+        # Get rank and suit for cards
+        rank = self.name[:-1]
+        suit = self.name[-1].upper()
+
+        suit_unicode = {
+            'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'
+        }
+
+        return f"{rank}{suit_unicode.get(suit, suit)}"
+
+    def __repr__(self):
+        return f"Detection(name='{self.name}', score={self.match_score:.3f}, center={self.center})"
+
+    def __eq__(self, other):
+        if not isinstance(other, Detection):
+            return False
+        return (self.name == other.name and
+                abs(self.match_score - other.match_score) < 0.001)
+
+
+class TemplateMatchService:
+    @staticmethod
+    def find_matches(image: np.ndarray, templates: Dict[str, np.ndarray],
+                     config: MatchConfig = None) -> List[Detection]:
+        if config is None:
+            config = MatchConfig()
+
+        if not templates:
+            return []
+
+        # Find all template matches in parallel
+        all_detections = []
+
+        with ThreadPoolExecutor(max_workers=config.max_workers) as executor:
+            futures = []
+            for template_name, template in templates.items():
+                future = executor.submit(
+                    find_single_template_matches,
+                    image, template, template_name,
+                    config.search_region, config.scale_factors,
+                    config.threshold, config.min_size
+                )
+                futures.append(future)
+
+            for future in futures:
+                detections = future.result()
+                all_detections.extend(detections)
+
+        # Filter overlapping detections
+        filtered = filter_overlapping_detections(all_detections, config.overlap_threshold)
+
+        # Sort detections
+        if config.sort_by == 'score':
+            sorted_detections = sorted(filtered, key=lambda d: d['match_score'], reverse=True)
+        else:
+            sorted_detections = sort_detections_by_position(filtered, config.sort_by)
+
+        # Convert to Detection objects
+        return [TemplateMatchService._dict_to_detection(d) for d in sorted_detections]
+
+    @staticmethod
+    def _dict_to_detection(detection_dict: Dict) -> Detection:
+        return Detection(
+            name=detection_dict['template_name'],
+            center=detection_dict['center'],
+            bounding_rect=detection_dict['bounding_rect'],
+            match_score=detection_dict['match_score'],
+            scale=detection_dict.get('scale', 1.0)
+        )
+
+    # Convenience methods for specific use cases
+    @staticmethod
+    def find_player_cards(image: np.ndarray, templates: Dict[str, np.ndarray]) -> List[Detection]:
+        config = MatchConfig(
+            search_region=(0.2, 0.5, 0.8, 0.95),
+            threshold=0.955,
+            sort_by='x'
+        )
+        return TemplateMatchService.find_matches(image, templates, config)
+
+    @staticmethod
+    def find_table_cards(image: np.ndarray, templates: Dict[str, np.ndarray]) -> List[Detection]:
+        config = MatchConfig(
+            search_region=None,  # Search entire image
+            threshold=0.955,
+            sort_by='x'
+        )
+        return TemplateMatchService.find_matches(image, templates, config)
+
+    @staticmethod
+    def find_positions(image: np.ndarray, templates: Dict[str, np.ndarray]) -> List[Detection]:
+        config = MatchConfig(
+            search_region=None,
+            threshold=0.99,  # Higher threshold for UI elements
+            min_size=15,
+            sort_by='score'
+        )
+        return TemplateMatchService.find_matches(image, templates, config)
+
+    @staticmethod
+    def find_actions(image: np.ndarray, templates: Dict[str, np.ndarray]) -> List[Detection]:
+        config = MatchConfig(
+            search_region=(0.376, 0.768, 0.95, 0.910),  # Action button area
+            threshold=0.95,
+            min_size=20,
+            sort_by='x'
+        )
+        return TemplateMatchService.find_matches(image, templates, config)
+
+    @staticmethod
+    def find_jurojin_actions(image: np.ndarray, templates: Dict[str, np.ndarray],
+                           search_region: Tuple[float, float, float, float]) -> List[Detection]:
+        config = MatchConfig(
+            search_region=search_region,
+            threshold=0.955,
+            min_size=20,
+            sort_by='x'
+        )
+        return TemplateMatchService.find_matches(image, templates, config)

@@ -5,11 +5,7 @@ from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.detection_result import GameSnapshot
-from src.core.domain.readed_card import ReadedCard
-from src.core.service.matcher.player_action_matcher import PlayerActionMatcher
-from src.core.service.matcher.player_card_matcher import PlayerCardMatcher
-from src.core.service.matcher.player_position_matcher import DetectedPosition, PlayerPositionMatcher
-from src.core.service.matcher.table_card_matcher import OmahaTableCard
+from src.core.service.template_matcher_service import Detection, TemplateMatchService, MatchConfig
 from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.opencv_utils import draw_detected_positions, save_opencv_image, draw_detected_bids, \
     draw_detected_cards, coords_to_search_region
@@ -37,14 +33,10 @@ class DetectUtils:
             project_root: str = None,
     ):
         self.template_registry = TemplateRegistry(country, project_root)
+        self._position_search_regions = {}
+        self._init_position_search_regions()
 
-        self._player_move_reader = None
-        self._player_move_reader = PlayerActionMatcher(self.template_registry.action_templates)
-        self._player_position_readers = {}
-        self._init_all_player_position_readers()
-
-
-    def _init_all_player_position_readers(self):
+    def _init_position_search_regions(self):
         if not self.template_registry.has_position_templates():
             return
 
@@ -58,14 +50,10 @@ class DetectUtils:
                     image_width=IMAGE_WIDTH,
                     image_height=IMAGE_HEIGHT
                 )
-
-                reader = PlayerPositionMatcher(self.template_registry.position_templates)
-                reader.search_region = search_region
-                self._player_position_readers[player_num] = reader
-
-                logger.info(f"✅ Player {player_num} position reader initialized with search region: {search_region}")
+                self._position_search_regions[player_num] = search_region
+                logger.info(f"✅ Player {player_num} position search region: {search_region}")
         except Exception as e:
-            logger.error(f"❌ Error initializing player position readers: {str(e)}")
+            logger.error(f"❌ Error initializing position search regions: {str(e)}")
 
     def save_detection_result_image(self, timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
         window_name = captured_image.window_name
@@ -89,8 +77,7 @@ class DetectUtils:
                     drawn_items.append(f"{len(player_cards)} player cards")
 
                 if table_cards:
-                    result_image = self.draw_cards(result_image, table_cards,
-                                              color=(0, 0, 255))
+                    result_image = self.draw_cards(result_image, table_cards, color=(0, 0, 255))
                     drawn_items.append(f"{len(table_cards)} table cards")
 
             if positions:
@@ -112,46 +99,51 @@ class DetectUtils:
         except Exception as e:
             logger.error(f"    ❌ Error saving result image for {window_name}: {str(e)}")
 
-    def draw_cards(self, image: np.ndarray, readed_cards: List[ReadedCard], color=(0, 255, 0)) -> np.ndarray:
-        detections = []
-        for card in readed_cards:
-            detection = {
-                'template_name': card.template_name,
-                'match_score': card.match_score,
-                'bounding_rect': card.bounding_rect,
-                'center': card.center,
-                'scale': card.scale
+    def draw_cards(self, image: np.ndarray, detections: List[Detection], color=(0, 255, 0)) -> np.ndarray:
+        detection_dicts = []
+        for detection in detections:
+            detection_dict = {
+                'template_name': detection.name,
+                'match_score': detection.match_score,
+                'bounding_rect': detection.bounding_rect,
+                'center': detection.center,
+                'scale': detection.scale
             }
-            detections.append(detection)
+            detection_dicts.append(detection_dict)
 
         return draw_detected_cards(
             image=image,
-            detections=detections,
+            detections=detection_dicts,
             color=color,
             thickness=2,
             font_scale=0.6,
             show_scale=True
         )
 
-    def detect_player_cards(self, cv2_image) -> List[ReadedCard]:
-        return PlayerCardMatcher(
-            self.template_registry.player_templates,
-            PlayerCardMatcher.DEFAULT_SEARCH_REGION
-        ).read(cv2_image)
+    def detect_player_cards(self, cv2_image) -> List[Detection]:
+        return TemplateMatchService.find_player_cards(cv2_image, self.template_registry.player_templates)
 
-    def detect_table_cards(self, cv2_image) -> List[ReadedCard]:
-        return OmahaTableCard(self.template_registry.table_templates, None).read(cv2_image)
+    def detect_table_cards(self, cv2_image) -> List[Detection]:
+        return TemplateMatchService.find_table_cards(cv2_image, self.template_registry.table_templates)
 
-    def detect_positions(self, cv2_image) -> Dict[int, DetectedPosition]:
-        if not self.template_registry.has_position_templates() or not self._player_position_readers:
+    def detect_positions(self, cv2_image) -> Dict[int, Detection]:
+        if not self.template_registry.has_position_templates() or not self._position_search_regions:
             return {}
 
         try:
             player_positions = {}
 
-            for player_num, reader in self._player_position_readers.items():
+            for player_num, search_region in self._position_search_regions.items():
                 try:
-                    detected_positions = reader.read(cv2_image)
+                    config = MatchConfig(
+                        search_region=search_region,
+                        threshold=0.99,
+                        min_size=15,
+                        sort_by='score'
+                    )
+                    detected_positions = TemplateMatchService.find_matches(
+                        cv2_image, self.template_registry.position_templates, config
+                    )
 
                     if detected_positions:
                         best_position = detected_positions[0]
@@ -161,9 +153,8 @@ class DetectUtils:
                     logger.error(f"❌ Error checking player {player_num} position: {str(e)}")
 
             logger.info(f"    ✅ Found positions:")
-            for player_num, position_result in player_positions.items():
-                position = position_result.position_name
-                logger.info(f"        P{player_num}: {position}")
+            for player_num, position in player_positions.items():
+                logger.info(f"        P{player_num}: {position.name}")
 
             return player_positions
 
@@ -171,12 +162,12 @@ class DetectUtils:
             logger.error(f"❌ Error detecting positions: {str(e)}")
             return {}
 
-    def detect_actions(self, cv2_image, window_name: str = "") -> List:
+    def detect_actions(self, cv2_image, window_name: str = "") -> List[Detection]:
         try:
-            detected_moves = self._player_move_reader.read(cv2_image)
+            detected_moves = TemplateMatchService.find_actions(cv2_image, self.template_registry.action_templates)
 
             if detected_moves:
-                move_types = [move.move_type for move in detected_moves]
+                move_types = [move.name for move in detected_moves]
                 if window_name:
                     logger.info(f"🎯 Player's move detected in {window_name}! Options: {', '.join(move_types)}")
                 return detected_moves

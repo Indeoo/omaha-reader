@@ -135,26 +135,6 @@ class ReadedCard:
             card_with_unicode += f"[{self.match_score:.2f}]"
         return card_with_unicode
 
-    # def format_with_ansi_color(self, include_score: bool = False) -> str:
-    #     """
-    #     Format card with ANSI color codes for console display
-    #
-    #     Args:
-    #         include_score: Whether to include match score
-    #
-    #     Returns:
-    #         Colored string for console output
-    #     """
-    #     if not self.template_name or len(self.template_name) < 2:
-    #         return self.template_name or "UNKNOWN"
-    #
-    #     suit = self.template_name[-1].upper()
-    #     color_code = self.get_suit_ansi_color(suit)
-    #     reset_code = '\033[0m'
-    #
-    #     formatted = self.format_with_score(include_score)
-    #     return f"{color_code}{formatted}{reset_code}"
-
     def get_summary(self) -> str:
         """
         Get a concise summary of the card information
@@ -229,22 +209,6 @@ class ReadedCard:
         if not cards:
             return ""
         return " ".join(card.format_with_score(include_scores) for card in cards)
-
-    # @staticmethod
-    # def format_cards_ansi(cards: List['ReadedCard'], include_scores: bool = False) -> str:
-    #     """
-    #     Format a list of ReadedCard objects with ANSI colors for console
-    #
-    #     Args:
-    #         cards: List of ReadedCard objects
-    #         include_scores: Whether to include match scores
-    #
-    #     Returns:
-    #         ANSI colored string for console output
-    #     """
-    #     if not cards:
-    #         return ""
-    #     return " ".join(card.format_with_ansi_color(include_scores) for card in cards)
 
     def __str__(self) -> str:
         """String representation using the summary"""

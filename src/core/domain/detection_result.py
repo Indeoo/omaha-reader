@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Optional
 
 from src.core.domain.readed_card import ReadedCard
-from src.core.service.matcher.player_position_matcher import DetectedPosition
+from src.core.service.template_matcher_service import Detection
 
 
 class GameSnapshot:
@@ -10,7 +10,7 @@ class GameSnapshot:
             self,
             player_cards: Optional[List[ReadedCard]] = None,
             table_cards: Optional[List[ReadedCard]] = None,
-            positions: Optional[Dict[int, DetectedPosition]] = None,
+            positions: Optional[Dict[int, Detection]] = None,
             bids: Optional[List[Any]] = None,
             is_player_move: bool = False
     ):
@@ -63,7 +63,7 @@ class GameSnapshot:
         def __init__(self):
             self._player_cards: Optional[List[ReadedCard]] = None
             self._table_cards: Optional[List[ReadedCard]] = None
-            self._positions: Optional[Dict[int, DetectedPosition]] = None
+            self._positions: Optional[Dict[int, Detection]] = None
             self._bids: Optional[List[Any]] = None
             self._is_player_move: bool = False
 
@@ -75,7 +75,7 @@ class GameSnapshot:
             self._table_cards = table_cards
             return self
 
-        def with_positions(self, positions: Dict[int, DetectedPosition]) -> 'GameSnapshot.Builder':
+        def with_positions(self, positions: Dict[int, Detection]) -> 'GameSnapshot.Builder':
             self._positions = positions
             return self
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.core.service.matcher.jurojin_action_matcher import JurojinActionMatcher
+from src.core.service.template_matcher_service import TemplateMatchService
 from src.core.service.template_registry import TemplateRegistry
 from src.core.utils.opencv_utils import coords_to_search_region
 
@@ -30,8 +30,7 @@ def get_player_actions(image: np.ndarray, project_root):
             h=region[3],
         )
 
-        jurojin_action_matcher = JurojinActionMatcher(template_registry.jurojin_action_templates, search_region=search_region)
-        actions = jurojin_action_matcher.read(image)
+        actions = TemplateMatchService.find_jurojin_actions(image, template_registry.jurojin_action_templates, search_region=search_region)
         player_actions[player_id] = actions
 
     return player_actions
