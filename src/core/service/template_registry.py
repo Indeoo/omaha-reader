@@ -14,7 +14,8 @@ class TemplateRegistry:
         self._player_templates: Optional[Dict[str, np.ndarray]] = None
         self._table_templates: Optional[Dict[str, np.ndarray]] = None
         self._position_templates: Optional[Dict[str, np.ndarray]] = None
-        self._move_templates: Optional[Dict[str, np.ndarray]] = None
+        self._actions_templates: Optional[Dict[str, np.ndarray]] = None
+        self._jurojin_action_templates: Optional[Dict[str, np.ndarray]] = None
 
         self._templates_dir = os.path.join(project_root, "resources", "templates", country)
 
@@ -38,9 +39,15 @@ class TemplateRegistry:
 
     @property
     def action_templates(self) -> Dict[str, np.ndarray]:
-        if self._move_templates is None:
-            self._move_templates = self._load_template_category("actions")
-        return self._move_templates
+        if self._actions_templates is None:
+            self._actions_templates = self._load_template_category("actions")
+        return self._actions_templates
+
+    @property
+    def jurojin_action_templates(self) -> Dict[str, np.ndarray]:
+        if self._jurojin_action_templates is None:
+            self._jurojin_action_templates = self._load_template_category("moves")
+        return self._jurojin_action_templates
 
     def _load_template_category(self, category: str) -> Dict[str, np.ndarray]:
         templates_path = os.path.join(self._templates_dir, category)

@@ -145,7 +145,7 @@ def draw_detected_bids(
 
 
 def coords_to_search_region(x: int, y: int, w: int, h: int,
-                            image_width: int, image_height: int) -> tuple[float, float, float, float]:
+                            image_width= 784, image_height = 584) -> tuple[float, float, float, float]:
     left = x / image_width
     top = y / image_height
     right = (x + w) / image_width

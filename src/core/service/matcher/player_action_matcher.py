@@ -2,7 +2,6 @@ from typing import List, Dict, Tuple
 import numpy as np
 
 from src.core.service.matcher.omaha_matcher import OmahaTableMatcher
-from src.core.utils.benchmark_utils import benchmark
 
 
 class DetectedMove:
@@ -55,33 +54,11 @@ class PlayerActionMatcher(OmahaTableMatcher):
             scale_factors=self.DEFAULT_SCALE_FACTORS
         )
 
-    def read(self, image: np.ndarray) -> List[DetectedMove]:
-        """
-        Override read method to add benchmark decorator
-
-        Args:
-            image: Input image (poker table screenshot)
-
-        Returns:
-            List of DetectedMove objects
-        """
-        return super().read(image)
-
     def _get_sort_direction(self) -> str:
         """Move options are sorted by x-coordinate (left to right)"""
         return 'x'
 
     def _convert_to_domain_objects(self, image: np.ndarray, detections: List[Dict]) -> List[DetectedMove]:
-        """
-        Convert detection dictionaries to DetectedMove objects
-
-        Args:
-            image: Original image
-            detections: List of detection dictionaries
-
-        Returns:
-            List of DetectedMove objects sorted by x-coordinate
-        """
         detected_moves = []
 
         for detection in detections:

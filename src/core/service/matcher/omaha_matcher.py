@@ -16,6 +16,10 @@ class OmahaTableMatcher(ABC):
     Base class for all table-based readers (cards, positions, etc.)
     Contains common template matching logic
     """
+    DEFAULT_MATCH_THRESHOLD = 0.99  # Higher threshold for position markers
+    DEFAULT_OVERLAP_THRESHOLD = 0.3
+    DEFAULT_MIN_POSITION_SIZE = 15
+    DEFAULT_SCALE_FACTORS = [1.0]
 
     def __init__(self,
                  templates: Dict[str, np.ndarray],
@@ -46,15 +50,6 @@ class OmahaTableMatcher(ABC):
         self.max_workers = max_workers or min(4, multiprocessing.cpu_count())
 
     def read(self, image: np.ndarray) -> List[Any]:
-        """
-        Main entry point for detection
-
-        Args:
-            image: Input image
-
-        Returns:
-            List of detected objects (type depends on subclass)
-        """
         if not self.templates:
             logger.error(f"No templates loaded for {self.__class__.__name__}!")
             return []
@@ -68,10 +63,7 @@ class OmahaTableMatcher(ABC):
         # Sort detections
         sorted_detections = self._sort_detections(filtered_detections)
 
-        # Convert to domain objects
-        result_objects = self._convert_to_domain_objects(image, sorted_detections)
-
-        return result_objects
+        return self._convert_to_domain_objects(image, sorted_detections)
 
     def _find_template_matches(self, image: np.ndarray) -> List[Dict]:
         """Find all template matches using parallel execution"""
@@ -105,15 +97,4 @@ class OmahaTableMatcher(ABC):
 
     @abstractmethod
     def _convert_to_domain_objects(self, image: np.ndarray, detections: List[Dict]) -> List[Any]:
-        """
-        Convert detection dictionaries to domain objects
-        Must be implemented by subclasses
-
-        Args:
-            image: Original image
-            detections: List of detection dictionaries
-
-        Returns:
-            List of domain objects specific to the reader type
-        """
         pass

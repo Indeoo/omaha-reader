@@ -43,18 +43,6 @@ class PlayerPositionMatcher(OmahaTableMatcher):
             scale_factors=self.DEFAULT_SCALE_FACTORS
         )
 
-    def read(self, image: np.ndarray) -> List[DetectedPosition]:
-        """
-        Override read method to add benchmark decorator
-
-        Args:
-            image: Input image (poker table screenshot)
-
-        Returns:
-            List of DetectedPosition objects
-        """
-        return super().read(image)
-
     def _get_sort_direction(self) -> str:
         """Positions are sorted by match score instead of position"""
         return 'score'  # Custom sort for positions
