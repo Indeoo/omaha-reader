@@ -28,13 +28,7 @@ class DetectUtils:
                 search_region = coords_to_search_region(coords['x'], coords['y'], coords['w'], coords['h'])
 
                 try:
-                    config = MatchConfig(
-                        search_region=search_region,
-                        threshold=0.99,
-                        min_size=15,
-                        sort_by='score'
-                    )
-                    detected_positions = TemplateMatchService.find_matches(cv2_image, config)
+                    detected_positions = TemplateMatchService.find_positions(cv2_image, search_region)
 
                     if detected_positions:
                         best_position = detected_positions[0]

@@ -162,14 +162,15 @@ class TemplateMatchService:
         return TemplateMatchService.find_matches(image, TemplateMatchService.TEMPLATE_REGISTRY.table_templates, config)
 
     @staticmethod
-    def find_positions(image: np.ndarray) -> List[Detection]:
+    def find_positions(image: np.ndarray, search_region: Tuple[float, float, float, float] = None) -> List[Detection]:
         config = MatchConfig(
-            search_region=None,
-            threshold=0.99,  # Higher threshold for UI elements
+            search_region=search_region,
+            threshold=0.99,
             min_size=15,
             sort_by='score'
         )
-        return TemplateMatchService.find_matches(image, TemplateMatchService.TEMPLATE_REGISTRY.position_templates, config)
+        return TemplateMatchService.find_matches(image, TemplateMatchService.TEMPLATE_REGISTRY.position_templates,
+                                                 config)
 
     @staticmethod
     def find_actions(image: np.ndarray) -> List[Detection]:
