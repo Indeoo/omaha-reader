@@ -3,9 +3,9 @@ from urllib.parse import urlencode
 from loguru import logger
 
 from src.core.domain.game import Game
-from src.core.domain.readed_card import ReadedCard
 from src.core.domain.street import Street
 from src.core.service.move_reconstructor import ActionType
+from src.core.service.template_matcher_service import Detection
 
 
 class FlopHeroLinkService:
@@ -48,7 +48,7 @@ class FlopHeroLinkService:
             return None
 
     @staticmethod
-    def _format_cards_for_flophero(cards: List[ReadedCard]) -> str:
+    def _format_cards_for_flophero(cards: List[Detection]) -> str:
         formatted = []
         for card in cards:
             if card.template_name and len(card.template_name) >= 2:

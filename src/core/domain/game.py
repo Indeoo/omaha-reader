@@ -2,18 +2,18 @@ from typing import List, Dict, Optional
 from datetime import datetime
 from collections import defaultdict
 
-from src.core.domain.readed_card import ReadedCard
 from src.core.domain.street import Street
 from src.core.domain.detected_bid import DetectedBid
 from src.core.service.template_matcher_service import Detection
+from src.core.utils.card_format_utils import format_cards_simple
 
 
 class Game:
 
     def __init__(
             self,
-            player_cards: List[ReadedCard] = None,
-            table_cards: List[ReadedCard] = None,
+            player_cards: List[Detection] = None,
+            table_cards: List[Detection] = None,
             positions: Dict[int, Detection] = None,
             move_history: Dict[Street, List] = None
     ):
@@ -130,7 +130,7 @@ class Game:
                 })
         return bids_data
 
-    def _format_cards_for_web(self, cards: List[ReadedCard]) -> List[Dict]:
+    def _format_cards_for_web(self, cards: List[Detection]) -> List[Dict]:
         if not cards:
             return []
 
@@ -154,10 +154,10 @@ class Game:
         return bool(self.move_history and any(self.move_history.values()))
 
     def get_player_cards_string(self) -> str:
-        return ReadedCard.format_cards_simple(self.player_cards)
+        return format_cards_simple(self.player_cards)
 
     def get_table_cards_string(self) -> str:
-        return ReadedCard.format_cards_simple(self.table_cards)
+        return format_cards_simple(self.table_cards)
 
     def get_solver_link_for_web(self) -> Optional[str]:
         from src.core.service.flophero_link_service import FlopHeroLinkService

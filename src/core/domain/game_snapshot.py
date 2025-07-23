@@ -1,6 +1,5 @@
 from typing import List, Dict, Any, Optional
 
-from src.core.domain.readed_card import ReadedCard
 from src.core.service.template_matcher_service import Detection
 
 
@@ -8,8 +7,8 @@ class GameSnapshot:
 
     def __init__(
             self,
-            player_cards: Optional[List[ReadedCard]] = None,
-            table_cards: Optional[List[ReadedCard]] = None,
+            player_cards: Optional[List[Detection]] = None,
+            table_cards: Optional[List[Detection]] = None,
             positions: Optional[Dict[int, Detection]] = None,
             bids: Optional[List[Any]] = None,
             is_player_move: bool = False
@@ -61,17 +60,17 @@ class GameSnapshot:
     class Builder:
 
         def __init__(self):
-            self._player_cards: Optional[List[ReadedCard]] = None
-            self._table_cards: Optional[List[ReadedCard]] = None
+            self._player_cards: Optional[List[Detection]] = None
+            self._table_cards: Optional[List[Detection]] = None
             self._positions: Optional[Dict[int, Detection]] = None
             self._bids: Optional[List[Any]] = None
             self._is_player_move: bool = False
 
-        def with_player_cards(self, player_cards: List[ReadedCard]) -> 'GameSnapshot.Builder':
+        def with_player_cards(self, player_cards: List[Detection]) -> 'GameSnapshot.Builder':
             self._player_cards = player_cards
             return self
 
-        def with_table_cards(self, table_cards: List[ReadedCard]) -> 'GameSnapshot.Builder':
+        def with_table_cards(self, table_cards: List[Detection]) -> 'GameSnapshot.Builder':
             self._table_cards = table_cards
             return self
 
