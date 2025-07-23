@@ -19,7 +19,7 @@ class GameSnapshot:
         self.positions = positions or {}
         self.bids = bids or {}
         self.is_player_move = is_player_move
-        self.actions = actions
+        self.actions = actions or {}
 
     @staticmethod
     def builder():
