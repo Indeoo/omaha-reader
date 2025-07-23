@@ -54,6 +54,7 @@ def save_detection_result(timestamp_folder: str, captured_image: CapturedWindow,
 
     except Exception as e:
         logger.error(f"    ❌ Error saving result image for {window_name}: {str(e)}")
+        raise e
 
 
 def _draw_detections(
