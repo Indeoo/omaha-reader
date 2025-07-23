@@ -11,13 +11,15 @@ class GameSnapshot:
             table_cards: Optional[List[Detection]] = None,
             positions: Optional[Dict[int, Detection]] = None,
             bids: Optional[List[Any]] = None,
-            is_player_move: bool = False
+            is_player_move: bool = False,
+            actions = None
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.positions = positions or {}
         self.bids = bids or []
         self.is_player_move = is_player_move
+        self.actions = actions
 
     @staticmethod
     def builder():
@@ -65,6 +67,7 @@ class GameSnapshot:
             self._positions: Optional[Dict[int, Detection]] = None
             self._bids: Optional[List[Any]] = None
             self._is_player_move: bool = False
+            self._actions = None
 
         def with_player_cards(self, player_cards: List[Detection]) -> 'GameSnapshot.Builder':
             self._player_cards = player_cards
@@ -86,11 +89,16 @@ class GameSnapshot:
             self._is_player_move = is_player_move
             return self
 
+        def with_actions(self, actions: bool = True) -> 'GameSnapshot.Builder':
+            self._actions = actions
+            return self
+
         def build(self) -> 'GameSnapshot':
             return GameSnapshot(
                 player_cards=self._player_cards,
                 table_cards=self._table_cards,
                 positions=self._positions,
                 bids=self._bids,
-                is_player_move=self._is_player_move
+                is_player_move=self._is_player_move,
+                actions=self._actions
             )

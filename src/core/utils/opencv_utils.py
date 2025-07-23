@@ -54,26 +54,6 @@ def read_cv2_image(tpl_path):
     return cv2.imread(tpl_path, cv2.IMREAD_COLOR)
 
 
-def _draw_detection_base(
-        image: np.ndarray,
-        bounding_rect: Tuple[int, int, int, int],
-        center: Tuple[int, int],
-        label: str,
-        color: Tuple[int, int, int],
-        thickness: int = 2,
-        font_scale: float = 0.6
-) -> np.ndarray:
-    result = image.copy()
-    x, y, w, h = bounding_rect
-
-    cv2.rectangle(result, (x, y), (x + w, y + h), color, thickness)
-    cv2.circle(result, center, 5, (255, 0, 0), -1)
-    cv2.putText(result, label, (x, y - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness)
-
-    return result
-
-
 def draw_detected_cards(
         image: np.ndarray,
         detections: List[Dict],
@@ -144,6 +124,26 @@ def draw_detected_bids(
     return result
 
 
+def draw_detected_actions(image, user_actions):
+    result = image.copy()
+
+    for user_action in user_actions:
+        for action in user_action:
+            label = f"{action.name} ({action.match_score:.2f})"
+
+            result = _draw_detection_base(
+                result,
+                action.bounding_rect,
+                action.center,
+                label,
+                (0, 255, 255),  # Yellow for positions
+                2,
+                0.6
+            )
+
+    return result
+
+
 def coords_to_search_region(x: int, y: int, w: int, h: int,
                             image_width= 784, image_height = 584) -> tuple[float, float, float, float]:
     left = x / image_width
@@ -157,6 +157,26 @@ def coords_to_search_region(x: int, y: int, w: int, h: int,
     bottom = max(0.0, min(1.0, bottom))
 
     return (left, top, right, bottom)
+
+
+def _draw_detection_base(
+        image: np.ndarray,
+        bounding_rect: Tuple[int, int, int, int],
+        center: Tuple[int, int],
+        label: str,
+        color: Tuple[int, int, int],
+        thickness: int = 2,
+        font_scale: float = 0.6
+) -> np.ndarray:
+    result = image.copy()
+    x, y, w, h = bounding_rect
+
+    cv2.rectangle(result, (x, y), (x + w, y + h), color, thickness)
+    cv2.circle(result, center, 5, (255, 0, 0), -1)
+    cv2.putText(result, label, (x, y - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness)
+
+    return result
 
 
 def match_template_at_scale(

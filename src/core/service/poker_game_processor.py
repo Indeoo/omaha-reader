@@ -2,8 +2,10 @@ from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.game_snapshot import GameSnapshot
+from src.core.service.action_service import get_player_actions
 from src.core.service.game_state_service import GameStateService
 from src.core.service.move_reconstructor import MoveReconstructor
+from src.core.service.template_matcher_service import TemplateMatchService
 from src.core.utils.bid_detect_utils import detect_bids
 from src.core.utils.detect_utils import DetectUtils
 
@@ -37,13 +39,18 @@ class PokerGameProcessor:
         detected_player_cards = self.detect_utils.detect_player_cards(cv2_image)
         detected_table_cards = self.detect_utils.detect_table_cards(cv2_image)
         detected_positions = self.detect_utils.detect_positions(cv2_image)
+        detected_actions = get_player_actions(cv2_image)
 
         is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
 
         detected_bids = detect_bids(cv2_image)
 
-        game_snapshot_builder = GameSnapshot.builder().with_player_cards(detected_player_cards).with_table_cards(
-            detected_table_cards).with_bids(detected_bids).with_positions(detected_positions)
+        game_snapshot_builder = (GameSnapshot.builder().with_player_cards(detected_player_cards)
+                                 .with_table_cards(detected_table_cards)
+                                 .with_bids(detected_bids)
+                                 .with_positions(detected_positions)
+                                 .with_actions(detected_actions.values())
+                                 )
 
         game_snapshot = game_snapshot_builder.build()
 

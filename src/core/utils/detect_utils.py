@@ -7,8 +7,7 @@ from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.template_matcher_service import Detection, TemplateMatchService, MatchConfig
 from src.core.utils.opencv_utils import draw_detected_positions, save_opencv_image, draw_detected_bids, \
-    draw_detected_cards
-
+    draw_detected_cards, draw_detected_actions
 
 PLAYER_POSITIONS = {
     1: {'x': 300, 'y': 375, 'w': 40, 'h': 40},
@@ -44,6 +43,7 @@ class DetectUtils:
             table_cards = game_snapshot.table_cards
             positions = game_snapshot.positions
             bids = game_snapshot.bids
+            actions = game_snapshot.actions
 
             if has_cards:
                 if player_cards:
@@ -61,6 +61,10 @@ class DetectUtils:
             if bids:
                 result_image = draw_detected_bids(result_image, bids)
                 drawn_items.append(f"{len(bids)} bids")
+
+            if actions:
+                result_image = draw_detected_actions(result_image, actions)
+                drawn_items.append(f"{len(actions)} bids")
 
             result_filename = filename.replace('.png', '_result.png')
             save_opencv_image(result_image, timestamp_folder, result_filename)
