@@ -1,6 +1,7 @@
 from typing import List, Dict
 from loguru import logger
-from src.core.service.template_matcher_service import Detection, TemplateMatchService, MatchConfig
+from src.core.service.template_matcher_service import TemplateMatchService, MatchConfig
+from src.core.domain.detection import Detection
 from src.core.utils.opencv_utils import coords_to_search_region
 
 PLAYER_POSITIONS = {
@@ -50,13 +51,13 @@ class DetectUtils:
     @staticmethod
     def detect_actions(cv2_image, window_name: str = "") -> List[Detection]:
         try:
-            detected_moves = TemplateMatchService.find_actions(cv2_image)
+            detected_actions = TemplateMatchService.find_actions(cv2_image)
 
-            if detected_moves:
-                move_types = [move.name for move in detected_moves]
+            if detected_actions:
+                move_types = [move.name for move in detected_actions]
                 if window_name:
                     logger.info(f"🎯 Player's move detected in {window_name}! Options: {', '.join(move_types)}")
-                return detected_moves
+                return detected_actions
             else:
                 if window_name:
                     logger.info(f"⏸️ Not player's move in {window_name} - no action buttons detected")

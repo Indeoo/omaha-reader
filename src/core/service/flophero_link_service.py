@@ -5,7 +5,7 @@ from loguru import logger
 from src.core.domain.game import Game
 from src.core.domain.street import Street
 from src.core.service.move_reconstructor import ActionType
-from src.core.service.template_matcher_service import Detection
+from src.core.domain.detection import Detection
 
 
 class FlopHeroLinkService:

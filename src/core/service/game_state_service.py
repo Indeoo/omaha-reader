@@ -4,7 +4,7 @@ from loguru import logger
 
 from src.core.domain.game import Game
 from src.core.domain.game_snapshot import GameSnapshot
-from src.core.service.template_matcher_service import Detection
+from src.core.domain.detection import Detection
 from src.core.service.state_repository import GameStateRepository
 
 

@@ -1,6 +1,6 @@
 from typing import List
 
-from src.core.service.template_matcher_service import Detection
+from src.core.domain.detection import Detection
 
 
 def format_cards_simple(cards: List[Detection]) -> str:

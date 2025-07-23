@@ -1,6 +1,6 @@
 from typing import List, Dict, Any, Optional
 
-from src.core.service.template_matcher_service import Detection
+from src.core.domain.detection import Detection
 
 
 class GameSnapshot:

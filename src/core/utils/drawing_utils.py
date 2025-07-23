@@ -6,7 +6,7 @@ from loguru import logger
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.detected_bid import DetectedBid
 from src.core.domain.game_snapshot import GameSnapshot
-from src.core.service.template_matcher_service import Detection
+from src.core.domain.detection import Detection
 from src.core.utils.opencv_utils import save_opencv_image
 
 
@@ -56,6 +56,10 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
                             logger.info(f"DEBUG: sub_action[{j}] type: {type(sub_action)}")
                             logger.info(
                                 f"DEBUG: sub_action[{j}] has bounding_rect: {hasattr(sub_action, 'bounding_rect')}")
+
+            result_image = draw_detected_actions(result_image, actions)
+            drawn_items.append(f"{len(actions)} actions")
+
 
         result_filename = filename.replace('.png', '_result.png')
         save_opencv_image(result_image, timestamp_folder, result_filename)

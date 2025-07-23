@@ -6,7 +6,7 @@ from loguru import logger
 
 from src.core.domain.street import Street
 from src.core.domain.detected_bid import DetectedBid
-from src.core.service.template_matcher_service import Detection
+from src.core.domain.detection import Detection
 
 
 class ActionType(Enum):
