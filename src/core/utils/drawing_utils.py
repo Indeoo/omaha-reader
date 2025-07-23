@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple
 import cv2
 import numpy as np
 from loguru import logger
@@ -20,24 +20,22 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
 
         drawn_items = []
 
-        has_cards = game_snapshot.has_cards
         player_cards = game_snapshot.player_cards
         table_cards = game_snapshot.table_cards
         positions = game_snapshot.positions
         bids = game_snapshot.bids
         actions = game_snapshot.actions
 
-        if has_cards:
-            if player_cards:
-                result_image = draw_detected_cards(result_image, player_cards, color=(0, 255, 0))
-                drawn_items.append(f"{len(player_cards)} player cards")
+        if player_cards:
+            result_image = draw_detected_cards(result_image, player_cards, color=(0, 255, 0))
+            drawn_items.append(f"{len(player_cards)} player cards")
 
-            if table_cards:
-                result_image = draw_detected_cards(result_image, table_cards, color=(0, 0, 255))
-                drawn_items.append(f"{len(table_cards)} table cards")
+        if table_cards:
+            result_image = draw_detected_cards(result_image, table_cards, color=(0, 0, 255))
+            drawn_items.append(f"{len(table_cards)} table cards")
 
         if positions:
-            result_image = draw_detected_positions(result_image, positions.values())
+            result_image = draw_detected_positions(result_image, list(positions.values()))
             drawn_items.append(f"{len(positions)} positions")
 
         if bids:
@@ -45,21 +43,8 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
             drawn_items.append(f"{len(bids)} bids")
 
         if actions:
-            logger.info(f"DEBUG: actions type: {type(actions)}")
-            logger.info(f"DEBUG: actions content: {actions}")
-            if hasattr(actions, '__iter__'):
-                for i, action in enumerate(actions):
-                    logger.info(f"DEBUG: action[{i}] type: {type(action)}")
-                    logger.info(f"DEBUG: action[{i}] content: {action}")
-                    if hasattr(action, '__iter__') and not isinstance(action, str):
-                        for j, sub_action in enumerate(action):
-                            logger.info(f"DEBUG: sub_action[{j}] type: {type(sub_action)}")
-                            logger.info(
-                                f"DEBUG: sub_action[{j}] has bounding_rect: {hasattr(sub_action, 'bounding_rect')}")
-
             result_image = draw_detected_actions(result_image, actions)
             drawn_items.append(f"{len(actions)} actions")
-
 
         result_filename = filename.replace('.png', '_result.png')
         save_opencv_image(result_image, timestamp_folder, result_filename)
@@ -112,18 +97,13 @@ def _flatten_action_lists(user_actions: List[List[Detection]]) -> List[Detection
     return detections
 
 
-def draw_detected_cards(image, detections: Union[List[Detection], List[List[Detection]]], color=(0, 255, 0),
-                        thickness=2, font_scale=0.6, show_scale=True):
+def draw_detected_cards(image: np.ndarray, detections: List[Detection], color=(0, 255, 0),
+                        thickness=2, font_scale=0.6, show_scale=True) -> np.ndarray:
     try:
-        if isinstance(detections, list) and detections and isinstance(detections[0], list):
-            converted_detections = _flatten_action_lists(detections)
-        else:
-            converted_detections = detections
+        result = _draw_detections(image, detections, color, thickness, font_scale)
 
-        result = _draw_detections(image, converted_detections, color, thickness, font_scale)
-
-        if show_scale and converted_detections:
-            for detection in converted_detections:
+        if show_scale and detections:
+            for detection in detections:
                 if hasattr(detection, 'scale'):
                     x, y, w, h = detection.bounding_rect
                     cv2.putText(result, f"Scale: {detection.scale:.1f}", (x, y + h + 20),
@@ -134,39 +114,19 @@ def draw_detected_cards(image, detections: Union[List[Detection], List[List[Dete
         raise e
 
 
-def draw_detected_positions(image, positions: Union[List[Detection], Dict[int, Detection]]):
-    if isinstance(positions, dict):
-        converted_detections = list(positions.values())
-    else:
-        converted_detections = positions
-
-    return _draw_detections(image, converted_detections, color=(0, 255, 255))
+def draw_detected_positions(image: np.ndarray, positions: List[Detection]) -> np.ndarray:
+    return _draw_detections(image, positions, color=(0, 255, 255))
 
 
-def draw_detected_bids(image, detected_bids: Union[List[Detection], Dict[int, DetectedBid]], color=(255, 0, 255),
-                       thickness=2, font_scale=0.6):
-    if isinstance(detected_bids, dict):
-        converted_detections = _convert_bids_to_detections(detected_bids)
-    else:
-        converted_detections = detected_bids
-
+def draw_detected_bids(image: np.ndarray, detected_bids: Dict[int, DetectedBid], color=(255, 0, 255),
+                       thickness=2, font_scale=0.6) -> np.ndarray:
+    converted_detections = _convert_bids_to_detections(detected_bids)
     return _draw_detections(image, converted_detections, color, thickness, font_scale)
 
 
-def draw_detected_actions(image, user_actions: Union[List[Detection], List[List[Detection]]]):
-    # Handle the nested structure more robustly
-    converted_detections = []
-
+def draw_detected_actions(image: np.ndarray, user_actions: List[List[Detection]]) -> np.ndarray:
     if not user_actions:
         return image
 
-    # Handle different input formats
-    for action in user_actions:
-        if isinstance(action, list):
-            # It's a list of detections
-            converted_detections.extend(action)
-        else:
-            # It's a single detection
-            converted_detections.append(action)
-
+    converted_detections = _flatten_action_lists(user_actions)
     return _draw_detections(image, converted_detections, color=(0, 255, 255))
