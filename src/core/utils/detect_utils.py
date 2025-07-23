@@ -29,8 +29,8 @@ class DetectUtils:
     def __init__(self):
         self._position_search_regions = {}
 
-    def save_detection_result_image(self, timestamp_folder: str, captured_image: CapturedWindow,
-                                    game_snapshot: GameSnapshot):
+    @staticmethod
+    def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
         window_name = captured_image.window_name
         filename = captured_image.filename
 
@@ -65,8 +65,17 @@ class DetectUtils:
                 drawn_items.append(f"{len(bids)} bids")
 
             if actions:
-                result_image = draw_detected_actions(result_image, actions)
-                drawn_items.append(f"{len(actions)} bids")
+                logger.info(f"DEBUG: actions type: {type(actions)}")
+                logger.info(f"DEBUG: actions content: {actions}")
+                if hasattr(actions, '__iter__'):
+                    for i, action in enumerate(actions):
+                        logger.info(f"DEBUG: action[{i}] type: {type(action)}")
+                        logger.info(f"DEBUG: action[{i}] content: {action}")
+                        if hasattr(action, '__iter__') and not isinstance(action, str):
+                            for j, sub_action in enumerate(action):
+                                logger.info(f"DEBUG: sub_action[{j}] type: {type(sub_action)}")
+                                logger.info(
+                                    f"DEBUG: sub_action[{j}] has bounding_rect: {hasattr(sub_action, 'bounding_rect')}")
 
             result_filename = filename.replace('.png', '_result.png')
             save_opencv_image(result_image, timestamp_folder, result_filename)

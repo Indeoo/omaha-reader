@@ -29,8 +29,8 @@ def _draw_detections(
             })
     elif isinstance(detections, list) and detections and isinstance(detections[0], list):
         # List[List[Detection]] - flatten
-        for user_action in detections:
-            for action in user_action:
+        for action_list in detections:
+            for action in action_list:
                 items_to_draw.append({
                     'rect': action.bounding_rect,
                     'center': action.center,
