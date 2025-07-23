@@ -2,8 +2,8 @@ from typing import List, Dict, Optional
 
 from loguru import logger
 
-from src.core.domain.detection_result import GameSnapshot
 from src.core.domain.game import Game
+from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.template_matcher_service import Detection
 from src.core.service.state_repository import GameStateRepository
 
