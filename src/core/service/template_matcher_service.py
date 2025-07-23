@@ -185,7 +185,7 @@ class TemplateMatchService:
     def find_jurojin_actions(image: np.ndarray, search_region: Tuple[float, float, float, float]) -> List[Detection]:
         config = MatchConfig(
             search_region=search_region,
-            threshold=0.98,
+            threshold=0.95,
             min_size=20,
             sort_by='x'
         )

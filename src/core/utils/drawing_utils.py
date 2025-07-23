@@ -3,66 +3,123 @@ import cv2
 import numpy as np
 from loguru import logger
 
+from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.detected_bid import DetectedBid
+from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.template_matcher_service import Detection
+from src.core.utils.opencv_utils import save_opencv_image
+
+
+def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
+    window_name = captured_image.window_name
+    filename = captured_image.filename
+
+    try:
+        cv2_image = captured_image.get_cv2_image()
+        result_image = cv2_image.copy()
+
+        drawn_items = []
+
+        has_cards = game_snapshot.has_cards
+        player_cards = game_snapshot.player_cards
+        table_cards = game_snapshot.table_cards
+        positions = game_snapshot.positions
+        bids = game_snapshot.bids
+        actions = game_snapshot.actions
+
+        if has_cards:
+            if player_cards:
+                result_image = draw_detected_cards(result_image, player_cards, color=(0, 255, 0))
+                drawn_items.append(f"{len(player_cards)} player cards")
+
+            if table_cards:
+                result_image = draw_detected_cards(result_image, table_cards, color=(0, 0, 255))
+                drawn_items.append(f"{len(table_cards)} table cards")
+
+        if positions:
+            result_image = draw_detected_positions(result_image, positions.values())
+            drawn_items.append(f"{len(positions)} positions")
+
+        if bids:
+            result_image = draw_detected_bids(result_image, bids)
+            drawn_items.append(f"{len(bids)} bids")
+
+        if actions:
+            logger.info(f"DEBUG: actions type: {type(actions)}")
+            logger.info(f"DEBUG: actions content: {actions}")
+            if hasattr(actions, '__iter__'):
+                for i, action in enumerate(actions):
+                    logger.info(f"DEBUG: action[{i}] type: {type(action)}")
+                    logger.info(f"DEBUG: action[{i}] content: {action}")
+                    if hasattr(action, '__iter__') and not isinstance(action, str):
+                        for j, sub_action in enumerate(action):
+                            logger.info(f"DEBUG: sub_action[{j}] type: {type(sub_action)}")
+                            logger.info(
+                                f"DEBUG: sub_action[{j}] has bounding_rect: {hasattr(sub_action, 'bounding_rect')}")
+
+        result_filename = filename.replace('.png', '_result.png')
+        save_opencv_image(result_image, timestamp_folder, result_filename)
+
+        if drawn_items:
+            logger.info(f"    📷 Saved {result_filename} with: {', '.join(drawn_items)}")
+        else:
+            logger.info(f"    📷 Saved {result_filename} (no detections)")
+
+    except Exception as e:
+        logger.error(f"    ❌ Error saving result image for {window_name}: {str(e)}")
 
 
 def _draw_detections(
         image: np.ndarray,
-        detections: Union[List[Detection], Dict[int, DetectedBid], List[List[Detection]]],
+        detections: List[Detection],
         color: Tuple[int, int, int] = (0, 255, 0),
         thickness: int = 2,
         font_scale: float = 0.6
 ) -> np.ndarray:
     result = image.copy()
 
-    # Handle different input types
-    items_to_draw = []
-
-    if isinstance(detections, dict):
-        # Dict[int, DetectedBid]
-        for bid in detections.values():
-            items_to_draw.append({
-                'rect': bid.bounding_rect,
-                'center': bid.center,
-                'label': f"P{bid.position}: ${bid.amount_text}"
-            })
-    elif isinstance(detections, list) and detections and isinstance(detections[0], list):
-        # List[List[Detection]] - flatten
-        for action_list in detections:
-            for action in action_list:
-                items_to_draw.append({
-                    'rect': action.bounding_rect,
-                    'center': action.center,
-                    'label': f"{action.name} ({action.match_score:.2f})"
-                })
-    else:
-        # List[Detection]
-        for detection in detections:
-            items_to_draw.append({
-                'rect': detection.bounding_rect,
-                'center': detection.center,
-                'label': f"{detection.name} ({detection.match_score:.2f})"
-            })
-
-    # Draw all items
-    for item in items_to_draw:
-        x, y, w, h = item['rect']
+    for detection in detections:
+        x, y, w, h = detection.bounding_rect
         cv2.rectangle(result, (x, y), (x + w, y + h), color, thickness)
-        cv2.circle(result, item['center'], 5, (255, 0, 0), -1)
-        cv2.putText(result, item['label'], (x, y - 10),
+        cv2.circle(result, detection.center, 5, (255, 0, 0), -1)
+        cv2.putText(result, f"{detection.name} ({detection.match_score:.2f})", (x, y - 10),
                     cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness)
 
     return result
 
 
-def draw_detected_cards(image, detections, color=(0, 255, 0), thickness=2, font_scale=0.6, show_scale=True):
-    try:
-        result = _draw_detections(image, detections, color, thickness, font_scale)
+def _convert_bids_to_detections(detected_bids: Dict[int, DetectedBid]) -> List[Detection]:
+    detections = []
+    for bid in detected_bids.values():
+        detection = Detection(
+            name=f"P{bid.position}: ${bid.amount_text}",
+            center=bid.center,
+            bounding_rect=bid.bounding_rect,
+            match_score=1.0
+        )
+        detections.append(detection)
+    return detections
 
-        if show_scale and detections:
-            # Add scale info for cards
-            for detection in detections:
+
+def _flatten_action_lists(user_actions: List[List[Detection]]) -> List[Detection]:
+    detections = []
+    for action_list in user_actions:
+        detections.extend(action_list)
+    return detections
+
+
+def draw_detected_cards(image, detections: Union[List[Detection], List[List[Detection]]], color=(0, 255, 0),
+                        thickness=2, font_scale=0.6, show_scale=True):
+    try:
+        if isinstance(detections, list) and detections and isinstance(detections[0], list):
+            converted_detections = _flatten_action_lists(detections)
+        else:
+            converted_detections = detections
+
+        result = _draw_detections(image, converted_detections, color, thickness, font_scale)
+
+        if show_scale and converted_detections:
+            for detection in converted_detections:
                 if hasattr(detection, 'scale'):
                     x, y, w, h = detection.bounding_rect
                     cv2.putText(result, f"Scale: {detection.scale:.1f}", (x, y + h + 20),
@@ -73,13 +130,29 @@ def draw_detected_cards(image, detections, color=(0, 255, 0), thickness=2, font_
         raise e
 
 
-def draw_detected_positions(image, positions):
-    return _draw_detections(image, positions, color=(0, 255, 255))
+def draw_detected_positions(image, positions: Union[List[Detection], Dict[int, Detection]]):
+    if isinstance(positions, dict):
+        converted_detections = list(positions.values())
+    else:
+        converted_detections = positions
+
+    return _draw_detections(image, converted_detections, color=(0, 255, 255))
 
 
-def draw_detected_bids(image, detected_bids, color=(255, 0, 255), thickness=2, font_scale=0.6):
-    return _draw_detections(image, detected_bids, color, thickness, font_scale)
+def draw_detected_bids(image, detected_bids: Union[List[Detection], Dict[int, DetectedBid]], color=(255, 0, 255),
+                       thickness=2, font_scale=0.6):
+    if isinstance(detected_bids, dict):
+        converted_detections = _convert_bids_to_detections(detected_bids)
+    else:
+        converted_detections = detected_bids
+
+    return _draw_detections(image, converted_detections, color, thickness, font_scale)
 
 
-def draw_detected_actions(image, user_actions):
-    return _draw_detections(image, user_actions, color=(0, 255, 255))
+def draw_detected_actions(image, user_actions: Union[List[Detection], List[List[Detection]]]):
+    if isinstance(user_actions, list) and user_actions and isinstance(user_actions[0], list):
+        converted_detections = _flatten_action_lists(user_actions)
+    else:
+        converted_detections = user_actions
+
+    return _draw_detections(image, converted_detections, color=(0, 255, 255))
