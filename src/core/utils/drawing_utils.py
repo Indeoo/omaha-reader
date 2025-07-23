@@ -90,12 +90,11 @@ def _convert_bids_to_detections(detected_bids: Dict[int, DetectedBid]) -> List[D
     return detections
 
 
-def _flatten_action_lists(user_actions: List[List[Detection]]) -> List[Detection]:
+def _flatten_action_lists(user_actions: Dict[int, List[Detection]]) -> List[Detection]:
     detections = []
-    for action_list in user_actions:
+    for action_list in user_actions.values():
         detections.extend(action_list)
     return detections
-
 
 def draw_detected_cards(image: np.ndarray, detections: List[Detection], color=(0, 255, 0),
                         thickness=2, font_scale=0.6, show_scale=True) -> np.ndarray:

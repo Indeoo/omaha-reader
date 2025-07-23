@@ -12,7 +12,7 @@ class GameSnapshot:
             positions: Optional[Dict[int, Detection]] = None,
             bids: Optional[List[Any]] = None,
             is_player_move: bool = False,
-            actions = None
+            actions: Optional[Dict[int, Detection]] = None
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
@@ -67,7 +67,7 @@ class GameSnapshot:
             self._positions: Optional[Dict[int, Detection]] = None
             self._bids: Optional[List[Any]] = None
             self._is_player_move: bool = False
-            self._actions = None
+            self._actions: Optional[Dict[int, Detection]] = None
 
         def with_player_cards(self, player_cards: List[Detection]) -> 'GameSnapshot.Builder':
             self._player_cards = player_cards
