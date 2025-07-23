@@ -24,7 +24,7 @@ class DetectUtils:
         try:
             player_positions = {}
 
-            for player_num, coords in PLAYER_POSITIONS:
+            for player_num, coords in PLAYER_POSITIONS.items():
                 search_region = coords_to_search_region(coords['x'], coords['y'], coords['w'], coords['h'])
 
                 try:
@@ -53,7 +53,8 @@ class DetectUtils:
             logger.error(f"❌ Error detecting positions: {str(e)}")
             return {}
 
-    def detect_actions(self, cv2_image, window_name: str = "") -> List[Detection]:
+    @staticmethod
+    def detect_actions(cv2_image, window_name: str = "") -> List[Detection]:
         try:
             detected_moves = TemplateMatchService.find_actions(cv2_image)
 
