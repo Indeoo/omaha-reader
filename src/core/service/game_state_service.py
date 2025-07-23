@@ -4,7 +4,6 @@ from loguru import logger
 
 from src.core.domain.detection_result import GameSnapshot
 from src.core.domain.game import Game
-from src.core.domain.readed_card import ReadedCard
 from src.core.service.template_matcher_service import Detection
 from src.core.service.state_repository import GameStateRepository
 
@@ -14,7 +13,7 @@ class GameStateService:
     def __init__(self, state_repository: GameStateRepository):
         self.state_repository = state_repository
 
-    def is_new_game(self, window_name: str, player_cards: List[ReadedCard],
+    def is_new_game(self, window_name: str, player_cards: List[Detection],
                     detected_positions: Dict[int, Detection]) -> bool:
         existing_game = self.state_repository.get_by_window(window_name)
 

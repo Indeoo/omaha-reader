@@ -2,8 +2,8 @@ import threading
 from typing import Dict, Optional, List
 from datetime import datetime
 
-from src.core.domain.detection_result import GameSnapshot
 from src.core.domain.game import Game
+from src.core.domain.game_snapshot import GameSnapshot
 
 
 class GameStateRepository:

@@ -26,33 +26,8 @@ IMAGE_HEIGHT = 584
 
 
 class DetectUtils:
-    def __init__(
-            self,
-            country: str = "canada",
-            project_root: str = None,
-    ):
-        #self.template_registry = TemplateRegistry(country, project_root)
+    def __init__(self):
         self._position_search_regions = {}
-    #     self._init_position_search_regions()
-    #
-    # def _init_position_search_regions(self):
-    #     if not self.template_registry.has_position_templates():
-    #         return
-    #
-    #     try:
-    #         for player_num, coords in PLAYER_POSITIONS.items():
-    #             search_region = coords_to_search_region(
-    #                 x=coords['x'] - POSITION_MARGIN,
-    #                 y=coords['y'] - POSITION_MARGIN,
-    #                 w=coords['w'] + 2 * POSITION_MARGIN,
-    #                 h=coords['h'] + 2 * POSITION_MARGIN,
-    #                 image_width=IMAGE_WIDTH,
-    #                 image_height=IMAGE_HEIGHT
-    #             )
-    #             self._position_search_regions[player_num] = search_region
-    #             logger.info(f"✅ Player {player_num} position search region: {search_region}")
-    #     except Exception as e:
-    #         logger.error(f"❌ Error initializing position search regions: {str(e)}")
 
     def save_detection_result_image(self, timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
         window_name = captured_image.window_name

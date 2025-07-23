@@ -11,8 +11,6 @@ class TestActionService(unittest.TestCase):
         img_path = f"src/test/resources/bids/9_bid.png"
         img = cv2.imread(img_path)
 
-        project_root = "/Users/indeoo/Project/OmahaSolver/TableScrapper"
-
-        player_actions = get_player_actions(img, project_root)
+        player_actions = get_player_actions(img)
 
         print(player_actions)
