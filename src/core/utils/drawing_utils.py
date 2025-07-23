@@ -154,9 +154,19 @@ def draw_detected_bids(image, detected_bids: Union[List[Detection], Dict[int, De
 
 
 def draw_detected_actions(image, user_actions: Union[List[Detection], List[List[Detection]]]):
-    if isinstance(user_actions, list) and user_actions and isinstance(user_actions[0], list):
-        converted_detections = _flatten_action_lists(user_actions)
-    else:
-        converted_detections = user_actions
+    # Handle the nested structure more robustly
+    converted_detections = []
+
+    if not user_actions:
+        return image
+
+    # Handle different input formats
+    for action in user_actions:
+        if isinstance(action, list):
+            # It's a list of detections
+            converted_detections.extend(action)
+        else:
+            # It's a single detection
+            converted_detections.append(action)
 
     return _draw_detections(image, converted_detections, color=(0, 255, 255))
