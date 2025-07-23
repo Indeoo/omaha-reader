@@ -7,7 +7,7 @@ from src.core.domain.detected_bid import DetectedBid
 from src.core.service.template_matcher_service import Detection
 
 
-def draw_detections(
+def _draw_detections(
         image: np.ndarray,
         detections: Union[List[Detection], Dict[int, DetectedBid], List[List[Detection]]],
         color: Tuple[int, int, int] = (0, 255, 0),
@@ -58,7 +58,7 @@ def draw_detections(
 
 def draw_detected_cards(image, detections, color=(0, 255, 0), thickness=2, font_scale=0.6, show_scale=True):
     try:
-        result = draw_detections(image, detections, color, thickness, font_scale)
+        result = _draw_detections(image, detections, color, thickness, font_scale)
 
         if show_scale and detections:
             # Add scale info for cards
@@ -74,12 +74,12 @@ def draw_detected_cards(image, detections, color=(0, 255, 0), thickness=2, font_
 
 
 def draw_detected_positions(image, positions):
-    return draw_detections(image, positions, color=(0, 255, 255))
+    return _draw_detections(image, positions, color=(0, 255, 255))
 
 
 def draw_detected_bids(image, detected_bids, color=(255, 0, 255), thickness=2, font_scale=0.6):
-    return draw_detections(image, detected_bids, color, thickness, font_scale)
+    return _draw_detections(image, detected_bids, color, thickness, font_scale)
 
 
 def draw_detected_actions(image, user_actions):
-    return draw_detections(image, user_actions, color=(0, 255, 255))
+    return _draw_detections(image, user_actions, color=(0, 255, 255))

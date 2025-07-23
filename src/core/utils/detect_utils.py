@@ -49,11 +49,11 @@ class DetectUtils:
 
             if has_cards:
                 if player_cards:
-                    result_image = self.draw_cards(result_image, player_cards, color=(0, 255, 0))
+                    result_image = draw_detected_cards(result_image, player_cards, color=(0, 255, 0))
                     drawn_items.append(f"{len(player_cards)} player cards")
 
                 if table_cards:
-                    result_image = self.draw_cards(result_image, table_cards, color=(0, 0, 255))
+                    result_image = draw_detected_cards(result_image, table_cards, color=(0, 0, 255))
                     drawn_items.append(f"{len(table_cards)} table cards")
 
             if positions:
@@ -78,27 +78,6 @@ class DetectUtils:
 
         except Exception as e:
             logger.error(f"    ❌ Error saving result image for {window_name}: {str(e)}")
-
-    def draw_cards(self, image: np.ndarray, detections: List[Detection], color=(0, 255, 0)) -> np.ndarray:
-        detection_dicts = []
-        for detection in detections:
-            detection_dict = {
-                'template_name': detection.name,
-                'match_score': detection.match_score,
-                'bounding_rect': detection.bounding_rect,
-                'center': detection.center,
-                'scale': detection.scale
-            }
-            detection_dicts.append(detection_dict)
-
-        return draw_detected_cards(
-            image=image,
-            detections=detection_dicts,
-            color=color,
-            thickness=2,
-            font_scale=0.6,
-            show_scale=True
-        )
 
     def detect_player_cards(self, cv2_image) -> List[Detection]:
         return TemplateMatchService.find_player_cards(cv2_image)
