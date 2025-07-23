@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Optional, List
+from typing import Dict, Tuple, List
 import cv2
 import pytesseract
 import numpy as np
@@ -14,6 +14,15 @@ PLAYER_BID_POSITIONS = {
     4: (462, 165, 45, 15),  # Top center
     5: (578, 212, 30, 15),  # Top right
     6: (578, 310, 25, 15),  # Right side
+}
+
+BIDS_POSITIONS = {
+    1: (388, 334, 45, 15),
+    2: (200, 310, 40, 15),
+    3: (185, 212, 45, 15),
+    4: (450, 165, 45, 15),
+    5: (572, 207, 40, 25),
+    6: (562, 310, 45, 20),
 }
 
 # OCR configuration optimized for bid amounts
