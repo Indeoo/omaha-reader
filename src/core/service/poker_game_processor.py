@@ -49,7 +49,7 @@ class PokerGameProcessor:
                                  .with_table_cards(detected_table_cards)
                                  .with_bids(detected_bids)
                                  .with_positions(detected_positions)
-                                 .with_actions(detected_actions.values())
+                                 .with_actions(detected_actions)
                                  )
 
         game_snapshot = game_snapshot_builder.build()
