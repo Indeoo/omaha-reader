@@ -6,8 +6,9 @@ from loguru import logger
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.template_matcher_service import Detection, TemplateMatchService, MatchConfig
-from src.core.utils.opencv_utils import draw_detected_positions, save_opencv_image, draw_detected_bids, \
-    draw_detected_cards, draw_detected_actions
+from src.core.utils.drawing_utils import draw_detected_positions, draw_detected_bids, draw_detected_actions, \
+    draw_detected_cards
+from src.core.utils.opencv_utils import save_opencv_image
 
 PLAYER_POSITIONS = {
     1: {'x': 300, 'y': 375, 'w': 40, 'h': 40},
@@ -28,7 +29,8 @@ class DetectUtils:
     def __init__(self):
         self._position_search_regions = {}
 
-    def save_detection_result_image(self, timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
+    def save_detection_result_image(self, timestamp_folder: str, captured_image: CapturedWindow,
+                                    game_snapshot: GameSnapshot):
         window_name = captured_image.window_name
         filename = captured_image.filename
 

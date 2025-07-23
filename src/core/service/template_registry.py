@@ -1,9 +1,10 @@
+import glob
 import os
 from typing import Dict, Optional
 import numpy as np
 from loguru import logger
 
-from src.core.utils.opencv_utils import load_templates
+from src.core.utils.opencv_utils import read_cv2_image
 
 
 class TemplateRegistry:
@@ -18,6 +19,23 @@ class TemplateRegistry:
         self._jurojin_action_templates: Optional[Dict[str, np.ndarray]] = None
 
         self._templates_dir = os.path.join(project_root, "resources", "templates", country)
+
+    @staticmethod
+    def load_templates(template_dir):
+        logger.info(f"📁 Loading templates from: {template_dir}")
+
+        templates = {}
+        for tpl_path in glob.glob(os.path.join(template_dir, '*.png')):
+            name = os.path.basename(tpl_path).split('.')[0]
+            tpl = read_cv2_image(tpl_path)
+            templates[name] = tpl
+
+        if not templates:
+            raise Exception("❌ No player templates loaded! Please check the templates directory.")
+        else:
+            logger.info(f"✅ Loaded {len(templates)} templates: {list(templates.keys())}")
+
+        return templates
 
     @property
     def player_templates(self) -> Dict[str, np.ndarray]:
@@ -57,7 +75,7 @@ class TemplateRegistry:
             return {}
 
         try:
-            return load_templates(templates_path)
+            return TemplateRegistry.load_templates(templates_path)
         except Exception as e:
             logger.error(f"❌ Error loading {category} templates: {str(e)}")
             return {}

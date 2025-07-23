@@ -1,4 +1,3 @@
-import glob
 import os
 from typing import List, Dict, Tuple
 
@@ -33,76 +32,9 @@ def match_cv2_template(scaled_h, scaled_w, search_image, template):
     return result
 
 
-def load_templates(template_dir):
-    logger.info(f"📁 Loading templates from: {template_dir}")
-
-    templates = {}
-    for tpl_path in glob.glob(os.path.join(template_dir, '*.png')):
-        name = os.path.basename(tpl_path).split('.')[0]
-        tpl = read_cv2_image(tpl_path)
-        templates[name] = tpl
-
-    if not templates:
-        raise Exception("❌ No player templates loaded! Please check the templates directory.")
-    else:
-        logger.info(f"✅ Loaded {len(templates)} templates: {list(templates.keys())}")
-
-    return templates
-
-
 def read_cv2_image(tpl_path):
     return cv2.imread(tpl_path, cv2.IMREAD_COLOR)
 
-
-def draw_detected_cards(
-        image: np.ndarray,
-        detections: List[Dict],
-        color: Tuple[int, int, int] = (0, 255, 0),
-        thickness: int = 2,
-        font_scale: float = 0.6,
-        show_scale: bool = True
-) -> np.ndarray:
-    result = image.copy()
-
-    for i, detection in enumerate(detections):
-        label = f"{detection['template_name']} ({detection['match_score']:.2f})"
-
-        result = _draw_detection_base(
-            result,
-            detection['bounding_rect'],
-            detection['center'],
-            label,
-            color,
-            thickness,
-            font_scale
-        )
-
-        if show_scale and 'scale' in detection:
-            x, y, w, h = detection['bounding_rect']
-            scale_info = f"Scale: {detection['scale']:.1f}"
-            cv2.putText(result, scale_info, (x, y + h + 20),
-                        cv2.FONT_HERSHEY_SIMPLEX, font_scale * 0.7, (255, 255, 0), 1)
-
-    return result
-
-
-def draw_detected_positions(image, positions):
-    result = image.copy()
-
-    for pos in positions:
-        label = f"{pos.position_name} ({pos.match_score:.2f})"
-
-        result = _draw_detection_base(
-            result,
-            pos.bounding_rect,
-            pos.center,
-            label,
-            (0, 255, 255),  # Yellow for positions
-            2,
-            0.6
-        )
-
-    return result
 
 def draw_detected_bids(
         image: np.ndarray,
@@ -124,26 +56,6 @@ def draw_detected_bids(
     return result
 
 
-def draw_detected_actions(image, user_actions):
-    result = image.copy()
-
-    for user_action in user_actions:
-        for action in user_action:
-            label = f"{action.name} ({action.match_score:.2f})"
-
-            result = _draw_detection_base(
-                result,
-                action.bounding_rect,
-                action.center,
-                label,
-                (0, 255, 255),  # Yellow for positions
-                2,
-                0.6
-            )
-
-    return result
-
-
 def coords_to_search_region(x: int, y: int, w: int, h: int,
                             image_width= 784, image_height = 584) -> tuple[float, float, float, float]:
     left = x / image_width
@@ -157,26 +69,6 @@ def coords_to_search_region(x: int, y: int, w: int, h: int,
     bottom = max(0.0, min(1.0, bottom))
 
     return (left, top, right, bottom)
-
-
-def _draw_detection_base(
-        image: np.ndarray,
-        bounding_rect: Tuple[int, int, int, int],
-        center: Tuple[int, int],
-        label: str,
-        color: Tuple[int, int, int],
-        thickness: int = 2,
-        font_scale: float = 0.6
-) -> np.ndarray:
-    result = image.copy()
-    x, y, w, h = bounding_rect
-
-    cv2.rectangle(result, (x, y), (x + w, y + h), color, thickness)
-    cv2.circle(result, center, 5, (255, 0, 0), -1)
-    cv2.putText(result, label, (x, y - 10),
-                cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, thickness)
-
-    return result
 
 
 def match_template_at_scale(
