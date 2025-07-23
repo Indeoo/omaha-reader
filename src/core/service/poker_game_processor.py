@@ -8,7 +8,7 @@ from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.service.template_matcher_service import TemplateMatchService
 from src.core.utils.bid_detect_utils import detect_bids
 from src.core.utils.detect_utils import DetectUtils
-from src.core.utils.drawing_utils import save_detection_result_image
+from src.core.utils.drawing_utils import save_detection_result
 
 
 class PokerGameProcessor:
@@ -71,11 +71,11 @@ class PokerGameProcessor:
 
             self.move_reconstructor.process_bid(current_game, previous_bids, detected_bids)
 
-        save_detection_result_image(timestamp_folder, captured_image, game_snapshot)
+        save_detection_result(timestamp_folder, captured_image, game_snapshot)
 
     def update_user_cards(self, captured_image, cv2_image, timestamp_folder, window_name):
         logger.info("Not player's move, only update user cards")
         detected_player_cards = TemplateMatchService.find_player_cards(cv2_image)
         game_snapshot = GameSnapshot.builder().with_player_cards(detected_player_cards).build()
         self.game_state_service.create_or_update_game(window_name, game_snapshot, False, False)
-        save_detection_result_image(timestamp_folder, captured_image, game_snapshot)
+        save_detection_result(timestamp_folder, captured_image, game_snapshot)

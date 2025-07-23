@@ -10,7 +10,7 @@ from src.core.domain.detection import Detection
 from src.core.utils.opencv_utils import save_opencv_image
 
 
-def save_detection_result_image(timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
+def save_detection_result(timestamp_folder: str, captured_image: CapturedWindow, game_snapshot: GameSnapshot):
     window_name = captured_image.window_name
     filename = captured_image.filename
 
@@ -26,25 +26,22 @@ def save_detection_result_image(timestamp_folder: str, captured_image: CapturedW
         bids = game_snapshot.bids
         actions = game_snapshot.actions
 
-        if player_cards:
-            result_image = draw_detected_cards(result_image, player_cards, color=(0, 255, 0))
-            drawn_items.append(f"{len(player_cards)} player cards")
+        result_image = draw_detected_cards(result_image, player_cards, color=(0, 255, 0))
+        drawn_items.append(f"{len(player_cards)} player cards")
 
-        if table_cards:
-            result_image = draw_detected_cards(result_image, table_cards, color=(0, 0, 255))
-            drawn_items.append(f"{len(table_cards)} table cards")
+        result_image = draw_detected_cards(result_image, table_cards, color=(0, 0, 255))
+        drawn_items.append(f"{len(table_cards)} table cards")
 
-        if positions:
-            result_image = draw_detected_positions(result_image, list(positions.values()))
-            drawn_items.append(f"{len(positions)} positions")
+        result_image = draw_detected_positions(result_image, list(positions.values()))
+        drawn_items.append(f"{len(positions)} positions")
 
-        if bids:
-            result_image = draw_detected_bids(result_image, bids)
-            drawn_items.append(f"{len(bids)} bids")
+        converted_bids_detections = _convert_bids_to_detections(bids)
+        result_image = draw_detected_bids(result_image, converted_bids_detections)
+        drawn_items.append(f"{len(bids)} bids")
 
-        if actions:
-            result_image = draw_detected_actions(result_image, actions)
-            drawn_items.append(f"{len(actions)} actions")
+        converted_detections = _flatten_action_lists(actions)
+        result_image = draw_detected_actions(result_image, converted_detections)
+        drawn_items.append(f"{len(actions)} actions")
 
         result_filename = filename.replace('.png', '_result.png')
         save_opencv_image(result_image, timestamp_folder, result_filename)
@@ -114,19 +111,14 @@ def draw_detected_cards(image: np.ndarray, detections: List[Detection], color=(0
         raise e
 
 
-def draw_detected_positions(image: np.ndarray, positions: List[Detection]) -> np.ndarray:
-    return _draw_detections(image, positions, color=(0, 255, 255))
+def draw_detected_positions(image: np.ndarray, detections: List[Detection]) -> np.ndarray:
+    return _draw_detections(image, detections, color=(0, 255, 255))
 
 
-def draw_detected_bids(image: np.ndarray, detected_bids: Dict[int, DetectedBid], color=(255, 0, 255),
+def draw_detected_bids(image: np.ndarray, detections: List[Detection], color=(255, 0, 255),
                        thickness=2, font_scale=0.6) -> np.ndarray:
-    converted_detections = _convert_bids_to_detections(detected_bids)
-    return _draw_detections(image, converted_detections, color, thickness, font_scale)
+    return _draw_detections(image, detections, color, thickness, font_scale)
 
 
-def draw_detected_actions(image: np.ndarray, user_actions: List[List[Detection]]) -> np.ndarray:
-    if not user_actions:
-        return image
-
-    converted_detections = _flatten_action_lists(user_actions)
-    return _draw_detections(image, converted_detections, color=(0, 255, 255))
+def draw_detected_actions(image: np.ndarray, detections: List[Detection]) -> np.ndarray:
+    return _draw_detections(image, detections, color=(0, 255, 255))
