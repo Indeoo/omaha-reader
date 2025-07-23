@@ -1,4 +1,5 @@
 import os
+import traceback
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from loguru import logger
@@ -95,6 +96,7 @@ class OmahaEngine:
                 self.poker_game_processor.process(captured_image, window_folder)
 
             except Exception as e:
+                traceback.print_exc()
                 logger.error(f"❌ Error processing {captured_image.window_name}: {str(e)}")
 
     def _handle_removed_windows(self, removed_window_names):

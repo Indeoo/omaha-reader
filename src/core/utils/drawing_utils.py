@@ -53,7 +53,6 @@ def save_detection_result(timestamp_folder: str, captured_image: CapturedWindow,
             logger.info(f"    📷 Saved {result_filename} (no detections)")
 
     except Exception as e:
-        traceback.print_exc()
         logger.error(f"    ❌ Error saving result image for {window_name}: {str(e)}")
 
 
@@ -78,6 +77,7 @@ def _draw_detections(
 
 def _convert_bids_to_detections(detected_bids: Dict[int, DetectedBid]) -> List[Detection]:
     detections = []
+
     for bid in detected_bids.values():
         detection = Detection(
             name=f"P{bid.position}: ${bid.amount_text}",
