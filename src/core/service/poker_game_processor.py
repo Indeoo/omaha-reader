@@ -1,7 +1,7 @@
 from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
-from src.core.domain.detection_result import GameSnapshot
+from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.game_state_service import GameStateService
 from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.utils.bid_detect_utils import detect_bids
@@ -14,7 +14,6 @@ class PokerGameProcessor:
             self,
             game_state_service: GameStateService,
             country="canada",
-            project_root="project_root",
             save_result_images=True,
             write_detection_files=True,
     ):
@@ -22,7 +21,7 @@ class PokerGameProcessor:
         self.save_result_images = save_result_images
         self.write_detection_files = write_detection_files
         self.move_reconstructor = MoveReconstructor()
-        self.detect_utils = DetectUtils(country=country, project_root=project_root)
+        self.detect_utils = DetectUtils()
 
     def process(self, captured_image: CapturedWindow, timestamp_folder):
         window_name = captured_image.window_name

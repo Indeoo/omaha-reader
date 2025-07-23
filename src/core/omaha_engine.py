@@ -25,13 +25,9 @@ class OmahaEngine:
         self.game_state_repository = GameStateRepository()
         self.game_state_service = GameStateService(self.game_state_repository)
 
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.abspath(os.path.join(current_dir, '..', '..'))
-
         self.poker_game_processor = PokerGameProcessor(
             self.game_state_service,
             country=country,
-            project_root=project_root,
             save_result_images=False,
             write_detection_files=False
         )

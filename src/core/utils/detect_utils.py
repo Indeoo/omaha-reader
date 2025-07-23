@@ -4,7 +4,7 @@ import numpy as np
 from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
-from src.core.domain.detection_result import GameSnapshot
+from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.template_matcher_service import Detection, TemplateMatchService, MatchConfig
 from src.core.utils.opencv_utils import draw_detected_positions, save_opencv_image, draw_detected_bids, \
     draw_detected_cards
