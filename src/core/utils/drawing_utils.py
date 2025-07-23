@@ -1,3 +1,4 @@
+import traceback
 from typing import List, Dict, Tuple
 import cv2
 import numpy as np
@@ -52,6 +53,7 @@ def save_detection_result(timestamp_folder: str, captured_image: CapturedWindow,
             logger.info(f"    📷 Saved {result_filename} (no detections)")
 
     except Exception as e:
+        traceback.print_exc()
         logger.error(f"    ❌ Error saving result image for {window_name}: {str(e)}")
 
 
