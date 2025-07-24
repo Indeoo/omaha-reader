@@ -2,7 +2,7 @@ from loguru import logger
 
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.game_snapshot import GameSnapshot
-from src.core.service.action_service import get_player_actions
+from src.core.service.action_service import get_player_actions_detection
 from src.core.service.game_state_service import GameStateService
 from src.core.service.template_matcher_service import TemplateMatchService
 from src.core.utils.bid_detect_utils import detect_bids
@@ -37,7 +37,7 @@ class PokerGameProcessor:
         detected_player_cards = TemplateMatchService.find_player_cards(cv2_image)
         detected_table_cards = TemplateMatchService.find_table_cards(cv2_image)
         detected_positions = DetectUtils.detect_positions(cv2_image)
-        detected_actions = get_player_actions(cv2_image)
+        detected_actions = get_player_actions_detection(cv2_image)
 
         is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
 
