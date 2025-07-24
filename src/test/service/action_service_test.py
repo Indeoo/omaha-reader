@@ -9,7 +9,7 @@ from src.core.utils.detect_utils import DetectUtils
 class TestActionService(unittest.TestCase):
 
     def test_action_service(self):
-        img_path = f"src/test/resources/bids/8_bid.png"
+        img_path = f"src/test/resources/bids/5_move.png"
         img = cv2.imread(img_path)
 
         player_actions = DetectUtils.get_player_actions_detection(img)
@@ -17,7 +17,7 @@ class TestActionService(unittest.TestCase):
         print(player_actions)
 
     def test_get_street_actions(self):
-        img_path = f"src/test/resources/bids/8_bid.png"
+        img_path = f"src/test/resources/bids/5_move.png"
         img = cv2.imread(img_path)
 
         player_actions = get_street_actions(img)
