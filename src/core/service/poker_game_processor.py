@@ -4,7 +4,6 @@ from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.action_service import get_player_actions
 from src.core.service.game_state_service import GameStateService
-from src.core.service.move_reconstructor import MoveReconstructor
 from src.core.service.template_matcher_service import TemplateMatchService
 from src.core.utils.bid_detect_utils import detect_bids
 from src.core.utils.detect_utils import DetectUtils
@@ -23,7 +22,6 @@ class PokerGameProcessor:
         self.game_state_service = game_state_service
         self.save_result_images = save_result_images
         self.write_detection_files = write_detection_files
-        self.move_reconstructor = MoveReconstructor()
 
     def process(self, captured_image: CapturedWindow, timestamp_folder):
         window_name = captured_image.window_name
@@ -33,7 +31,7 @@ class PokerGameProcessor:
         is_player_move = self.game_state_service.is_player_move(detected_actions)
 
         if not is_player_move:
-            self.update_user_cards(captured_image, cv2_image, timestamp_folder, window_name)
+            self.game_state_service.update_user_cards(captured_image, cv2_image, timestamp_folder, window_name)
             return
 
         detected_player_cards = TemplateMatchService.find_player_cards(cv2_image)
@@ -56,20 +54,19 @@ class PokerGameProcessor:
 
         is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot)
 
-        current_game = self.game_state_service.create_or_update_game(window_name, game_snapshot, is_new_game,
-                                                                     is_new_street)
+        #current_game = self.game_state_service.create_or_update_game(window_name, game_snapshot, is_new_game, is_new_street)
 
-        if is_new_game:
-            logger.info("New game detected")
-            self.move_reconstructor.process_bid(current_game, {}, detected_bids)
-        else:
-            if is_new_street:
-                logger.info("New street detected")
-                previous_bids = {}
-            else:
-                previous_bids = current_game.get_total_bids_for_street(current_game.get_street())
-
-            self.move_reconstructor.process_bid(current_game, previous_bids, detected_bids)
+        # if is_new_game:
+        #     logger.info("New game detected")
+        #     self.move_reconstructor.process_bid(current_game, {}, detected_bids)
+        # else:
+        #     if is_new_street:
+        #         logger.info("New street detected")
+        #         previous_bids = {}
+        #     else:
+        #         previous_bids = current_game.get_total_bids_for_street(current_game.get_street())
+        #
+        #     self.move_reconstructor.process_bid(current_game, previous_bids, detected_bids)
 
         save_detection_result(timestamp_folder, captured_image, game_snapshot)
 
