@@ -9,7 +9,7 @@ def group_moves_by_street(player_moves: Dict[str, List[Union[str, Tuple[str, flo
 
     max_rounds = max(len(moves) for moves in player_moves.values()) if player_moves else 0
 
-    position_order = ['SB', 'BB', 'UTG', 'MP', 'CO', 'BTN']
+    position_order = ['SB', 'BB', 'EP', 'MP', 'CO', 'BTN']
 
     for round_idx in range(max_rounds):
         for position in position_order:

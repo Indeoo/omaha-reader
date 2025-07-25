@@ -17,7 +17,7 @@ class TestActionService(unittest.TestCase):
         print(player_actions)
 
     def test_get_street_actions(self):
-        img_path = f"src/test/resources/bids/5_move.png"
+        img_path = f"src/test/resources/actions/3_move_tern.png"
         img = cv2.imread(img_path)
 
         player_actions = get_street_actions(img)

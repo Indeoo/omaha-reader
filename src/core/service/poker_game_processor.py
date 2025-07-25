@@ -29,9 +29,9 @@ class PokerGameProcessor:
         detected_actions = DetectUtils.detect_actions(cv2_image, window_name)
         is_player_move = self.game_state_service.is_player_move(detected_actions)
 
-        if not is_player_move:
-            self.game_state_service.update_user_cards(captured_image, cv2_image, timestamp_folder, window_name)
-            return
+        # if not is_player_move:
+        #     self.game_state_service.update_user_cards(captured_image, cv2_image, timestamp_folder, window_name)
+        #     return
 
         detected_player_cards = TemplateMatchService.find_player_cards(cv2_image)
         detected_table_cards = TemplateMatchService.find_table_cards(cv2_image)
@@ -53,7 +53,7 @@ class PokerGameProcessor:
 
         is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot)
 
-        #current_game = self.game_state_service.create_or_update_game(window_name, game_snapshot, is_new_game, is_new_street)
+        current_game = self.game_state_service.create_or_update_game(window_name, game_snapshot, is_new_game, is_new_street)
 
         # if is_new_game:
         #     logger.info("New game detected")

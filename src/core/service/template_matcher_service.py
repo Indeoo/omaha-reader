@@ -109,7 +109,7 @@ class TemplateMatchService:
         config = MatchConfig(
             search_region=search_region,
             threshold=0.99,
-            min_size=15,
+            min_size=10,
             sort_by='score'
         )
         return TemplateMatchService.find_matches(image, TemplateMatchService.TEMPLATE_REGISTRY.position_templates,
