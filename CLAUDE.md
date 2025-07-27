@@ -1,4 +1,8 @@
-# CLAUD.md - Omaha Poker Assistant Project
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+# Omaha Poker Assistant Project
 
 ## Project Overview
 This is an Omaha Poker assistant that captures poker table screenshots and extracts game state information using OpenCV template matching and OCR (Tesseract). The system runs as a web application with real-time updates via WebSocket.
@@ -231,27 +235,193 @@ SHOW_SOLVER_LINK=true
 - **PlayerPositionMatcher**: Detects positions (BTN, SB, etc.)
 - **PlayerActionMatcher**: Detects action buttons
 
-## Testing Approach
+## Development Commands
 
-### Unit Tests
-- Template matching accuracy
-- OCR preprocessing validation
-- Game state transitions
+### Running the Application
+```bash
+# Start the web-based poker detection server
+python main_web.py
 
-### Integration Tests
-- Full detection pipeline
-- WebSocket communication
-- Multi-window handling
+# The server will start on http://localhost:5001 by default
+# Configure via environment variables in .env file or export statements
+```
 
-## Deployment Considerations
+### Running Tests
+```bash
+# Run individual test modules using Python module syntax
+python -m src.test.service.moves_test
+python -m src.test.service.action_service_test
+python -m src.test.detect_bids_test
+python -m src.test.tesseract_test
 
-### System Requirements
-- Windows OS (for window capture)
-- Python 3.8+
-- Tesseract OCR installed
-- Sufficient CPU for real-time processing
+# Run unittest-based tests
+python -m unittest src.test.service.action_service_test.TestActionService.test_action_service
 
-### Performance Targets
-- Detection cycle: < 1 second
-- WebSocket latency: < 100ms
-- Memory usage: < 500MB
+# Note: Tests are currently standalone scripts, not using unittest framework consistently
+# Tests require being run from the project root directory
+```
+
+### Installing Dependencies
+```bash
+# Install required packages
+pip install -r requirements.txt
+
+# Note: Tesseract OCR must be installed separately on the system
+# Windows: Download from GitHub releases
+# macOS: brew install tesseract
+# Linux: apt-get install tesseract-ocr
+```
+
+### Environment Configuration
+Create a `.env` file or set environment variables:
+```bash
+PORT=5001                    # Web server port
+WAIT_TIME=10                # Detection interval in seconds
+DEBUG_MODE=true             # Use test images from src/test/tables/test_move/
+COUNTRY=canada              # Template set (canada/usa)
+SHOW_TABLE_CARDS=true       # Display community cards
+SHOW_POSITIONS=true         # Display player positions
+SHOW_MOVES=true             # Display move history
+SHOW_SOLVER_LINK=true       # Show FlopHero integration link
+```
+
+## Architecture Overview
+
+### Core Data Flow
+1. **ImageCaptureService** → Captures poker table screenshots (784x584 resolution)
+2. **PokerGameProcessor** → Orchestrates detection pipeline
+3. **TemplateMatchService** → Detects cards using OpenCV template matching
+4. **DetectUtils** → Detects positions and actions
+5. **GameStateService** → Tracks game state and move history
+6. **OmahaWebApi** → Serves real-time updates via WebSocket
+
+### Key Service Dependencies
+- **OmahaEngine** depends on ImageCaptureService, GameStateService, PokerGameProcessor
+- **PokerGameProcessor** depends on GameStateService, TemplateMatchService, DetectUtils
+- **GameStateService** depends on GameStateRepository (in-memory state)
+- **OmahaWebApi** depends on OmahaEngine and serves Flask + SocketIO
+
+### Template System Architecture
+Templates are organized by country (canada/usa) and detection type:
+- `player_cards/` - Hero's hole cards (52 card templates)
+- `table_cards/` - Community cards (52 card templates)  
+- `positions/` - Position indicators (BTN, SB, BB, EP, MP, CO)
+- `actions/` - Action buttons (fold, check templates)
+- `moves/` - Move detection templates (call, check, fold, raise)
+
+### Critical Coordinates (Fixed 784x584 Resolution)
+```python
+# Player positions for 6-max tables
+PLAYER_POSITIONS = {
+    1: (300, 375, 40, 40),  # Hero (bottom center)
+    2: (35, 330, 40, 40),   # Left
+    3: (35, 173, 40, 40),   # Top left  
+    4: (297, 120, 40, 40),  # Top center
+    5: (562, 168, 40, 40),  # Top right
+    6: (565, 332, 40, 40)   # Right
+}
+
+# Bid detection regions per position
+BIDS_POSITIONS = {
+    1: (388, 334, 45, 15),
+    2: (200, 310, 40, 15),
+    3: (185, 212, 45, 15),
+    4: (450, 165, 45, 15),
+    5: (572, 207, 40, 25),
+    6: (562, 310, 45, 20)
+}
+```
+
+## Testing Strategy
+
+### Test Structure
+- Tests are located in `src/test/` directory
+- Test images are in `src/test/resources/`
+- Debug mode uses images from `src/test/tables/test_move/`
+
+### Running Specific Tests
+```bash
+# Test move grouping by street
+python -m src.test.service.moves_test
+
+# Test action detection
+python -m src.test.service.action_service_test
+
+# Test OCR bid detection  
+python -m src.test.detect_bids_test
+
+# Test Tesseract configuration
+python -m src.test.tesseract_test
+```
+
+### Debug Mode Operation
+When `DEBUG_MODE=true`, the system reads static images instead of live screenshots:
+- Images loaded from `src/test/tables/test_move/`
+- Naming convention: `{number}_{description}.png`
+- Results saved as `{original_name}_result.png`
+
+## Common Development Tasks
+
+### Adding New Card Templates
+1. Place card images in `resources/templates/{country}/player_cards/` or `table_cards/`
+2. Use naming convention: `{rank}{suit}.png` (e.g., `AS.png`, `KH.png`)
+3. Test detection accuracy with new templates
+
+### Modifying Detection Regions
+1. Update coordinates in `src/core/utils/detect_utils.py`
+2. Adjust search regions in template matching services
+3. Test with debug images to verify accuracy
+
+### Debugging Detection Issues
+1. Enable `DEBUG_MODE=true` and `save_result_images=True`
+2. Check generated result images for detection overlays
+3. Review detection files (`.txt`) for confidence scores
+4. Adjust template thresholds if needed
+
+## System Requirements & Deployment
+
+### Required Dependencies
+- Python 3.8+ 
+- OpenCV (opencv-python)
+- Tesseract OCR (system installation required)
+- Flask + SocketIO for web interface
+- APScheduler for background tasks
+
+### Platform Considerations
+- Primarily designed for Windows (window capture APIs)
+- Screenshot capture may need adaptation for macOS/Linux
+- Fixed 784x584 resolution assumption throughout codebase
+
+## Important Instructions for Claude Code
+
+### Code Editing Guidelines
+- Always prefer editing existing files rather than creating new ones
+- Only create files when absolutely necessary for the requested functionality
+- Follow existing code patterns and architecture when making changes
+- Preserve existing functionality when adding new features
+
+### Working with moves_by_street.py
+This module contains poker action grouping logic that may need improvements:
+- Street transition logic has known issues with betting round detection
+- Position order inconsistency between functions (EP vs UTG)
+- Complex nested logic that's difficult to maintain
+- Missing integration with actual game state (table cards for street detection)
+
+### Template Management
+- All templates must match exact pixel appearance of poker client
+- Use higher thresholds (0.99) for UI elements, lower (0.955) for cards
+- Templates are country-specific (canada/usa folders)
+- Test template changes thoroughly with debug mode images
+
+### OCR and Detection
+- Tesseract preprocessing is critical for bid detection accuracy
+- 4x upscaling and proper image inversion improve decimal recognition
+- Coordinate systems assume fixed 784x584 poker table resolution
+- Change detection uses image hashing to optimize performance
+
+### Project State and Limitations
+- No formal linting or formatting tools configured (no black, flake8, etc.)
+- Tests are mixed between standalone scripts and unittest framework
+- No automated CI/CD pipeline or build system
+- Manual template creation required for new poker sites/themes
+- Windows-centric design may need platform adaptations
