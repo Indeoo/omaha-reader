@@ -50,7 +50,7 @@ class Detection:
         return f"{rank}{suit_unicode.get(suit, suit)}"
 
     def __repr__(self):
-        return f"Detection(name='{self.name}', score={self.match_score:.3f}, center={self.center})"
+        return f"Detection(name='{self.name}', center={self.center})"
 
     def __eq__(self, other):
         if not isinstance(other, Detection):
