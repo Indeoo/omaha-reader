@@ -8,9 +8,6 @@ import re
 from loguru import logger
 from matplotlib import pyplot as plt
 
-from src.core.utils.bid_detect_utils import detect_bids
-from src.core.utils.opencv_utils import draw_detected_bids
-
 
 class TestPytesseract(unittest.TestCase):
     def testPot(self):
