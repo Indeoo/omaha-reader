@@ -2,7 +2,7 @@ import numpy as np
 from loguru import logger
 
 from src.core.service.action_detection_service import detection_dict
-from src.core.service.moves_by_street import group_moves_by_street
+from src.core.service.omaha_action_processor import group_moves_by_street
 
 
 def get_street_actions(image: np.ndarray):

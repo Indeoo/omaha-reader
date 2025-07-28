@@ -2,7 +2,7 @@ from typing import List, Union, Tuple, Dict
 from src.core.domain.moves import MoveType
 from src.core.domain.position import Position
 from src.core.domain.street import Street
-from src.core.service.omaha_game import OmahaGame
+from src.core.domain.omaha_game import OmahaGame
 
 
 def _normalize_player_moves(player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[str, List[MoveType]]:

@@ -62,25 +62,6 @@ class DetectUtils:
             return {}
 
     @staticmethod
-    def detect_actions(cv2_image, window_name: str = "") -> List[Detection]:
-        try:
-            detected_actions = TemplateMatchService.find_actions(cv2_image)
-
-            if detected_actions:
-                move_types = [move.name for move in detected_actions]
-                if window_name:
-                    logger.info(f"🎯 Player's move detected in {window_name}! Options: {', '.join(move_types)}")
-                return detected_actions
-            else:
-                if window_name:
-                    logger.info(f"⏸️ Not player's move in {window_name} - no action buttons detected")
-                return []
-
-        except Exception as e:
-            logger.error(f"❌ Error detecting moves: {str(e)}")
-            return []
-
-    @staticmethod
     def get_player_actions_detection(image: np.ndarray) -> Dict[int, List[Detection]]:
         player_actions = {}
 
