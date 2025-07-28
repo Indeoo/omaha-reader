@@ -1,3 +1,7 @@
+import traceback
+
+from loguru import logger
+
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.game_state_service import GameStateService
@@ -32,9 +36,13 @@ class PokerGameProcessor:
 
         position_actions = self.convert_to_position_actions(detected_actions, detected_positions)
 
-        moves = group_moves_by_street(position_actions)
+        try:
+            moves = group_moves_by_street(position_actions)
 
-        print(moves)
+            print(moves)
+        except Exception as e:
+            logger.error("Error while group_moves_by_street")
+            traceback.print_exc()
 
         is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
         detected_bids = detect_bids(cv2_image)
@@ -59,6 +67,10 @@ class PokerGameProcessor:
         for player_id, detection_list in actions.items():
             if player_id in positions:
                 position_name = positions[player_id].position_name
+
+                if position_name == 'NO':
+                    continue
+
                 print(position_name)
                 if position_name.endswith('_fold'):
                     position_name = position_name[:-5]  # Remove exactly "_fold"

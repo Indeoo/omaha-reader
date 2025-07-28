@@ -10,7 +10,7 @@ from src.core.utils.drawing_utils import draw_all_detections, DetectionGroup, De
 class TestDetectUtils(unittest.TestCase):
 
     def test_detect_positions(self):
-        img_path = f"src/test/resources/bids/5_move.png"
+        img_path = f"src/test/resources/detection/position/1.png"
         img = cv2.imread(img_path)
 
         actions = DetectUtils.get_player_actions_detection(img)
