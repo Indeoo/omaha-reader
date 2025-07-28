@@ -92,7 +92,7 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
     def test_betting_round_with_aggression(self):
         """Test betting round that ends when everyone calls the aggressor"""
         input_data = {
-            "EP": [MoveType.CALL, MoveType.CHECK],
+            "EP": [MoveType.CALL, MoveType.CALL, MoveType.CHECK],  # call, call MP's raise, check flop
             "MP": [MoveType.RAISE, MoveType.BET],
             "CO": [MoveType.CALL, MoveType.CALL],
             "BTN": [MoveType.CALL, MoveType.FOLD],
@@ -101,7 +101,7 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CALL],
+            "preflop": [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
             "flop": [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.FOLD, MoveType.CALL],
             "turn": [],
             "river": []
@@ -318,7 +318,7 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
     def test_action_closes_when_aggressor_called(self):
         """Test that betting round closes when all players call the last aggressor"""
         input_data = {
-            "EP": [MoveType.CALL, MoveType.CHECK],
+            "EP": [MoveType.CALL, MoveType.CALL, MoveType.CHECK],  # call, call MP's raise, check flop
             "MP": [MoveType.RAISE],            # aggressor
             "CO": [MoveType.CALL],             # calls aggressor
             "BTN": [MoveType.FOLD],            # folds to aggressor
@@ -327,8 +327,8 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.FOLD, MoveType.FOLD, MoveType.CALL],
-            "flop": [MoveType.CHECK],  # Only EP acts since everyone else folded preflop
+            "preflop": [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.FOLD, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
+            "flop": [MoveType.CHECK],  # Only EP, CO, BB remain active after preflop
             "turn": [],
             "river": []
         }
