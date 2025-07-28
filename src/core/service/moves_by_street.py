@@ -1,8 +1,9 @@
 from typing import List, Union, Tuple, Dict
 from src.core.domain.moves import MoveType
+from src.core.domain.position import Position
 
 
-def group_moves_by_street(player_moves: Dict[str, List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[str, List[MoveType]]:
+def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[str, List[MoveType]]:
     """
     Groups player moves by street according to proper Omaha poker rules.
     
@@ -15,7 +16,7 @@ def group_moves_by_street(player_moves: Dict[str, List[Union[MoveType, str, Tupl
     - After aggression (bet/raise), all other active players must respond
     
     Args:
-        player_moves: Dict with position names as keys and lists of MoveType actions
+        player_moves: Dict with Position enum or position strings as keys and lists of MoveType actions
                      Actions can be MoveType or tuples (MoveType, amount)
                      Only voluntary actions, blinds excluded
     
@@ -32,18 +33,32 @@ def group_moves_by_street(player_moves: Dict[str, List[Union[MoveType, str, Tupl
         "river": []
     }
 
+    # Action order for Omaha: EP acts first for voluntary actions
+    position_order = [pos.value for pos in Position.get_action_order()]
+    
+    # Normalize position keys to strings for internal processing
+    normalized_player_moves = {}
+    for pos_key, moves in player_moves.items():
+        if isinstance(pos_key, Position):
+            normalized_player_moves[pos_key.value] = moves
+        else:
+            # Validate and normalize string positions
+            try:
+                normalized_pos = Position.normalize_position(pos_key)
+                normalized_player_moves[normalized_pos.value] = moves
+            except ValueError:
+                # Keep original string if it can't be normalized (for backward compatibility)
+                normalized_player_moves[pos_key] = moves
+
     # Build chronological action sequence
     all_actions = []
-    max_actions = max(len(moves) for moves in player_moves.values()) if player_moves else 0
-    
-    # Action order for Omaha: EP acts first for voluntary actions
-    position_order = ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB']
+    max_actions = max(len(moves) for moves in normalized_player_moves.values()) if normalized_player_moves else 0
     
     # Reconstruct chronological action order
     for action_idx in range(max_actions):
         for position in position_order:
-            if position in player_moves and action_idx < len(player_moves[position]):
-                action = player_moves[position][action_idx]
+            if position in normalized_player_moves and action_idx < len(normalized_player_moves[position]):
+                action = normalized_player_moves[position][action_idx]
                 # Extract and normalize MoveType from tuple if needed
                 if isinstance(action, tuple):
                     raw_move = action[0]
@@ -73,7 +88,7 @@ def group_moves_by_street(player_moves: Dict[str, List[Union[MoveType, str, Tupl
         
         # Get active players for this street
         active_players = [pos for pos in position_order 
-                         if pos in player_moves and pos not in folded_players]
+                         if pos in normalized_player_moves and pos not in folded_players]
         
         if len(active_players) <= 1:
             # Game over - process remaining actions if any
@@ -141,7 +156,7 @@ def group_moves_by_street(player_moves: Dict[str, List[Union[MoveType, str, Tupl
     return street_moves
 
 
-def group_moves_by_street_simple(player_moves: Dict[str, List[Union[MoveType, str]]]) -> Dict[str, List[MoveType]]:
+def group_moves_by_street_simple(player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[str, List[MoveType]]:
     """
     Simple approach to group moves by street.
     Uses consistent position order and basic street transition logic.
@@ -157,12 +172,26 @@ def group_moves_by_street_simple(player_moves: Dict[str, List[Union[MoveType, st
     }
 
     # Use same position order as main function for consistency
-    position_order = ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB']
+    position_order = [pos.value for pos in Position.get_action_order()]
+    
+    # Normalize position keys to strings for internal processing
+    normalized_player_moves = {}
+    for pos_key, moves in player_moves.items():
+        if isinstance(pos_key, Position):
+            normalized_player_moves[pos_key.value] = moves
+        else:
+            # Validate and normalize string positions
+            try:
+                normalized_pos = Position.normalize_position(pos_key)
+                normalized_player_moves[normalized_pos.value] = moves
+            except ValueError:
+                # Keep original string if it can't be normalized (for backward compatibility)
+                normalized_player_moves[pos_key] = moves
 
     all_moves = []
     for position in position_order:
-        if position in player_moves:
-            for move in player_moves[position]:
+        if position in normalized_player_moves:
+            for move in normalized_player_moves[position]:
                 # Convert string to MoveType if needed
                 if isinstance(move, str):
                     move_type = MoveType.normalize_action(move)
