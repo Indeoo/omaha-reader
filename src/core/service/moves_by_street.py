@@ -1,9 +1,10 @@
 from typing import List, Union, Tuple, Dict
 from src.core.domain.moves import MoveType
 from src.core.domain.position import Position
+from src.core.domain.street import Street
 
 
-def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[str, List[MoveType]]:
+def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[Street, List[MoveType]]:
     """
     Groups player moves by street according to proper Omaha poker rules.
     
@@ -21,16 +22,16 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
                      Only voluntary actions, blinds excluded
     
     Returns:
-        Dict with street names as keys and ordered lists of MoveType actions
+        Dict with Street enum as keys and ordered lists of MoveType actions
     """
     if not player_moves:
-        return {"preflop": [], "flop": [], "turn": [], "river": []}
+        return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
     
     street_moves = {
-        "preflop": [],
-        "flop": [],
-        "turn": [],
-        "river": []
+        Street.PREFLOP: [],
+        Street.FLOP: [],
+        Street.TURN: [],
+        Street.RIVER: []
     }
 
     # Action order for Omaha: EP acts first for voluntary actions
@@ -77,7 +78,7 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
         return street_moves
     
     # State tracking for proper Omaha poker rules
-    streets = ["preflop", "flop", "turn", "river"]
+    streets = [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]
     current_street_idx = 0
     action_idx = 0
     folded_players = set()
@@ -156,7 +157,7 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
     return street_moves
 
 
-def group_moves_by_street_simple(player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[str, List[MoveType]]:
+def group_moves_by_street_simple(player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[Street, List[MoveType]]:
     """
     Simple approach to group moves by street.
     Uses consistent position order and basic street transition logic.
@@ -165,10 +166,10 @@ def group_moves_by_street_simple(player_moves: Dict[Union[str, Position], List[U
     For proper rule compliance, use group_moves_by_street() instead.
     """
     street_moves = {
-        "preflop": [],
-        "flop": [],
-        "turn": [],
-        "river": []
+        Street.PREFLOP: [],
+        Street.FLOP: [],
+        Street.TURN: [],
+        Street.RIVER: []
     }
 
     # Use same position order as main function for consistency
@@ -200,7 +201,7 @@ def group_moves_by_street_simple(player_moves: Dict[Union[str, Position], List[U
                 all_moves.append(move_type)
 
     current_street_idx = 0
-    streets = ["preflop", "flop", "turn", "river"]
+    streets = [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]
     consecutive_checks = 0
     last_was_aggressive = False
 

@@ -2,6 +2,7 @@ import unittest
 from src.core.service.moves_by_street import group_moves_by_street
 from src.core.domain.moves import MoveType
 from src.core.domain.position import Position
+from src.core.domain.street import Street
 
 
 class TestMovesByStreetWithExpectedResults(unittest.TestCase):
@@ -18,10 +19,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.FOLD, MoveType.FOLD, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
-            "flop": [],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.FOLD, MoveType.FOLD, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
+            Street.FLOP: [],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -39,10 +40,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.RAISE, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
-            "flop": [],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.RAISE, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
+            Street.FLOP: [],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -60,10 +61,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
-            "flop": [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.CHECK],
-            "turn": [MoveType.FOLD, MoveType.BET, MoveType.CALL, MoveType.CHECK],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
+            Street.FLOP: [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.CHECK],
+            Street.TURN: [MoveType.FOLD, MoveType.BET, MoveType.CALL, MoveType.CHECK],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -81,10 +82,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
-            "flop": [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
-            "turn": [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
-            "river": [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK]
+            Street.PREFLOP: [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
+            Street.FLOP: [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
+            Street.TURN: [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
+            Street.RIVER: [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK]
         }
         
         result = group_moves_by_street(input_data)
@@ -102,10 +103,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
-            "flop": [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.FOLD, MoveType.CALL],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
+            Street.FLOP: [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.FOLD, MoveType.CALL],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -123,10 +124,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.FOLD, MoveType.FOLD, MoveType.FOLD, MoveType.FOLD, MoveType.FOLD],
-            "flop": [],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.FOLD, MoveType.FOLD, MoveType.FOLD, MoveType.FOLD, MoveType.FOLD],
+            Street.FLOP: [],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -144,10 +145,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.FOLD, MoveType.FOLD, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
-            "flop": [MoveType.BET, MoveType.CALL],
-            "turn": [MoveType.CALL, MoveType.CHECK],
-            "river": []
+            Street.PREFLOP: [MoveType.FOLD, MoveType.FOLD, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
+            Street.FLOP: [MoveType.BET, MoveType.CALL],
+            Street.TURN: [MoveType.CALL, MoveType.CHECK],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -165,10 +166,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.FOLD, MoveType.RAISE, MoveType.CALL, MoveType.FOLD, MoveType.CALL],
-            "flop": [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.CHECK],
-            "turn": [MoveType.RAISE, MoveType.CALL, MoveType.CALL, MoveType.CALL],
-            "river": [MoveType.CALL, MoveType.BET, MoveType.CALL, MoveType.CALL]
+            Street.PREFLOP: [MoveType.CALL, MoveType.FOLD, MoveType.RAISE, MoveType.CALL, MoveType.FOLD, MoveType.CALL],
+            Street.FLOP: [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.CHECK],
+            Street.TURN: [MoveType.RAISE, MoveType.CALL, MoveType.CALL, MoveType.CALL],
+            Street.RIVER: [MoveType.CALL, MoveType.BET, MoveType.CALL, MoveType.CALL]
         }
         
         result = group_moves_by_street(input_data)
@@ -186,10 +187,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.FOLD, MoveType.FOLD, MoveType.CALL, MoveType.RAISE, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
-            "flop": [MoveType.BET, MoveType.CALL, MoveType.CALL],
-            "turn": [MoveType.RAISE, MoveType.CALL, MoveType.CALL],
-            "river": []
+            Street.PREFLOP: [MoveType.FOLD, MoveType.FOLD, MoveType.CALL, MoveType.RAISE, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
+            Street.FLOP: [MoveType.BET, MoveType.CALL, MoveType.CALL],
+            Street.TURN: [MoveType.RAISE, MoveType.CALL, MoveType.CALL],
+            Street.RIVER: []
         }
 
         result = group_moves_by_street(input_data)
@@ -200,10 +201,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         input_data = {}
         
         expected_result = {
-            "preflop": [],
-            "flop": [],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [],
+            Street.FLOP: [],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -223,10 +224,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD],
-            "flop": [],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD],
+            Street.FLOP: [],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -244,10 +245,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
-            "flop": [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.CHECK, MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.CALL],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
+            Street.FLOP: [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.CHECK, MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.CALL],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -265,10 +266,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
-            "flop": [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
+            Street.FLOP: [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -286,10 +287,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
-            "flop": [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.CALL],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
+            Street.FLOP: [MoveType.CHECK, MoveType.BET, MoveType.CALL, MoveType.CALL],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -307,10 +308,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.RAISE, MoveType.CALL, MoveType.FOLD],
-            "flop": [],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.RAISE, MoveType.CALL, MoveType.FOLD],
+            Street.FLOP: [],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -328,10 +329,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.FOLD, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
-            "flop": [MoveType.CHECK],  # Only EP, CO, BB remain active after preflop
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.RAISE, MoveType.CALL, MoveType.FOLD, MoveType.FOLD, MoveType.CALL, MoveType.CALL],
+            Street.FLOP: [MoveType.CHECK],  # Only EP, CO, BB remain active after preflop
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -349,10 +350,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
-            "flop": [MoveType.FOLD, MoveType.BET, MoveType.CALL, MoveType.CALL],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
+            Street.FLOP: [MoveType.FOLD, MoveType.BET, MoveType.CALL, MoveType.CALL],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -371,10 +372,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         
         # Should be: EP, MP, CO, BTN, SB, BB order
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.RAISE, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.CALL],
-            "flop": [],
-            "turn": [],
-            "river": []
+            Street.PREFLOP: [MoveType.CALL, MoveType.RAISE, MoveType.FOLD, MoveType.CALL, MoveType.FOLD, MoveType.CALL],
+            Street.FLOP: [],
+            Street.TURN: [],
+            Street.RIVER: []
         }
         
         result = group_moves_by_street(input_data)
@@ -392,10 +393,10 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         }
         
         expected_result = {
-            "preflop": [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
-            "flop": [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
-            "turn": [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
-            "river": [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK]
+            Street.PREFLOP: [MoveType.CALL, MoveType.FOLD, MoveType.CALL, MoveType.CALL, MoveType.FOLD, MoveType.CHECK],
+            Street.FLOP: [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
+            Street.TURN: [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK],
+            Street.RIVER: [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK, MoveType.CHECK]
         }
         
         result = group_moves_by_street(input_data)
