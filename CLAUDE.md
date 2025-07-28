@@ -425,3 +425,8 @@ This module contains poker action grouping logic that may need improvements:
 - No automated CI/CD pipeline or build system
 - Manual template creation required for new poker sites/themes
 - Windows-centric design may need platform adaptations
+
+## Memory
+
+### Poker Rule Awareness
+- Use Omaha Poker rules
