@@ -26,8 +26,11 @@ def convert_detection_to_dict(actions, positions):
         if player_id in positions:
             position_name = positions[player_id].position_name
             print(position_name)
-            position_name = position_name[:-5] if position_name.endswith('_fold') or position_name.endswith(
-                '_low') else position_name
+            if position_name.endswith('_fold'):
+                position_name = position_name[:-5]  # Remove exactly "_fold"
+            elif position_name.endswith('_low'):
+                position_name = position_name[:-4]  # Remove exactly "_low"
+
             result[position_name] = [d.name for d in detection_list]
 
     return result
