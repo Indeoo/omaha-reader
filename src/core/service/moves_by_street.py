@@ -4,7 +4,7 @@ from src.core.domain.position import Position
 from src.core.domain.street import Street
 
 
-def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[Street, List[MoveType]]:
+def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
     """
     Groups player moves by street according to proper Omaha poker rules.
     
@@ -22,7 +22,7 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
                      Only voluntary actions, blinds excluded
     
     Returns:
-        Dict with Street enum as keys and ordered lists of MoveType actions
+        Dict with Street enum as keys and ordered lists of (Position, MoveType) tuples
     """
     if not player_moves:
         return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
@@ -94,8 +94,9 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
         if len(active_players) <= 1:
             # Game over - process remaining actions if any
             while action_idx < len(all_actions):
-                _, move = all_actions[action_idx]
-                street_moves[current_street].append(move)
+                position_str, move = all_actions[action_idx]
+                position_enum = Position.normalize_position(position_str)
+                street_moves[current_street].append((position_enum, move))
                 action_idx += 1
             break
         
@@ -112,8 +113,9 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
                 action_idx += 1
                 continue
             
-            # Record the action
-            street_moves[current_street].append(move)
+            # Record the action with position
+            position_enum = Position.normalize_position(position)
+            street_moves[current_street].append((position_enum, move))
             action_idx += 1
             
             # Update game state based on action type
@@ -128,7 +130,8 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
                     while action_idx < len(all_actions):
                         remaining_pos, remaining_move = all_actions[action_idx]
                         if remaining_pos not in folded_players:
-                            street_moves[current_street].append(remaining_move)
+                            remaining_position_enum = Position.normalize_position(remaining_pos)
+                            street_moves[current_street].append((remaining_position_enum, remaining_move))
                         action_idx += 1
                     return street_moves
                     
@@ -157,7 +160,7 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
     return street_moves
 
 
-def group_moves_by_street_simple(player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[Street, List[MoveType]]:
+def group_moves_by_street_simple(player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
     """
     Simple approach to group moves by street.
     Uses consistent position order and basic street transition logic.
@@ -198,16 +201,18 @@ def group_moves_by_street_simple(player_moves: Dict[Union[str, Position], List[U
                     move_type = MoveType.normalize_action(move)
                 else:
                     move_type = move
-                all_moves.append(move_type)
+                position_enum = Position.normalize_position(position)
+                all_moves.append((position_enum, move_type))
 
     current_street_idx = 0
     streets = [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]
     consecutive_checks = 0
     last_was_aggressive = False
 
-    for move in all_moves:
+    for position_move_pair in all_moves:
         current_street = streets[min(current_street_idx, 3)]
-        street_moves[current_street].append(move)
+        street_moves[current_street].append(position_move_pair)
+        position_enum, move = position_move_pair
 
         if move == MoveType.CHECK:
             consecutive_checks += 1
