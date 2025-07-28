@@ -2,6 +2,7 @@ from typing import List, Union, Tuple, Dict
 from src.core.domain.moves import MoveType
 from src.core.domain.position import Position
 from src.core.domain.street import Street
+from src.core.service.omaha_game import OmahaGame
 
 
 def _normalize_player_moves(player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[str, List[MoveType]]:
@@ -188,7 +189,11 @@ def _process_betting_round(all_actions: List[Tuple[str, MoveType]], action_idx: 
 
 def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
     """
-    Groups player moves by street according to proper Omaha poker rules.
+    Groups player moves by street according to proper Omaha poker rules using state machine.
+    
+    This function serves as an adapter that converts the input format to work with
+    the OmahaGame state machine, which handles all poker rule validation and
+    street transition logic.
     
     Omaha Poker Rules:
     - A betting round ends when all active players have either called the last raise, 
@@ -214,14 +219,6 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
     if not player_moves:
         return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
     
-    # Initialize result structure
-    street_moves = {
-        Street.PREFLOP: [],
-        Street.FLOP: [],
-        Street.TURN: [],
-        Street.RIVER: []
-    }
-    
     # Phase 1: Normalize and validate input
     normalized_moves = _normalize_player_moves(player_moves)
     
@@ -229,48 +226,38 @@ def group_moves_by_street(player_moves: Dict[Union[str, Position], List[Union[Mo
     all_actions = _build_chronological_action_sequence(normalized_moves)
     
     if not all_actions:
-        return street_moves
+        return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
     
-    # Phase 3: Process actions by street according to Omaha rules
-    position_order = [pos.value for pos in Position.get_action_order()]
-    streets = [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]
-    current_street_idx = 0
-    action_idx = 0
-    folded_players = set()
+    # Phase 3: Use OmahaGame state machine to process actions
+    game = OmahaGame()
     
-    # Process all streets
-    while action_idx < len(all_actions) and current_street_idx < 4:
-        current_street = streets[current_street_idx]
-        
-        # Get active players for this street
-        active_players = [pos for pos in position_order 
-                         if pos in normalized_moves and pos not in folded_players]
-        
-        # Check if game is over (≤1 active player)
-        if len(active_players) <= 1:
-            # Process remaining actions and end game
-            while action_idx < len(all_actions):
-                position_str, move = all_actions[action_idx]
-                position_enum = Position.normalize_position(position_str)
-                street_moves[current_street].append((position_enum, move))
-                action_idx += 1
-            break
-        
-        # Process betting round for current street
-        street_actions, action_idx, game_over = _process_betting_round(
-            all_actions, action_idx, current_street, active_players, folded_players
-        )
-        
-        street_moves[current_street].extend(street_actions)
-        
-        if game_over:
-            break
-            
-        # Move to next street if not on river
-        if current_street_idx < 3:
-            current_street_idx += 1
+    # Add all players to the game
+    for position_str in normalized_moves.keys():
+        position_enum = Position.normalize_position(position_str)
+        game.add_player(position_enum)
     
-    return street_moves
+    # Start the game
+    game.start_game()
+    
+    # Process all actions through the state machine
+    for position_str, move in all_actions:
+        position_enum = Position.normalize_position(position_str)
+        
+        # Process action if game is still active
+        if not game.is_game_over():
+            try:
+                game.process_action(position_enum, move)
+            except Exception as e:
+                # If action fails, it might be because the game ended
+                # In that case, we can ignore remaining actions
+                if game.is_game_over():
+                    break
+                else:
+                    # Re-raise if it's a real error
+                    raise e
+    
+    # Return the final move history
+    return game.get_moves_by_street()
 
 
 def group_moves_by_street_simple(player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
