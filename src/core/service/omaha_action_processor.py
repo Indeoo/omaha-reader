@@ -34,12 +34,8 @@ def _normalize_player_moves(player_moves: Dict[Union[str, Position], List[Union[
         if isinstance(pos_key, Position):
             normalized_pos = pos_key.value
         elif isinstance(pos_key, str):
-            try:
-                normalized_position_enum = Position.normalize_position(pos_key)
-                normalized_pos = normalized_position_enum.value
-            except ValueError:
-                # Keep original string for backward compatibility
-                normalized_pos = pos_key
+            normalized_position_enum = Position.normalize_position(pos_key)
+            normalized_pos = normalized_position_enum.value
         else:
             raise TypeError(f"Position key must be Position enum or string, got {type(pos_key)}")
         

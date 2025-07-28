@@ -1,8 +1,7 @@
-from loguru import logger
-
 from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.game_state_service import GameStateService
+from src.core.service.omaha_action_processor import group_moves_by_street
 from src.core.service.template_matcher_service import TemplateMatchService
 from src.core.utils.bid_detect_utils import detect_bids
 from src.core.utils.detect_utils import DetectUtils
@@ -31,6 +30,12 @@ class PokerGameProcessor:
         detected_positions = DetectUtils.detect_positions(cv2_image)
         detected_actions = DetectUtils.get_player_actions_detection(cv2_image)
 
+        position_actions = self.convert_to_position_actions(detected_actions, detected_positions)
+
+        moves = group_moves_by_street(position_actions)
+
+        print(moves)
+
         is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
         detected_bids = detect_bids(cv2_image)
         game_snapshot_builder = (GameSnapshot.builder().with_player_cards(detected_player_cards)
@@ -44,13 +49,22 @@ class PokerGameProcessor:
 
         is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot)
 
-        current_game = self.game_state_service.create_or_update_game(window_name, game_snapshot, is_new_game, is_new_street)
+        self.game_state_service.create_or_update_game(window_name, game_snapshot, is_new_game, is_new_street)
 
         save_detection_result(timestamp_folder, captured_image, game_snapshot)
 
-    # def update_user_cards(self, captured_image, cv2_image, timestamp_folder, window_name):
-    #     logger.info("Not player's move, only update user cards")
-    #     detected_player_cards = TemplateMatchService.find_player_cards(cv2_image)
-    #     game_snapshot = GameSnapshot.builder().with_player_cards(detected_player_cards).build()
-    #     self.game_state_service.create_or_update_game(window_name, game_snapshot, False, False)
-    #     save_detection_result(timestamp_folder, captured_image, game_snapshot)
+    def convert_to_position_actions(self, actions, positions):
+        result = {}
+
+        for player_id, detection_list in actions.items():
+            if player_id in positions:
+                position_name = positions[player_id].position_name
+                print(position_name)
+                if position_name.endswith('_fold'):
+                    position_name = position_name[:-5]  # Remove exactly "_fold"
+                elif position_name.endswith('_low'):
+                    position_name = position_name[:-4]  # Remove exactly "_low"
+
+                result[position_name] = [d.name for d in detection_list]
+
+        return result
