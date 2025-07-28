@@ -39,7 +39,7 @@ class PokerGameProcessor:
         try:
             moves = group_moves_by_street(position_actions)
 
-            print(moves)
+            logger.info(moves)
         except Exception as e:
             logger.error("Error while group_moves_by_street")
             traceback.print_exc()
@@ -71,12 +71,13 @@ class PokerGameProcessor:
                 if position_name == 'NO':
                     continue
 
-                print(position_name)
                 if position_name.endswith('_fold'):
                     position_name = position_name[:-5]  # Remove exactly "_fold"
                 elif position_name.endswith('_low'):
                     position_name = position_name[:-4]  # Remove exactly "_low"
 
                 result[position_name] = [d.name for d in detection_list]
+
+        logger.info(result)
 
         return result
