@@ -88,7 +88,7 @@ def _draw_detection_group(
         cv2.rectangle(result, (x, y), (x + w, y + h), color, thickness)
         
         # Draw center point
-        cv2.circle(result, detection.center, 5, (255, 0, 0), -1)
+        cv2.circle(result, detection.center, 2, (255, 0, 0), -1)
         
         # Draw detection label with score
         label = f"{detection.name} ({detection.match_score:.2f})"

@@ -8,7 +8,7 @@ from src.core.domain.detection import Detection
 from src.core.utils.opencv_utils import coords_to_search_region
 
 ACTION_POSITIONS = {
-    1: (300, 440, 99, 99),  # Bottom center (hero)
+    1: (300, 430, 99, 99),  # Bottom center (hero)
     2: (10, 400, 99, 99),  # Left side
     3: (25, 120, 99, 99),  # Top left
     4: (315, 80, 99, 99),  # Top center
