@@ -23,7 +23,8 @@ class TestDetectUtils(unittest.TestCase):
             img,
             [
                 DetectionGroup(DetectionType.ACTIONS, _flatten_action_lists(actions))
-            ]
+            ],
+            show_search_regions=True
         )
         result_image_rgb = cv2.cvtColor(result_image, cv2.COLOR_BGR2RGB)
         height, width = result_image_rgb.shape[:2]

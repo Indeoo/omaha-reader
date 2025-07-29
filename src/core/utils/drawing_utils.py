@@ -8,6 +8,7 @@ from src.core.domain.captured_window import CapturedWindow
 from src.core.domain.detected_bid import DetectedBid
 from src.core.domain.game_snapshot import GameSnapshot
 from src.core.domain.detection import Detection
+from src.core.utils.detect_utils import PLAYER_POSITIONS, ACTION_POSITIONS
 from src.core.utils.opencv_utils import save_opencv_image
 
 
@@ -18,6 +19,7 @@ class DetectionType(Enum):
     POSITIONS = ("positions", (0, 255, 255), False)     # Yellow, no scale
     BIDS = ("bids", (255, 0, 255), False)               # Magenta, no scale
     ACTIONS = ("actions", (255, 165, 0), False)         # Orange, no scale
+    SEARCH_REGIONS = ("search_regions", (128, 128, 128), False)  # Gray, no scale
     
     def __init__(self, name: str, color: Tuple[int, int, int], show_scale: bool):
         self.type_name = name
@@ -63,8 +65,13 @@ def save_detection_result(timestamp_folder: str, captured_image: CapturedWindow,
         raise e
 
 
-def draw_all_detections(image: np.ndarray, detection_groups: List[DetectionGroup]) -> np.ndarray:
+def draw_all_detections(image: np.ndarray, detection_groups: List[DetectionGroup], show_search_regions: bool = True) -> np.ndarray:
     result = image.copy()
+    
+    # Draw search regions first (behind detections)
+    if show_search_regions:
+        result = _draw_position_search_regions(result)
+        result = _draw_action_search_regions(result)
     
     for group in detection_groups:
         if group.detections:  # Only draw if there are detections
@@ -161,6 +168,71 @@ def _gather_all_detections(game_snapshot: GameSnapshot) -> List[DetectionGroup]:
         )
     
     return detection_groups
+
+
+def _draw_position_search_regions(image: np.ndarray) -> np.ndarray:
+    """Draw search regions for player position detection."""
+    result = image.copy()
+    color = DetectionType.SEARCH_REGIONS.color
+    thickness = 1
+    font_scale = 0.4
+    
+    for player_num, coords in PLAYER_POSITIONS.items():
+        x, y, w, h = coords['x'], coords['y'], coords['w'], coords['h']
+        
+        # Draw dashed rectangle for search region
+        _draw_dashed_rectangle(result, (x, y), (x + w, y + h), color, thickness)
+        
+        # Draw label
+        label = f"P{player_num} Pos"
+        cv2.putText(result, label, (x, y - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, 1)
+    
+    return result
+
+
+def _draw_action_search_regions(image: np.ndarray) -> np.ndarray:
+    """Draw search regions for player action detection."""
+    result = image.copy()
+    color = DetectionType.SEARCH_REGIONS.color
+    thickness = 1
+    font_scale = 0.4
+    
+    for player_num, coords in ACTION_POSITIONS.items():
+        x, y, w, h = coords[0], coords[1], coords[2], coords[3]
+        
+        # Draw dashed rectangle for search region
+        _draw_dashed_rectangle(result, (x, y), (x + w, y + h), color, thickness)
+        
+        # Draw label
+        label = f"P{player_num} Act"
+        cv2.putText(result, label, (x, y - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX, font_scale, color, 1)
+    
+    return result
+
+
+def _draw_dashed_rectangle(image: np.ndarray, pt1: Tuple[int, int], pt2: Tuple[int, int], 
+                           color: Tuple[int, int, int], thickness: int, dash_length: int = 5) -> None:
+    """Draw a dashed rectangle on the image."""
+    x1, y1 = pt1
+    x2, y2 = pt2
+    
+    # Top edge
+    for x in range(x1, x2, dash_length * 2):
+        cv2.line(image, (x, y1), (min(x + dash_length, x2), y1), color, thickness)
+    
+    # Bottom edge
+    for x in range(x1, x2, dash_length * 2):
+        cv2.line(image, (x, y2), (min(x + dash_length, x2), y2), color, thickness)
+    
+    # Left edge
+    for y in range(y1, y2, dash_length * 2):
+        cv2.line(image, (x1, y), (x1, min(y + dash_length, y2)), color, thickness)
+    
+    # Right edge
+    for y in range(y1, y2, dash_length * 2):
+        cv2.line(image, (x2, y), (x2, min(y + dash_length, y2)), color, thickness)
 
 
 def _log_detection_summary(filename: str, detection_groups: List[DetectionGroup]) -> None:
