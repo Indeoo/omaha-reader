@@ -56,7 +56,7 @@ class PokerGameProcessor:
 
         game_snapshot = game_snapshot_builder.build()
 
-        is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot)
+        is_new_street = self.game_state_service.is_new_street(window_name, detected_table_cards)
 
         self.game_state_service.create_or_update_game(window_name, game_snapshot, True, is_new_street)
 

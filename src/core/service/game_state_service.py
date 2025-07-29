@@ -26,13 +26,13 @@ class GameStateService:
 
         return is_new_game
 
-    def is_new_street(self, window_name: str, game_snapshot: GameSnapshot) -> bool:
+    def is_new_street(self, window_name: str, detected_table_cards) -> bool:
         current_game = self.state_repository.get_by_window(window_name)
 
         if current_game is None:
             return True
 
-        return current_game.table_cards != game_snapshot.table_cards
+        return current_game.table_cards != detected_table_cards
 
     def is_player_move(self, detected_actions: List) -> bool:
         return len(detected_actions) > 0
