@@ -1,6 +1,8 @@
 import functools
 import time
 
+from loguru import logger
+
 
 def benchmark(func):
     """Simple benchmark decorator that prints execution time to console"""

@@ -25,6 +25,7 @@ class PokerGameProcessor:
         self.save_result_images = save_result_images
         self.write_detection_files = write_detection_files
 
+
     def process(self, captured_image: CapturedWindow, timestamp_folder):
         window_name = captured_image.window_name
         cv2_image = captured_image.get_cv2_image()
@@ -33,6 +34,7 @@ class PokerGameProcessor:
         detected_table_cards = TemplateMatchService.find_table_cards(cv2_image)
         detected_positions = DetectUtils.detect_positions(cv2_image)
         detected_actions = DetectUtils.get_player_actions_detection(cv2_image)
+        detected_bids = detect_bids(cv2_image)
 
         position_actions = self.convert_to_position_actions(detected_actions, detected_positions)
 
@@ -44,8 +46,7 @@ class PokerGameProcessor:
             logger.error("Error while group_moves_by_street")
             traceback.print_exc()
 
-        is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
-        detected_bids = detect_bids(cv2_image)
+        #is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
         game_snapshot_builder = (GameSnapshot.builder().with_player_cards(detected_player_cards)
                                  .with_table_cards(detected_table_cards)
                                  .with_bids(detected_bids)
@@ -57,7 +58,7 @@ class PokerGameProcessor:
 
         is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot)
 
-        self.game_state_service.create_or_update_game(window_name, game_snapshot, is_new_game, is_new_street)
+        self.game_state_service.create_or_update_game(window_name, game_snapshot, True, is_new_street)
 
         save_detection_result(timestamp_folder, captured_image, game_snapshot)
 
