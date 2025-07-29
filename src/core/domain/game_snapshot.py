@@ -1,6 +1,10 @@
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
+from collections import defaultdict
 
 from src.core.domain.detection import Detection
+from src.core.domain.position import Position
+from src.core.domain.moves import MoveType
+from src.core.domain.street import Street
 
 
 class GameSnapshot:
@@ -12,7 +16,8 @@ class GameSnapshot:
             positions: Optional[Dict[int, Detection]] = None,
             bids: Optional[List[Any]] = None,
             is_player_move: bool = False,
-            actions: Optional[Dict[int, Detection]] = None
+            actions: Optional[Dict[int, Detection]] = None,
+            moves: Optional[Dict[Street, List[Tuple[Position, MoveType]]]] = None
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
@@ -20,6 +25,7 @@ class GameSnapshot:
         self.bids = bids or {}
         self.is_player_move = is_player_move
         self.actions = actions or {}
+        self.moves = moves or defaultdict(list)
 
     @staticmethod
     def builder():
@@ -37,27 +43,20 @@ class GameSnapshot:
     def has_bids(self) -> bool:
         return bool(self.bids)
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            'player_cards': self.player_cards,
-            'table_cards': self.table_cards,
-            'positions': self.positions,
-            'bids': self.bids,
-            'has_cards': self.has_cards,
-            'has_positions': self.has_positions,
-            'has_bids': self.has_bids,
-            'is_player_move': self.is_player_move
-        }
+    @property
+    def has_moves(self) -> bool:
+        return any(moves for moves in self.moves.values())
 
     def __repr__(self) -> str:
         player_count = len(self.player_cards)
         table_count = len(self.table_cards)
         position_count = len(self.positions)
         bid_count = len(self.bids)
+        moves_count = sum(len(moves) for moves in self.moves.values())
         move_status = "MOVE" if self.is_player_move else "WAIT"
         return (f"DetectionResult("
                 f"player_cards={player_count}, table_cards={table_count}, "
-                f"positions={position_count}, bids={bid_count}, status={move_status})")
+                f"positions={position_count}, bids={bid_count}, moves={moves_count}, status={move_status})")
 
     class Builder:
 
@@ -68,6 +67,7 @@ class GameSnapshot:
             self._bids: Optional[List[Any]] = None
             self._is_player_move: bool = False
             self._actions: Optional[Dict[int, Detection]] = None
+            self._moves: Optional[Dict[Street, List[Tuple[Position, MoveType]]]] = None
 
         def with_player_cards(self, player_cards: List[Detection]) -> 'GameSnapshot.Builder':
             self._player_cards = player_cards
@@ -93,6 +93,10 @@ class GameSnapshot:
             self._actions = actions
             return self
 
+        def with_moves(self, moves: Dict[Street, List[Tuple[Position, MoveType]]]) -> 'GameSnapshot.Builder':
+            self._moves = moves
+            return self
+
         def build(self) -> 'GameSnapshot':
             return GameSnapshot(
                 player_cards=self._player_cards,
@@ -100,5 +104,6 @@ class GameSnapshot:
                 positions=self._positions,
                 bids=self._bids,
                 is_player_move=self._is_player_move,
-                actions=self._actions
+                actions=self._actions,
+                moves=self._moves
             )

@@ -16,12 +16,12 @@ class Game:
             player_cards: List[Detection] = None,
             table_cards: List[Detection] = None,
             positions: Dict[int, Detection] = None,
-            move_history: Dict[Street, List[Tuple[Position, MoveType]]] = None
+            moves: Dict[Street, List[Tuple[Position, MoveType]]] = None
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
         self.positions = positions or {}
-        self.move_history = move_history or defaultdict(list)
+        self.moves = moves or defaultdict(list)
         self.timestamp = datetime.now()
 
     def get_street(self) -> Optional[Street]:
@@ -65,7 +65,7 @@ class Game:
         return formatted
 
     def get_moves_for_web(self) -> List[Dict]:
-        if not self.move_history:
+        if not self.moves:
             return []
 
         moves_by_street = []
@@ -84,7 +84,7 @@ class Game:
         street_order = [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]
 
         for street in street_order:
-            moves = self.move_history.get(street, [])
+            moves = self.moves.get(street, [])
             if moves:  # Only include streets that have moves
                 street_moves = []
                 for position, move_type in moves:
@@ -125,7 +125,7 @@ class Game:
         return bool(self.positions)
 
     def has_moves(self) -> bool:
-        return any(moves for moves in self.move_history.values())
+        return any(moves for moves in self.moves.values())
 
     def get_player_cards_string(self) -> str:
         return format_cards_simple(self.player_cards)
