@@ -7,7 +7,6 @@ from src.core.domain.game_snapshot import GameSnapshot
 from src.core.service.game_state_service import GameStateService
 from src.core.service.omaha_action_processor import group_moves_by_street
 from src.core.service.template_matcher_service import TemplateMatchService
-from src.core.utils.benchmark_utils import benchmark
 from src.core.utils.bid_detect_utils import detect_bids
 from src.core.utils.detect_utils import DetectUtils
 from src.core.utils.drawing_utils import save_detection_result

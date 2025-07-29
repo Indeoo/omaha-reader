@@ -1,10 +1,11 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from urllib.parse import urlencode
 from loguru import logger
 
 from src.core.domain.game import Game
 from src.core.domain.street import Street
-from src.core.domain.action_type import ActionType
+from src.core.domain.moves import MoveType
+from src.core.domain.position import Position
 from src.core.domain.detection import Detection
 
 
@@ -41,6 +42,8 @@ class FlopHeroLinkService:
             query_string = urlencode(params)
             full_url = f"{FlopHeroLinkService.BASE_URL}?{query_string}"
 
+            logger.info(f"FlopHeroLinkService.generate_link(game=game, full_url=full_url) {full_url}")
+
             return full_url
 
         except Exception as e:
@@ -70,12 +73,12 @@ class FlopHeroLinkService:
         }
 
         for street, param_name in street_param_map.items():
-            moves = game.get_moves_for_street(street)
+            moves = game.moves.get(street, [])
             if moves:
                 # Format moves as comma-separated string
                 action_strings = []
-                for move in moves:
-                    action_str = FlopHeroLinkService._format_single_action(move)
+                for move_tuple in moves:
+                    action_str = FlopHeroLinkService._format_single_action(move_tuple)
                     if action_str:
                         action_strings.append(action_str)
 
@@ -87,21 +90,17 @@ class FlopHeroLinkService:
         return action_params
 
     @staticmethod
-    def _format_single_action(move) -> str:
+    def _format_single_action(move_tuple: Tuple[Position, MoveType]) -> str:
+        position, move_type = move_tuple
+        
         # Map our action types to FlopHero format
         action_map = {
-            ActionType.FOLD: 'F',
-            ActionType.CALL: 'C',
-            ActionType.RAISE: 'R',
-            ActionType.CHECK: 'X',
-            ActionType.SMALL_BLIND: 'SB',
-            ActionType.BIG_BLIND: 'BB'
+            MoveType.FOLD: 'F',
+            MoveType.CALL: 'C',
+            MoveType.RAISE: 'R',
+            MoveType.CHECK: 'X',
+            MoveType.BET: 'B',
+            MoveType.ALL_IN: 'A'
         }
 
-        action_code = action_map.get(move.action_type, '')
-
-        # For raises, include the amount if needed
-        if move.action_type == ActionType.RAISE and move.amount > 0:
-            return f"{action_code}{move.amount}"
-
-        return action_code
+        return action_map.get(move_type, '')

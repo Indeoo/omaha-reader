@@ -44,12 +44,14 @@ class GameStateRepository:
                 game = Game(
                     player_cards=game_snapshot.player_cards,
                     table_cards=game_snapshot.table_cards,
+                    moves=game_snapshot.moves,
                 )
             else:
                 game = Game(
                     player_cards=game_snapshot.player_cards,
                     table_cards=game_snapshot.table_cards,
                     positions=game_snapshot.positions,
+                    moves=game_snapshot.moves,
                 )
 
             self.games[window_name] = game
