@@ -1,5 +1,5 @@
 import threading
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 from datetime import datetime
 
 from src.core.domain.game import Game
@@ -30,20 +30,13 @@ class GameStateRepository:
 
             return removed_any
 
-    def get_all(self) -> dict:
+    def get_all_games(self) -> List[Tuple[str, Game]]:
         with self._lock:
-            return {
-                'detections': [game.to_dict(window_name) for window_name, game in self.games.items()],
-                'last_update': self.last_update
-            }
+            return [(window_name, game) for window_name, game in self.games.items()]
 
-    def get_notification_data(self) -> dict:
+    def get_last_update(self) -> Optional[str]:
         with self._lock:
-            return {
-                'type': 'detection_update',
-                'detections': [game.to_dict(window_name) for window_name, game in self.games.items()],
-                'last_update': self.last_update
-            }
+            return self.last_update
 
     def create_by_snapshot(self, window_name: str, game_snapshot: GameSnapshot):
         with self._lock:
