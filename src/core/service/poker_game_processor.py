@@ -37,6 +37,8 @@ class PokerGameProcessor:
         detected_actions = DetectUtils.get_player_actions_detection(cv2_image)
         detected_bids = detect_bids(cv2_image)
 
+        moves = self.get_moves(detected_actions, detected_positions)
+
         game_snapshot_builder = (GameSnapshot.builder().with_player_cards(detected_player_cards)
                                  .with_table_cards(detected_table_cards)
                                  .with_bids(detected_bids)
@@ -45,9 +47,7 @@ class PokerGameProcessor:
                                  )
         game_snapshot = game_snapshot_builder.build()
 
-        save_detection_result(timestamp_folder, captured_image, game_snapshot)
-
-        moves = self.get_moves(detected_actions, detected_positions)
+        save_detection_result(timestamp_folder, captured_image, game_snapshot),
 
         #is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
 

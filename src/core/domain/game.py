@@ -1,10 +1,11 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 from collections import defaultdict
 
 from src.core.domain.street import Street
-from src.core.domain.detected_bid import DetectedBid
 from src.core.domain.detection import Detection
+from src.core.domain.position import Position
+from src.core.domain.moves import MoveType
 from src.core.utils.card_format_utils import format_cards_simple
 
 
@@ -15,7 +16,7 @@ class Game:
             player_cards: List[Detection] = None,
             table_cards: List[Detection] = None,
             positions: Dict[int, Detection] = None,
-            move_history: Dict[Street, List] = None
+            move_history: Dict[Street, List[Tuple[Position, MoveType]]] = None
     ):
         self.player_cards = player_cards or []
         self.table_cards = table_cards or []
@@ -43,33 +44,6 @@ class Game:
             return f"ERROR ({len(self.table_cards)} cards)"
         return street.value
 
-    def add_moves(self, moves: List, street: Street):
-        if moves:
-            self.move_history[street].extend(moves)
-
-    def reset_move_history(self):
-        self.move_history = defaultdict(list)
-
-    def get_moves_for_street(self, street: Street) -> List:
-        return self.move_history.get(street, [])
-
-    def get_all_moves(self) -> List:
-        all_moves = []
-        for street_moves in self.move_history.values():
-            all_moves.extend(street_moves)
-        return all_moves
-
-    def get_moves_summary(self) -> str:
-        if not self.move_history:
-            return "No moves"
-
-        total_moves = sum(len(moves) for moves in self.move_history.values())
-        streets_with_moves = [street.value for street, moves in self.move_history.items() if moves]
-
-        if streets_with_moves:
-            return f"{total_moves} moves across {', '.join(streets_with_moves)}"
-        return "No moves"
-
     def get_player_cards_for_web(self) -> List[Dict]:
         return self._format_cards_for_web(self.player_cards)
 
@@ -96,6 +70,16 @@ class Game:
 
         moves_by_street = []
 
+        # Position to player number mapping (1-indexed)
+        position_to_player = {
+            Position.BUTTON: 1,        # Hero position
+            Position.SMALL_BLIND: 2,
+            Position.BIG_BLIND: 3,
+            Position.EARLY_POSITION: 4,
+            Position.MIDDLE_POSITION: 5,
+            Position.CUTOFF: 6
+        }
+
         # Process streets in order: Preflop, Flop, Turn, River
         street_order = [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]
 
@@ -103,13 +87,14 @@ class Game:
             moves = self.move_history.get(street, [])
             if moves:  # Only include streets that have moves
                 street_moves = []
-                for move in moves:
+                for position, move_type in moves:
+                    player_number = position_to_player.get(position, 1)  # Default to player 1
                     street_moves.append({
-                        'player_number': move.player_number,
-                        'player_label': f'P{move.player_number}',
-                        'action': move.action_type.value,
-                        'amount': move.amount,
-                        'total_contribution': move.total_pot_contribution
+                        'player_number': player_number,
+                        'player_label': f'P{player_number}',
+                        'action': move_type.value,
+                        'amount': 0.0,  # Not available in tuple format
+                        'total_contribution': 0.0  # Not available in tuple format
                     })
 
                 moves_by_street.append({
@@ -118,17 +103,6 @@ class Game:
                 })
 
         return moves_by_street
-
-    def get_bids_for_web(self) -> List[Dict]:
-        bids_data = []
-        for player_num, bid_amount in sorted(self.current_bids.items()):
-            if bid_amount > 0:
-                bids_data.append({
-                    'player_number': player_num,
-                    'player_label': f'P{player_num}',
-                    'amount': bid_amount
-                })
-        return bids_data
 
     def _format_cards_for_web(self, cards: List[Detection]) -> List[Dict]:
         if not cards:
@@ -151,7 +125,7 @@ class Game:
         return bool(self.positions)
 
     def has_moves(self) -> bool:
-        return bool(self.move_history and any(self.move_history.values()))
+        return any(moves for moves in self.move_history.values())
 
     def get_player_cards_string(self) -> str:
         return format_cards_simple(self.player_cards)
@@ -168,43 +142,6 @@ class Game:
 
         return FlopHeroLinkService.generate_link(self)
 
-    def get_total_bids_for_street(self, street: Street) -> Dict[int, DetectedBid]:
-        from src.core.utils.bid_detect_utils import DetectedBid, BIDS_POSITIONS
-
-        moves = self.get_moves_for_street(street)
-        if not moves:
-            return {}
-
-        # Get the latest total contribution for each player on this street
-        player_bids = {}
-        for move in moves:
-            if move.action_type.value != 'fold':  # Only count non-fold moves
-                player_bids[move.player_number] = move.total_pot_contribution
-
-        # Convert to DetectedBid objects
-        detected_bids = {}
-        for player_num, bid_amount in player_bids.items():
-            if bid_amount > 0 and player_num in BIDS_POSITIONS:
-                x, y, w, h = BIDS_POSITIONS[player_num]
-                center = (x + w // 2, y + h // 2)
-
-                detected_bid = DetectedBid(
-                    position=player_num,
-                    amount_text=f"{bid_amount:.1f}" if bid_amount != int(bid_amount) else str(int(bid_amount)),
-                    bounding_rect=(x, y, w, h),
-                    center=center
-                )
-                detected_bids[player_num] = detected_bid
-
-        return detected_bids
-
-    def get_current_street_total_bids(self) -> Dict[int, DetectedBid]:
-        current_street = self.get_street()
-        if current_street is None:
-            return {}
-
-        return self.get_total_bids_for_street(current_street)
-
     def get_active_position(self):
         return {player_num: position for player_num, position in self.positions.items()
                 if position.position_name != "NO"}
@@ -218,7 +155,6 @@ class Game:
             'table_cards': self.get_table_cards_for_web(),
             'positions': self.get_positions_for_web(),
             'moves': self.get_moves_for_web(),
-            'moves_summary': self.get_moves_summary(),
             'street': self.get_street_display(),
             'solver_link': self.get_solver_link_for_web()
         }
