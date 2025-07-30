@@ -95,7 +95,7 @@ class GameStateService:
             'table_cards': self._format_cards_for_web(game.table_cards),
             'positions': self._get_positions_for_web(game),
             'moves': self._get_moves_for_web(game),
-            'street': self._get_street_display(game),
+            'street': game.get_street_display(),
             'solver_link': self._get_solver_link_for_web(game)
         }
 
@@ -128,7 +128,7 @@ class GameStateService:
         return formatted
 
     def _get_moves_for_web(self, game: Game) -> List[Dict]:
-        if not game.moves:
+        if not game.has_moves():
             return []
 
         moves_by_street = []
@@ -143,51 +143,32 @@ class GameStateService:
             Position.CUTOFF: 6
         }
 
-        # Process streets in order: Preflop, Flop, Turn, River
-        street_order = [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]
-
-        for street in street_order:
-            moves = game.moves.get(street, [])
-            if moves:  # Only include streets that have moves
-                street_moves = []
-                for position, move_type in moves:
-                    player_number = position_to_player.get(position, 1)  # Default to player 1
-                    street_moves.append({
-                        'player_number': player_number,
-                        'player_label': f'P{player_number}',
-                        'action': move_type.value,
-                        'amount': 0.0,  # Not available in tuple format
-                        'total_contribution': 0.0  # Not available in tuple format
-                    })
-
-                moves_by_street.append({
-                    'street': street.value,
-                    'moves': street_moves
+        # Use Game's domain method to get moves by street
+        for street, moves in game.get_moves_by_streets():
+            street_moves = []
+            for position, move_type in moves:
+                player_number = position_to_player.get(position, 1)  # Default to player 1
+                street_moves.append({
+                    'player_number': player_number,
+                    'player_label': f'P{player_number}',
+                    'action': move_type.value,
+                    'amount': 0.0,  # Not available in tuple format
+                    'total_contribution': 0.0  # Not available in tuple format
                 })
+
+            moves_by_street.append({
+                'street': street.value,
+                'moves': street_moves
+            })
 
         return moves_by_street
 
-    def _get_street_display(self, game: Game) -> str:
-        card_count = len(game.table_cards)
-
-        if card_count == 0:
-            street = Street.PREFLOP
-        elif card_count == 3:
-            street = Street.FLOP
-        elif card_count == 4:
-            street = Street.TURN
-        elif card_count == 5:
-            street = Street.RIVER
-        else:
-            return f"ERROR ({card_count} cards)"
-        
-        return street.value
 
     def _get_solver_link_for_web(self, game: Game) -> Optional[str]:
         from src.core.service.flophero_link_service import FlopHeroLinkService
 
         # Only generate link if we have meaningful data
-        if not (game.player_cards or game.table_cards) and not any(moves for moves in game.moves.values()):
+        if not (game.player_cards or game.table_cards) and not game.has_moves():
             return None
 
         return FlopHeroLinkService.generate_link(game)

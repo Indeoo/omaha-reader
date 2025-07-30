@@ -42,8 +42,6 @@ class FlopHeroLinkService:
             query_string = urlencode(params)
             full_url = f"{FlopHeroLinkService.BASE_URL}?{query_string}"
 
-            logger.info(f"FlopHeroLinkService.generate_link(game=game, full_url=full_url) {full_url}")
-
             return full_url
 
         except Exception as e:
@@ -72,9 +70,10 @@ class FlopHeroLinkService:
             Street.RIVER: 'riverActions'
         }
 
-        for street, param_name in street_param_map.items():
-            moves = game.moves.get(street, [])
-            if moves:
+        # Use Game's domain method to get moves by street
+        for street, moves in game.get_moves_by_streets():
+            param_name = street_param_map.get(street)
+            if param_name:
                 # Format moves as comma-separated string
                 action_strings = []
                 for move_tuple in moves:
@@ -82,10 +81,15 @@ class FlopHeroLinkService:
                     if action_str:
                         action_strings.append(action_str)
 
-                if action_strings:
-                    action_params[param_name] = ",".join(action_strings)
-            else:
+                action_params[param_name] = ",".join(action_strings) if action_strings else ""
+
+        # Ensure all expected parameters are present
+        for street in game.get_street_order():
+            param_name = street_param_map.get(street)
+            if param_name and param_name not in action_params:
                 action_params[param_name] = ""
+
+        logger.info(f"action_params {action_params}")
 
         return action_params
 
