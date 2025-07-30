@@ -15,6 +15,7 @@ from src.core.shared.message_protocol import (
     ClientRegistrationMessage,
     GameDataSerializer
 )
+from src.core.client.server_connector import ServerConnectorFactory
 
 
 def test_server_connection(server_url: str) -> bool:
@@ -148,6 +149,40 @@ def test_config_endpoint(server_url: str) -> bool:
         return False
 
 
+def test_connector_selection(server_url: str) -> bool:
+    """Test connector auto-selection and factory."""
+    try:
+        logger.info("🔗 Testing connector factory...")
+        
+        # Test both connector types if available
+        results = ServerConnectorFactory.test_both_connectors(server_url)
+        
+        http_working = results['http']['connected']
+        ws_working = results['websocket']['connected']
+        
+        logger.info(f"   HTTP connector: {'✅ Working' if http_working else '❌ Failed'}")
+        logger.info(f"   WebSocket connector: {'✅ Working' if ws_working else '❌ Failed'}")
+        
+        if http_working or ws_working:
+            # Test auto-selection
+            auto_connector = ServerConnectorFactory.create_connector(server_url, 'auto')
+            if auto_connector:
+                connector_type = "WebSocket" if hasattr(auto_connector, 'connect') else "HTTP"
+                logger.info(f"   Auto-selected: {connector_type}")
+                auto_connector.close()
+                return True
+            else:
+                logger.error("   Auto-selection failed")
+                return False
+        else:
+            logger.error("   No connectors working")
+            return False
+            
+    except Exception as e:
+        logger.error(f"❌ Connector selection error: {str(e)}")
+        return False
+
+
 def main():
     logger.info("🧪 Testing Client-Server Communication")
     logger.info("=" * 50)
@@ -170,6 +205,7 @@ def main():
         ("Game Update", lambda: test_game_update(server_url, client_id)),
         ("Web UI Access", lambda: test_web_ui(server_url)),
         ("Config Endpoint", lambda: test_config_endpoint(server_url)),
+        ("Connector Selection", lambda: test_connector_selection(server_url)),
     ]
     
     passed = 0

@@ -90,6 +90,7 @@ COUNTRY=canada
 CONNECTION_TIMEOUT=10
 RETRY_ATTEMPTS=3
 RETRY_DELAY=5
+CONNECTOR_TYPE=auto  # 'auto', 'http', or 'websocket'
 ```
 
 ### Server Configuration (`.env.server`)
@@ -102,6 +103,36 @@ SHOW_TABLE_CARDS=true
 SHOW_POSITIONS=true
 SHOW_MOVES=true
 SHOW_SOLVER_LINK=true
+```
+
+## Connection Types
+
+The system supports two communication methods:
+
+### **HTTP Connector** (Default fallback)
+- Uses REST API calls for communication
+- Reliable but slightly higher latency  
+- Works with basic HTTP servers
+- Automatic retry logic for failed requests
+
+### **WebSocket Connector** (Recommended)
+- Real-time bidirectional communication
+- Lower latency for game updates
+- Automatic reconnection on connection loss
+- Requires `python-socketio` package
+
+### **Auto Selection**
+- Automatically chooses WebSocket if available
+- Falls back to HTTP if WebSocket unavailable
+- Recommended for most users (set `CONNECTOR_TYPE=auto`)
+
+### **Testing Connectors**
+```bash
+# Test both connector types
+python test_connectors.py
+
+# Full communication test including connectors
+python test_client_server.py
 ```
 
 ## Network Requirements

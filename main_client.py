@@ -4,7 +4,7 @@ from flask.cli import load_dotenv
 from loguru import logger
 
 from src.core.client.detection_client import DetectionClient
-from src.core.client.server_connector import ServerConnector
+from src.core.client.server_connector import ServerConnectorFactory
 
 load_dotenv()
 
@@ -19,6 +19,7 @@ COUNTRY = os.getenv('COUNTRY', "canada").lower()
 CONNECTION_TIMEOUT = int(os.getenv('CONNECTION_TIMEOUT', '10'))
 RETRY_ATTEMPTS = int(os.getenv('RETRY_ATTEMPTS', '3'))
 RETRY_DELAY = int(os.getenv('RETRY_DELAY', '5'))
+CONNECTOR_TYPE = os.getenv('CONNECTOR_TYPE', 'auto').lower()
 
 
 def main():
@@ -27,23 +28,38 @@ def main():
     logger.info(f"🔍 Detection interval: {DETECTION_INTERVAL}s")
     logger.info(f"🐛 Debug mode: {DEBUG_MODE}")
     logger.info(f"🌍 Country: {COUNTRY}")
+    logger.info(f"🔗 Connector type: {CONNECTOR_TYPE}")
 
     try:
-        # Initialize server connector
-        logger.info("🔗 Connecting to server...")
-        server_connector = ServerConnector(
+        # Initialize server connector using factory
+        logger.info("🔗 Creating server connector...")
+        server_connector = ServerConnectorFactory.create_connector(
             server_url=SERVER_URL,
+            connector_type=CONNECTOR_TYPE,
             timeout=CONNECTION_TIMEOUT,
             retry_attempts=RETRY_ATTEMPTS,
             retry_delay=RETRY_DELAY
         )
+        
+        if server_connector is None:
+            logger.error("❌ Failed to create server connector")
+            return
 
-        # Test server connection
-        if not server_connector.test_connection():
+        # Test server connection based on connector type
+        connection_successful = False
+        if hasattr(server_connector, 'connect'):  # WebSocket connector
+            logger.info("🔗 Connecting to WebSocket server...")
+            connection_successful = server_connector.connect()
+        else:  # HTTP connector
+            logger.info("🔗 Testing HTTP server connection...")
+            connection_successful = server_connector.test_connection()
+        
+        if not connection_successful:
             logger.error("❌ Cannot connect to server. Please check:")
             logger.error(f"   - Server is running at {SERVER_URL}")
             logger.error(f"   - Network connectivity")
             logger.error(f"   - SERVER_URL environment variable")
+            logger.error(f"   - Connector type: {CONNECTOR_TYPE}")
             return
 
         # Initialize detection client

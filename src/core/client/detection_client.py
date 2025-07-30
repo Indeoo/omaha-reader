@@ -14,6 +14,7 @@ from src.core.utils.fs_utils import create_timestamp_folder, create_window_folde
 from src.core.utils.logs import load_logger
 from src.core.utils.windows_utils import initialize_platform
 from src.core.shared.message_protocol import GameDataSerializer, GameUpdateMessage
+from src.core.client.server_connector import ServerConnectorFactory
 
 
 class DetectionClient:
