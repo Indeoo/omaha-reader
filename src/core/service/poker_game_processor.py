@@ -81,6 +81,8 @@ class PokerGameProcessor:
                     position_name = position_name[:-5]  # Remove exactly "_fold"
                 elif position_name.endswith('_low'):
                     position_name = position_name[:-4]  # Remove exactly "_low"
+                elif position_name.endswith('_now'):
+                    position_name = position_name[:-4]  # Remove exactly "_now"
 
                 result[position_name] = [d.name for d in detection_list]
 

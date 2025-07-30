@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Set
 
 
 class MoveType(Enum):
@@ -45,51 +44,6 @@ class MoveType(Enum):
     
     def __str__(self) -> str:
         return self.value
-    
-    @classmethod
-    def get_voluntary_actions(cls) -> Set['MoveType']:
-        """Get all voluntary player actions (excludes forced bets and game control)"""
-        return {
-            cls.FOLD, cls.CALL, cls.RAISE, cls.CHECK, cls.BET,
-            cls.ALL_IN, cls.MUCK, cls.SHOW, cls.COMPLETE
-        }
-    
-    # @classmethod
-    # def get_forced_actions(cls) -> Set['MoveType']:
-    #     """Get all forced actions (blinds, antes)"""
-    #     return {cls.SMALL_BLIND, cls.BIG_BLIND, cls.ANTE, cls.BRING_IN}
-    
-    @classmethod
-    def get_betting_actions(cls) -> Set['MoveType']:
-        """Get all actions that involve putting chips in the pot"""
-        return {
-            cls.CALL, cls.RAISE, cls.BET, cls.ALL_IN, cls.COMPLETE,
-            cls.SMALL_BLIND, cls.BIG_BLIND, cls.ANTE, cls.BRING_IN
-        }
-    
-    @classmethod
-    def get_aggressive_actions(cls) -> Set['MoveType']:
-        """Get all aggressive actions that require other players to respond"""
-        return {cls.RAISE, cls.BET, cls.ALL_IN}
-    
-    @classmethod
-    def get_passive_actions(cls) -> Set['MoveType']:
-        """Get all passive actions"""
-        return {cls.CALL, cls.CHECK, cls.COMPLETE}
-    
-    @classmethod
-    def get_street_ending_actions(cls) -> Set['MoveType']:
-        """Get actions that can end a betting round"""
-        return {cls.FOLD, cls.CALL, cls.CHECK, cls.ALL_IN}
-    
-    @classmethod
-    def is_valid_action(cls, action: str) -> bool:
-        """Check if a string represents a valid move type"""
-        try:
-            cls(action)
-            return True
-        except ValueError:
-            return False
     
     @classmethod
     def normalize_action(cls, action: str) -> 'MoveType':
@@ -143,7 +97,3 @@ class MoveType(Enum):
             return cls(action_lower)
         except ValueError:
             raise ValueError(f"Cannot normalize action '{action}' to a valid MoveType")
-
-
-# Compatibility alias for existing code
-ActionType = MoveType
