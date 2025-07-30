@@ -1,0 +1,1 @@
+# Client-side components for detection and server communication
