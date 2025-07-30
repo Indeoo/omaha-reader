@@ -28,6 +28,16 @@ class PokerGameProcessor:
 
     def process(self, captured_image: CapturedWindow, timestamp_folder):
         window_name = captured_image.window_name
+
+        game_snapshot = self.create_game_snapshot(captured_image, timestamp_folder)
+
+        #is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
+
+        is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot.table_cards)
+
+        self.game_state_service.create_or_update_game(window_name, game_snapshot, True, is_new_street)
+
+    def create_game_snapshot(self, captured_image, timestamp_folder):
         cv2_image = captured_image.get_cv2_image()
 
         detected_player_cards = TemplateMatchService.find_player_cards(cv2_image)
@@ -35,9 +45,7 @@ class PokerGameProcessor:
         detected_positions = DetectUtils.detect_positions(cv2_image)
         detected_actions = DetectUtils.get_player_actions_detection(cv2_image)
         detected_bids = detect_bids(cv2_image)
-
         moves = self.get_moves(detected_actions, detected_positions)
-
         game_snapshot_builder = (GameSnapshot.builder().with_player_cards(detected_player_cards)
                                  .with_table_cards(detected_table_cards)
                                  .with_bids(detected_bids)
@@ -46,14 +54,8 @@ class PokerGameProcessor:
                                  .with_moves(moves)
                                  )
         game_snapshot = game_snapshot_builder.build()
-
-        save_detection_result(timestamp_folder, captured_image, game_snapshot),
-
-        #is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
-
-        is_new_street = self.game_state_service.is_new_street(window_name, detected_table_cards)
-
-        self.game_state_service.create_or_update_game(window_name, game_snapshot, True, is_new_street)
+        save_detection_result(timestamp_folder, captured_image, game_snapshot)
+        return game_snapshot
 
     def get_moves(self, detected_actions, detected_positions):
         position_actions = self.convert_to_position_actions(detected_actions, detected_positions)
