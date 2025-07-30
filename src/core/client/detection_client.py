@@ -44,6 +44,13 @@ class DetectionClient:
 
         logger.info(f"🎯 Detection client initialized: {self.client_id}")
 
+    def _validate_server_connector(self, operation: str) -> bool:
+        """Validate server connector is available."""
+        if not self.server_connector:
+            logger.error(f"No server connector configured for {operation}")
+            return False
+        return True
+
     def _setup_scheduler(self):
         self.scheduler.add_job(
             func=self.detect_and_send,
@@ -128,8 +135,7 @@ class DetectionClient:
 
     def _send_updates_to_server(self):
         """Send current game states to server."""
-        if not self.server_connector:
-            logger.warning("No server connector configured - skipping server update")
+        if not self._validate_server_connector("sending updates"):
             return
 
         try:
@@ -207,8 +213,7 @@ class DetectionClient:
 
     def register_with_server(self) -> bool:
         """Register this client with the server."""
-        if not self.server_connector:
-            logger.error("No server connector configured")
+        if not self._validate_server_connector("registration"):
             return False
 
         return self.server_connector.register_client(self.client_id)

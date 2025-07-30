@@ -113,19 +113,6 @@ class GameDataSerializer:
                 serialized_moves.append(str(move))
         return serialized_moves
 
-    @staticmethod
-    def create_game_data(player_cards: List[Detection], table_cards: List[Detection], 
-                        positions: Dict[int, Detection], moves: List[Any], 
-                        street: str, solver_link: Optional[str] = None) -> dict:
-        return {
-            'player_cards': GameDataSerializer.serialize_detections(player_cards),
-            'table_cards': GameDataSerializer.serialize_detections(table_cards),
-            'positions': GameDataSerializer.serialize_positions(positions),
-            'moves': GameDataSerializer.serialize_moves(moves),
-            'street': street,
-            'solver_link': solver_link
-        }
-
 
 class MessageParser:
     @staticmethod
@@ -151,3 +138,6 @@ class MessageParser:
             message=message,
             timestamp=datetime.now().isoformat()
         )
+
+
+

@@ -15,8 +15,7 @@ except ImportError:
 
 from src.core.shared.message_protocol import (
     GameUpdateMessage, 
-    ClientRegistrationMessage, 
-    MessageParser
+    ClientRegistrationMessage
 )
 
 

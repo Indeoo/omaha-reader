@@ -48,20 +48,9 @@ class ClientGameState:
         return formatted
 
     def _format_card_with_unicode(self, card_name: str) -> str:
-        if len(card_name) < 2:
-            return card_name
-        
-        rank = card_name[:-1]
-        suit = card_name[-1]
-        
-        suit_unicode = {
-            'S': '♠',  # Spades
-            'H': '♥',  # Hearts  
-            'D': '♦',  # Diamonds
-            'C': '♣'   # Clubs
-        }
-        
-        return f"{rank}{suit_unicode.get(suit, suit)}"
+        """Format card name with unicode symbols."""
+        from src.core.utils.card_format_utils import format_card_with_unicode
+        return format_card_with_unicode(card_name)
 
     def _format_positions_for_web(self, positions: Dict[str, dict]) -> List[Dict]:
         formatted = []

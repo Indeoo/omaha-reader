@@ -36,18 +36,8 @@ class Detection:
         return self.name
 
     def format_with_unicode(self) -> str:
-        if not self.name or len(self.name) < 2:
-            return self.name or "UNKNOWN"
-
-        # Get rank and suit for cards
-        rank = self.name[:-1]
-        suit = self.name[-1].upper()
-
-        suit_unicode = {
-            'S': '♠', 'H': '♥', 'D': '♦', 'C': '♣'
-        }
-
-        return f"{rank}{suit_unicode.get(suit, suit)}"
+        from src.core.utils.card_format_utils import format_card_with_unicode
+        return format_card_with_unicode(self.name)
 
     def __repr__(self):
         return f"Detection(name='{self.name}', center={self.center})"
