@@ -38,9 +38,14 @@ class FlopHeroLinkService:
             params.update(FlopHeroLinkService._format_actions_for_flophero(game))
             params["players"] = str(len(game.get_active_position()))
 
+            # Remove empty parameters to match REAL format
+            filtered_params = {k: v for k, v in params.items() if v != ''}
+            
             # Build the URL
-            query_string = urlencode(params)
+            query_string = urlencode(filtered_params)
             full_url = f"{FlopHeroLinkService.BASE_URL}?{query_string}"
+
+            logger.info(f"Full URL {full_url}")
 
             return full_url
 
@@ -81,15 +86,13 @@ class FlopHeroLinkService:
                     if action_str:
                         action_strings.append(action_str)
 
-                action_params[param_name] = ",".join(action_strings) if action_strings else ""
+                action_params[param_name] = "_".join(action_strings) if action_strings else ""
 
         # Ensure all expected parameters are present
         for street in game.get_street_order():
             param_name = street_param_map.get(street)
             if param_name and param_name not in action_params:
                 action_params[param_name] = ""
-
-        logger.info(f"action_params {action_params}")
 
         return action_params
 
@@ -99,12 +102,17 @@ class FlopHeroLinkService:
         
         # Map our action types to FlopHero format
         action_map = {
-            MoveType.FOLD: 'F',
-            MoveType.CALL: 'C',
-            MoveType.RAISE: 'R',
-            MoveType.CHECK: 'X',
-            MoveType.BET: 'B',
-            MoveType.ALL_IN: 'A'
+            MoveType.FOLD: 'f',
+            MoveType.CALL: 'c',
+            MoveType.RAISE: 'r35',
+            MoveType.CHECK: 'c',
+            MoveType.BET: 'b',
+            MoveType.ALL_IN: 'a'
         }
 
         return action_map.get(move_type, '')
+
+#LOGGED
+#https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=6&openRaise=3.5&stack=100&boardCards=4s4dAs&preflopActions=r35_c_f_c_c_c&flopActions=c_c_c_c_c&turnActions=c_c
+#REAL
+#https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=6&openRaise=3.5&stack=100&topRanks&suitLevel&preflopActions=r35_c_f_c_c_c&flopActions&turnActions&riverActions&boardCards=As4s4d
