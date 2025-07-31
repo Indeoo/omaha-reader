@@ -9,12 +9,19 @@ This is an Omaha Poker assistant that captures poker table screenshots and extra
 
 ## Core Architecture
 
-### Main Components
-1. **OmahaEngine** - Central orchestration engine
-2. **Image Capture Service** - Screenshot capture and change detection
+The system uses a **client-server architecture** for maximum flexibility:
+
+### Client Components (Local Detection)
+1. **DetectionClient** - Local detection orchestrator
+2. **Image Capture Service** - Screenshot capture and change detection  
 3. **Detection Services** - Template matching for cards, positions, actions
-4. **Game State Management** - Tracks game progression and moves
-5. **Web API** - Flask + SocketIO for real-time updates
+4. **Server Connector** - HTTP/WebSocket communication to server
+
+### Server Components (Web Interface)
+1. **ServerWebApi** - Flask + SocketIO web interface
+2. **Game Data Receiver** - Receives client detection data
+3. **Server Game State** - Manages aggregated game states
+4. **Real-time Broadcasting** - WebSocket updates to web clients
 
 ### Key Technologies
 - **OpenCV** - Template matching for card/button detection
@@ -223,11 +230,16 @@ SHOW_SOLVER_LINK=true
 - **Game**: Current game state with history
 - **Street**: Poker street enumeration
 
-### Services
-- **OmahaEngine**: Main orchestrator
+### Client Services
+- **DetectionClient**: Client-side detection orchestrator
 - **ImageCaptureService**: Screenshot management
 - **GameStateService**: Game state tracking
-- **MoveReconstructor**: Action history building
+- **ServerConnector**: HTTP/WebSocket communication with server
+
+### Server Services  
+- **ServerWebApi**: Web interface and API endpoints
+- **GameDataReceiver**: Processes incoming client data
+- **ServerGameState**: Server-side game state management
 
 ### Matchers
 - **PlayerCardMatcher**: Detects hero's cards
@@ -238,12 +250,37 @@ SHOW_SOLVER_LINK=true
 ## Development Commands
 
 ### Running the Application
-```bash
-# Start the web-based poker detection server
-python main_web.py
 
-# The server will start on http://localhost:5001 by default
-# Configure via environment variables in .env file or export statements
+#### Server (Internet-accessible machine):
+```bash
+# Configure server settings
+python config_server.py
+
+# Start server (hosts web UI and receives client data)
+python main_server.py
+
+# Server will be accessible at http://localhost:5001 by default
+```
+
+#### Client (Local machine with poker tables):
+```bash
+# Configure client settings  
+python config_client.py
+
+# Start detection client (sends data to server)
+python main_client.py
+
+# Client will connect to server and start detection
+```
+
+#### Single Machine Setup:
+```bash
+# Run both server and client on same machine
+# Terminal 1: Start server
+python main_server.py
+
+# Terminal 2: Start client (connects to localhost)
+python main_client.py
 ```
 
 ### Running Tests
@@ -288,18 +325,27 @@ SHOW_SOLVER_LINK=true       # Show FlopHero integration link
 ## Architecture Overview
 
 ### Core Data Flow
+**Client Side (Detection):**
 1. **ImageCaptureService** → Captures poker table screenshots (784x584 resolution)
 2. **PokerGameProcessor** → Orchestrates detection pipeline
 3. **TemplateMatchService** → Detects cards using OpenCV template matching
 4. **DetectUtils** → Detects positions and actions
-5. **GameStateService** → Tracks game state and move history
-6. **OmahaWebApi** → Serves real-time updates via WebSocket
+5. **DetectionClient** → Aggregates detection data and sends to server
+
+**Server Side (Web Interface):**
+6. **GameDataReceiver** → Receives detection data from clients
+7. **ServerGameState** → Manages aggregated game states
+8. **ServerWebApi** → Serves real-time updates via WebSocket to web clients
 
 ### Key Service Dependencies
-- **OmahaEngine** depends on ImageCaptureService, GameStateService, PokerGameProcessor
+**Client Dependencies:**
+- **DetectionClient** depends on ImageCaptureService, GameStateService, PokerGameProcessor, ServerConnector
 - **PokerGameProcessor** depends on GameStateService, TemplateMatchService, DetectUtils
-- **GameStateService** depends on GameStateRepository (in-memory state)
-- **OmahaWebApi** depends on OmahaEngine and serves Flask + SocketIO
+- **ServerConnector** provides HTTP/WebSocket communication to server
+
+**Server Dependencies:**
+- **ServerWebApi** depends on GameDataReceiver and serves Flask + SocketIO
+- **GameDataReceiver** depends on ServerGameState for state management
 
 ### Template System Architecture
 Templates are organized by country (canada/usa) and detection type:
