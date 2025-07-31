@@ -7,9 +7,9 @@ from src.shared.domain.domain.game_snapshot import GameSnapshot
 from src.server.services.game_state_service import GameStateService
 from src.client.services.omaha_action_processor import group_moves_by_street
 from src.client.services.template_matcher_service import TemplateMatchService
-from src.shared.utils.bid_detect_utils import detect_bids
+from src.client.utils.bid_detect_utils import detect_bids
 from src.client.utils.detect_utils import DetectUtils
-from src.shared.utils.drawing_utils import save_detection_result
+from src.client.utils.drawing_utils import save_detection_result
 
 
 class PokerGameProcessor:

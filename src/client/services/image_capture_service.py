@@ -4,8 +4,8 @@ from typing import List, Dict, NamedTuple
 from loguru import logger
 
 from src.shared.domain.domain.captured_window import CapturedWindow
-from src.shared.utils.capture_utils import capture_and_save_windows
-from src.shared.utils.logs import console_logger
+from src.client.utils.capture_utils import capture_and_save_windows
+from src.client.utils.logs import console_logger
 
 
 class WindowChanges(NamedTuple):

@@ -7,7 +7,7 @@ import multiprocessing
 
 from src.shared.domain.domain.detection import Detection
 from src.client.services.template_registry import TemplateRegistry
-from src.shared.utils.template_matching_utils import (
+from src.client.utils.template_matching_utils import (
     find_single_template_matches,
     filter_overlapping_detections,
     sort_detections_by_position

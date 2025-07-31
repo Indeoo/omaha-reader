@@ -3,7 +3,7 @@ import unittest
 import cv2
 from matplotlib import pyplot as plt
 
-from src.shared.utils.bid_detect_utils import detect_bids
+from src.client.utils.bid_detect_utils import detect_bids
 from src.shared.utils.opencv_utils import draw_detected_bids
 
 

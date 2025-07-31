@@ -10,9 +10,9 @@ from src.client.services.image_capture_service import ImageCaptureService
 from src.server.services.game_state_service import GameStateService
 from src.server.services.state_repository import GameStateRepository
 from src.client.services.poker_game_processor import PokerGameProcessor
-from src.shared.utils.fs_utils import create_timestamp_folder, create_window_folder
-from src.shared.utils.logs import load_logger
-from src.shared.utils.windows_utils import initialize_platform
+from src.client.utils.fs_utils import create_timestamp_folder, create_window_folder
+from src.client.utils.logs import load_logger
+from src.client.utils.windows_utils import initialize_platform
 from src.shared.protocol.message_protocol import GameDataSerializer, GameUpdateMessage
 from src.client.connectors.server_connector import ServerConnectorFactory
 

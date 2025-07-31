@@ -5,7 +5,7 @@ import cv2
 from matplotlib import pyplot as plt
 
 from src.client.utils.detect_utils import DetectUtils
-from src.shared.utils.drawing_utils import draw_all_detections, DetectionGroup, DetectionType, _flatten_action_lists
+from src.client.utils.drawing_utils import draw_all_detections, DetectionGroup, DetectionType, _flatten_action_lists
 
 
 class TestDetectUtils(unittest.TestCase):
