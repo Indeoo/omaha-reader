@@ -1,1 +1,0 @@
-# Shared components for client-server communication

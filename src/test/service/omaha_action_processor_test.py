@@ -1,8 +1,8 @@
 import unittest
-from src.core.domain.moves import MoveType
-from src.core.domain.position import Position
-from src.core.domain.street import Street
-from src.core.service.omaha_action_processor import group_moves_by_street
+from src.shared.domain.domain.moves import MoveType
+from src.shared.domain.domain.position import Position
+from src.shared.domain.domain.street import Street
+from src.shared.services.omaha_action_processor import group_moves_by_street
 
 
 class TestMovesByStreetWithExpectedResults(unittest.TestCase):

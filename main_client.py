@@ -3,8 +3,8 @@ import time
 from flask.cli import load_dotenv
 from loguru import logger
 
-from src.core.client.detection_client import DetectionClient
-from src.core.client.server_connector import ServerConnectorFactory
+from src.client.detection_client import DetectionClient
+from src.client.connectors.server_connector import ServerConnectorFactory
 
 load_dotenv()
 
