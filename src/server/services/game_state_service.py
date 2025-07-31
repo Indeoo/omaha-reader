@@ -165,7 +165,7 @@ class GameStateService:
 
 
     def _get_solver_link_for_web(self, game: Game) -> Optional[str]:
-        from src.shared.services.flophero_link_service import FlopHeroLinkService
+        from src.server.services.flophero_link_service import FlopHeroLinkService
 
         # Only generate link if we have meaningful data
         if not (game.player_cards or game.table_cards) and not game.has_moves():
