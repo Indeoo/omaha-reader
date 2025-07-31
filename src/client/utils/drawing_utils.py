@@ -9,7 +9,7 @@ from src.shared.domain.domain.detected_bid import DetectedBid
 from src.shared.domain.domain.game_snapshot import GameSnapshot
 from src.shared.domain.domain.detection import Detection
 from src.client.utils.detect_utils import PLAYER_POSITIONS, ACTION_POSITIONS
-from src.shared.utils.opencv_utils import save_opencv_image
+from src.client.services.opencv_utils import save_opencv_image
 
 
 class DetectionType(Enum):

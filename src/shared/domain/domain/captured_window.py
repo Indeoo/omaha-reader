@@ -4,7 +4,7 @@ import hashlib
 import numpy as np
 from loguru import logger
 
-from src.shared.utils.opencv_utils import pil_to_cv2
+from src.client.services.opencv_utils import pil_to_cv2
 
 
 class CapturedWindow:
