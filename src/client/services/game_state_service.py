@@ -5,10 +5,8 @@ from loguru import logger
 from src.shared.domain.domain.game import Game
 from src.shared.domain.domain.game_snapshot import GameSnapshot
 from src.shared.domain.domain.detection import Detection
-from src.shared.domain.domain.street import Street
 from src.shared.domain.domain.position import Position
-from src.shared.domain.domain.moves import MoveType
-from src.server.services.state_repository import GameStateRepository
+from src.client.services.state_repository import GameStateRepository
 from src.shared.utils.card_format_utils import format_cards_simple
 
 
@@ -165,7 +163,7 @@ class GameStateService:
 
 
     def _get_solver_link_for_web(self, game: Game) -> Optional[str]:
-        from src.server.services.flophero_link_service import FlopHeroLinkService
+        from src.client.services.flophero_link_service import FlopHeroLinkService
 
         # Only generate link if we have meaningful data
         if not (game.player_cards or game.table_cards) and not game.has_moves():

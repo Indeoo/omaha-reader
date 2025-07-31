@@ -1,4 +1,3 @@
-import os
 import traceback
 import uuid
 from datetime import datetime
@@ -7,14 +6,13 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from loguru import logger
 
 from src.client.services.image_capture_service import ImageCaptureService
-from src.server.services.game_state_service import GameStateService
-from src.server.services.state_repository import GameStateRepository
+from src.client.services.game_state_service import GameStateService
+from src.client.services.state_repository import GameStateRepository
 from src.client.services.poker_game_processor import PokerGameProcessor
 from src.client.utils.fs_utils import create_timestamp_folder, create_window_folder
 from src.client.utils.logs import load_logger
 from src.client.utils.windows_utils import initialize_platform
-from src.shared.protocol.message_protocol import GameDataSerializer, GameUpdateMessage
-from src.client.connectors.server_connector import ServerConnectorFactory
+from src.shared.protocol.message_protocol import GameUpdateMessage
 
 
 class DetectionClient:

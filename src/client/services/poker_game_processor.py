@@ -4,7 +4,7 @@ from loguru import logger
 
 from src.shared.domain.domain.captured_window import CapturedWindow
 from src.shared.domain.domain.game_snapshot import GameSnapshot
-from src.server.services.game_state_service import GameStateService
+from src.client.services.game_state_service import GameStateService
 from src.client.services.omaha_action_processor import group_moves_by_street
 from src.client.services.template_matcher_service import TemplateMatchService
 from src.client.utils.bid_detect_utils import detect_bids
