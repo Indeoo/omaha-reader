@@ -300,3 +300,11 @@ For issues with the client-server setup:
 5. Review configuration files
 
 The original single-machine setup (`main_web.py`) continues to work for local-only usage.
+
+
+# Funds Updater
+
+heroku builds:create --app omaha-reader
+heroku logs --tail --app omaha-reader
+heroku restart --app omaha-reader
+heroku run bash -a omaha-reader
