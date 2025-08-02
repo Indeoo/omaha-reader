@@ -15,7 +15,7 @@ The system is now split into two components:
 
 ```bash
 # Configure server
-python config_server.py
+python -m src.server.config
 
 # Start server
 python -m src.server.main
@@ -27,7 +27,7 @@ The server will be accessible at `http://YOUR_SERVER_IP:5001`
 
 ```bash
 # Configure client
-python config_client.py
+python -m src.client.config
 
 # Start client  
 python -m src.client.main
@@ -41,7 +41,7 @@ The client will connect to your server and start sending detection data.
 
 1. **Configure Server**
    ```bash
-   python config_server.py
+   python -m src.server.config
    ```
    This creates `.env.server` with your settings:
    - Server host/port
@@ -61,7 +61,7 @@ The client will connect to your server and start sending detection data.
 
 1. **Configure Client**
    ```bash
-   python config_client.py
+   python -m src.client.config
    ```
    This creates `.env.client` with your settings:
    - Server URL to connect to
@@ -273,13 +273,13 @@ ps aux | grep main_client
    ```bash
    git clone [repository]
    pip install -r requirements.txt
-   python config_server.py
+   python -m src.server.config
    python -m src.server.main
    ```
 
 3. **Configure Client on Original Machine**
    ```bash
-   python config_client.py
+   python -m src.client.config
    # Enter your server URL
    python -m src.client.main
    ```

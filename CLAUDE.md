@@ -254,7 +254,7 @@ SHOW_SOLVER_LINK=true
 #### Server (Internet-accessible machine):
 ```bash
 # Configure server settings
-python config_server.py
+python -m src.server.config
 
 # Start server (hosts web UI and receives client data)
 python -m src.server.main
@@ -265,7 +265,7 @@ python -m src.server.main
 #### Client (Local machine with poker tables):
 ```bash
 # Configure client settings  
-python config_client.py
+python -m src.client.config
 
 # Start detection client (sends data to server)
 python -m src.client.main
