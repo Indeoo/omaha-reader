@@ -135,3 +135,6 @@ artifacts
 /libs/sybil-engine/requirements.txt
 /libs/web3-wizzard-lib/requirements.txt
 /libs/pk-encryptor/requirements.txt
+
+resources/*
+!resources/templates/
