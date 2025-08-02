@@ -15,7 +15,7 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 from detection_client import DetectionClient
-from connectors.server_connector import ServerConnectorFactory, ServerConnectorManager, ServerConfig
+from connectors.server_connector import  ServerConnectorManager, ServerConfig
 
 load_dotenv()
 
