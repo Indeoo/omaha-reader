@@ -2,7 +2,7 @@ import os
 from flask.cli import load_dotenv
 from loguru import logger
 
-from src.server.server_web_api import ServerWebApi
+from .server_web_api import ServerWebApi
 
 load_dotenv()
 

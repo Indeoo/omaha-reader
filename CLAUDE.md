@@ -257,7 +257,7 @@ SHOW_SOLVER_LINK=true
 python config_server.py
 
 # Start server (hosts web UI and receives client data)
-python main_server.py
+python -m src.server.main
 
 # Server will be accessible at http://localhost:5001 by default
 ```
@@ -268,7 +268,7 @@ python main_server.py
 python config_client.py
 
 # Start detection client (sends data to server)
-python main_client.py
+python -m src.client.main
 
 # Client will connect to server and start detection
 ```
@@ -277,10 +277,10 @@ python main_client.py
 ```bash
 # Run both server and client on same machine
 # Terminal 1: Start server
-python main_server.py
+python -m src.server.main
 
 # Terminal 2: Start client (connects to localhost)
-python main_client.py
+python -m src.client.main
 ```
 
 ### Running Tests

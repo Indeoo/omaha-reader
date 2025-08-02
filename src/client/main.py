@@ -5,8 +5,8 @@ from flask.cli import load_dotenv
 from loguru import logger
 from typing import List
 
-from src.client.detection_client import DetectionClient
-from src.client.connectors.server_connector import ServerConnectorFactory, ServerConnectorManager, ServerConfig
+from .detection_client import DetectionClient
+from .connectors.server_connector import ServerConnectorFactory, ServerConnectorManager, ServerConfig
 
 load_dotenv()
 

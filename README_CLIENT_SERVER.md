@@ -18,7 +18,7 @@ The system is now split into two components:
 python config_server.py
 
 # Start server
-python main_server.py
+python -m src.server.main
 ```
 
 The server will be accessible at `http://YOUR_SERVER_IP:5001`
@@ -30,7 +30,7 @@ The server will be accessible at `http://YOUR_SERVER_IP:5001`
 python config_client.py
 
 # Start client  
-python main_client.py
+python -m src.client.main
 ```
 
 The client will connect to your server and start sending detection data.
@@ -50,7 +50,7 @@ The client will connect to your server and start sending detection data.
 
 2. **Start Server**
    ```bash
-   python main_server.py
+   python -m src.server.main
    ```
 
 3. **Access Web UI**
@@ -70,7 +70,7 @@ The client will connect to your server and start sending detection data.
 
 2. **Start Client**
    ```bash
-   python main_client.py
+   python -m src.client.main
    ```
    
 3. **Verify Connection**
@@ -274,14 +274,14 @@ ps aux | grep main_client
    git clone [repository]
    pip install -r requirements.txt
    python config_server.py
-   python main_server.py
+   python -m src.server.main
    ```
 
 3. **Configure Client on Original Machine**
    ```bash
    python config_client.py
    # Enter your server URL
-   python main_client.py
+   python -m src.client.main
    ```
 
 4. **Verify Migration**
