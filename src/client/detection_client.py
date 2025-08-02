@@ -23,7 +23,7 @@ class DetectionClient:
         self.client_id = client_id or f"client_{uuid.uuid4().hex[:8]}"
         self.debug_mode = debug_mode
         self.detection_interval = detection_interval
-        self.server_connector = server_connector
+        self.server_connector = server_connector  # Can be single connector or ServerConnectorManager
 
         # Initialize detection services (reuse existing components)
         self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
@@ -171,13 +171,25 @@ class DetectionClient:
                 }
             )
 
-            # Send to server via connector
-            success = self.server_connector.send_game_update(game_update)
-            
-            if success:
-                logger.info(f"✅ Sent game update to server: {game_data.get('window_name')}")
+            # Send to server(s) via connector
+            if hasattr(self.server_connector, 'send_to_all_servers'):
+                # Multi-server setup
+                results = self.server_connector.send_to_all_servers(game_update)
+                successful_sends = sum(results.values())
+                total_servers = len(results)
+                
+                if successful_sends > 0:
+                    logger.info(f"✅ Sent game update to {successful_sends}/{total_servers} servers: {game_data.get('window_name')}")
+                else:
+                    logger.error(f"❌ Failed to send game update to any server: {game_data.get('window_name')}")
             else:
-                logger.error(f"❌ Failed to send game update: {game_data.get('window_name')}")
+                # Single server setup (backward compatibility)
+                success = self.server_connector.send_game_update(game_update)
+                
+                if success:
+                    logger.info(f"✅ Sent game update to server: {game_data.get('window_name')}")
+                else:
+                    logger.error(f"❌ Failed to send game update: {game_data.get('window_name')}")
 
         except Exception as e:
             logger.error(f"Error preparing game update: {str(e)}")
@@ -210,11 +222,19 @@ class DetectionClient:
         return protocol_positions
 
     def register_with_server(self) -> bool:
-        """Register this client with the server."""
+        """Register this client with the server(s)."""
         if not self._validate_server_connector("registration"):
             return False
 
-        return self.server_connector.register_client(self.client_id)
+        # Check if it's a ServerConnectorManager (multi-server) or single connector
+        if hasattr(self.server_connector, 'register_with_all_servers'):
+            # Multi-server setup
+            results = self.server_connector.register_with_all_servers(self.client_id)
+            successful_registrations = sum(results.values())
+            return successful_registrations > 0
+        else:
+            # Single server setup (backward compatibility)
+            return self.server_connector.register_client(self.client_id)
 
     def get_client_id(self) -> str:
         """Get the client ID."""

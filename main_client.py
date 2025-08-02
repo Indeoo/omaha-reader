@@ -1,81 +1,143 @@
 import os
 import time
+import json
 from flask.cli import load_dotenv
 from loguru import logger
+from typing import List
 
 from src.client.detection_client import DetectionClient
-from src.client.connectors.server_connector import ServerConnectorFactory
+from src.client.connectors.server_connector import ServerConnectorFactory, ServerConnectorManager, ServerConfig
 
 load_dotenv()
 
+
+def parse_server_configurations() -> List[ServerConfig]:
+    """Parse server configurations from environment variables with backward compatibility."""
+    
+    # Check for new SERVER_URLS array format first
+    server_urls_env = os.getenv('SERVER_URLS')
+    if server_urls_env:
+        logger.info("📡 Using SERVER_URLS configuration")
+        try:
+            # Try parsing as JSON array first
+            if server_urls_env.startswith('['):
+                urls = json.loads(server_urls_env)
+            else:
+                # Fallback to comma-separated URLs
+                urls = [url.strip() for url in server_urls_env.split(',') if url.strip()]
+            
+            configs = []
+            for i, url in enumerate(urls):
+                if isinstance(url, str):
+                    # Simple URL string
+                    config = ServerConfig.from_url(
+                        url=url,
+                        connector_type=os.getenv('CONNECTOR_TYPE', 'auto').lower(),
+                        timeout=int(os.getenv('CONNECTION_TIMEOUT', '10')),
+                        retry_attempts=int(os.getenv('RETRY_ATTEMPTS', '3')),
+                        retry_delay=int(os.getenv('RETRY_DELAY', '5')),
+                        priority=i + 1  # Order from configuration
+                    )
+                elif isinstance(url, dict):
+                    # Full configuration object
+                    config = ServerConfig(
+                        url=url.get('url'),
+                        connector_type=url.get('connector_type', os.getenv('CONNECTOR_TYPE', 'auto')).lower(),
+                        timeout=url.get('timeout', int(os.getenv('CONNECTION_TIMEOUT', '10'))),
+                        retry_attempts=url.get('retry_attempts', int(os.getenv('RETRY_ATTEMPTS', '3'))),
+                        retry_delay=url.get('retry_delay', int(os.getenv('RETRY_DELAY', '5'))),
+                        priority=url.get('priority', i + 1),
+                        enabled=url.get('enabled', True)
+                    )
+                else:
+                    logger.warning(f"⚠️ Invalid server config format: {url}")
+                    continue
+                
+                configs.append(config)
+            
+            if configs:
+                return configs
+            else:
+                logger.warning("⚠️ No valid server configurations found in SERVER_URLS")
+                
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"❌ Error parsing SERVER_URLS: {str(e)}")
+    
+    # Backward compatibility: fall back to single SERVER_URL
+    server_url = os.getenv('SERVER_URL', 'http://localhost:5001')
+    logger.info("📡 Using backward compatible SERVER_URL configuration")
+    
+    config = ServerConfig.from_url(
+        url=server_url,
+        connector_type=os.getenv('CONNECTOR_TYPE', 'auto').lower(),
+        timeout=int(os.getenv('CONNECTION_TIMEOUT', '10')),
+        retry_attempts=int(os.getenv('RETRY_ATTEMPTS', '3')),
+        retry_delay=int(os.getenv('RETRY_DELAY', '5')),
+        priority=1
+    )
+    
+    return [config]
+
+
 # Client Configuration
-SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5001')
+SERVER_CONFIGS = parse_server_configurations()
 CLIENT_ID = os.getenv('CLIENT_ID', None)  # Auto-generated if not provided
 DETECTION_INTERVAL = int(os.getenv('DETECTION_INTERVAL', '10'))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 COUNTRY = os.getenv('COUNTRY', "canada").lower()
 
-# Connection Configuration
-CONNECTION_TIMEOUT = int(os.getenv('CONNECTION_TIMEOUT', '10'))
-RETRY_ATTEMPTS = int(os.getenv('RETRY_ATTEMPTS', '3'))
-RETRY_DELAY = int(os.getenv('RETRY_DELAY', '5'))
-CONNECTOR_TYPE = os.getenv('CONNECTOR_TYPE', 'auto').lower()
-
 
 def main():
     logger.info("🎯 Initializing Omaha Poker Detection Client")
-    logger.info(f"🌐 Server URL: {SERVER_URL}")
     logger.info(f"🔍 Detection interval: {DETECTION_INTERVAL}s")
     logger.info(f"🐛 Debug mode: {DEBUG_MODE}")
     logger.info(f"🌍 Country: {COUNTRY}")
-    logger.info(f"🔗 Connector type: {CONNECTOR_TYPE}")
+    
+    # Log server configurations
+    logger.info(f"🌐 Configured servers ({len(SERVER_CONFIGS)}):")
+    for config in SERVER_CONFIGS:
+        logger.info(f"   - {config.url} ({config.connector_type}, priority: {config.priority})")
 
     try:
-        # Initialize server connector using factory
-        logger.info("🔗 Creating server connector...")
-        server_connector = ServerConnectorFactory.create_connector(
-            server_url=SERVER_URL,
-            connector_type=CONNECTOR_TYPE,
-            timeout=CONNECTION_TIMEOUT,
-            retry_attempts=RETRY_ATTEMPTS,
-            retry_delay=RETRY_DELAY
-        )
+        # Initialize server connector manager
+        logger.info("🔗 Creating server connector manager...")
+        server_connector_manager = ServerConnectorManager(SERVER_CONFIGS)
         
-        if server_connector is None:
-            logger.error("❌ Failed to create server connector")
-            return
-
-        # Test server connection based on connector type
-        connection_successful = False
-        if hasattr(server_connector, 'connect'):  # WebSocket connector
-            logger.info("🔗 Connecting to WebSocket server...")
-            connection_successful = server_connector.connect()
-        else:  # HTTP connector
-            logger.info("🔗 Testing HTTP server connection...")
-            connection_successful = server_connector.test_connection()
+        # Connect to all servers
+        logger.info("🔗 Connecting to all servers...")
+        connection_results = server_connector_manager.connect_all_servers()
         
-        if not connection_successful:
-            logger.error("❌ Cannot connect to server. Please check:")
-            logger.error(f"   - Server is running at {SERVER_URL}")
+        # Check if at least one server is connected
+        successful_connections = sum(connection_results.values())
+        if successful_connections == 0:
+            logger.error("❌ Cannot connect to any server. Please check:")
+            for config in SERVER_CONFIGS:
+                logger.error(f"   - Server is running at {config.url}")
             logger.error(f"   - Network connectivity")
-            logger.error(f"   - SERVER_URL environment variable")
-            logger.error(f"   - Connector type: {CONNECTOR_TYPE}")
+            logger.error(f"   - SERVER_URL/SERVER_URLS environment variables")
             return
+        
+        logger.info(f"✅ Successfully connected to {successful_connections}/{len(SERVER_CONFIGS)} servers")
 
-        # Initialize detection client
+        # Initialize detection client with connector manager
         detection_client = DetectionClient(
             client_id=CLIENT_ID,
             country=COUNTRY,
             debug_mode=DEBUG_MODE,
             detection_interval=DETECTION_INTERVAL,
-            server_connector=server_connector
+            server_connector=server_connector_manager
         )
 
-        # Register client with server
-        logger.info("📝 Registering with server...")
-        if not detection_client.register_with_server():
-            logger.error("❌ Failed to register with server")
+        # Register client with all servers
+        logger.info("📝 Registering with all servers...")
+        registration_results = server_connector_manager.register_with_all_servers(detection_client.get_client_id())
+        
+        successful_registrations = sum(registration_results.values())
+        if successful_registrations == 0:
+            logger.error("❌ Failed to register with any server")
             return
+        
+        logger.info(f"✅ Successfully registered with {successful_registrations}/{len(connection_results)} servers")
 
         # Start detection
         logger.info("🚀 Starting poker detection...")
@@ -83,7 +145,7 @@ def main():
 
         logger.info("✅ Client is running!")
         logger.info(f"🔍 Detection client ID: {detection_client.get_client_id()}")
-        logger.info(f"📡 Sending data to: {SERVER_URL}")
+        logger.info(f"📡 Sending data to {successful_connections} servers")
         logger.info(f"⏱️  Detection interval: {DETECTION_INTERVAL} seconds")
         logger.info("\nPress Ctrl+C to stop the client")
         logger.info("-" * 50)
@@ -105,8 +167,8 @@ def main():
         if 'detection_client' in locals():
             detection_client.stop_detection()
         
-        if 'server_connector' in locals():
-            server_connector.close()
+        if 'server_connector_manager' in locals():
+            server_connector_manager.close_all_connections()
             
         logger.info("✅ Client stopped")
 

@@ -1,7 +1,8 @@
 import json
 import time
 import threading
-from typing import Optional, Callable
+from typing import Optional, Callable, List, Dict, Union
+from dataclasses import dataclass
 import requests
 from datetime import datetime
 from loguru import logger
@@ -17,6 +18,48 @@ from src.shared.protocol.message_protocol import (
     GameUpdateMessage, 
     ClientRegistrationMessage
 )
+
+
+@dataclass
+class ServerConfig:
+    """Configuration for a single server connection."""
+    url: str
+    connector_type: str = 'auto'  # 'http', 'websocket', 'auto'
+    timeout: int = 10
+    retry_attempts: int = 3
+    retry_delay: int = 5
+    priority: int = 1  # Lower number = higher priority for failover
+    enabled: bool = True
+    
+    def __post_init__(self):
+        """Validate configuration after initialization."""
+        if self.connector_type not in ['http', 'websocket', 'auto']:
+            raise ValueError(f"Invalid connector_type: {self.connector_type}")
+        if self.priority < 1:
+            raise ValueError("Priority must be >= 1")
+        if self.timeout <= 0:
+            raise ValueError("Timeout must be > 0")
+        if self.retry_attempts < 0:
+            raise ValueError("Retry attempts must be >= 0")
+        if self.retry_delay < 0:
+            raise ValueError("Retry delay must be >= 0")
+    
+    @classmethod
+    def from_url(cls, url: str, **kwargs) -> 'ServerConfig':
+        """Create ServerConfig from URL string with optional overrides."""
+        return cls(url=url, **kwargs)
+    
+    def to_dict(self) -> Dict:
+        """Convert to dictionary."""
+        return {
+            'url': self.url,
+            'connector_type': self.connector_type,
+            'timeout': self.timeout,
+            'retry_attempts': self.retry_attempts,
+            'retry_delay': self.retry_delay,
+            'priority': self.priority,
+            'enabled': self.enabled
+        }
 
 
 class ServerConnector:
@@ -454,6 +497,257 @@ class WebSocketServerConnector:
         self.disconnect()
         self.response_handlers.clear()
         logger.info("🔌 WebSocket connector closed")
+
+
+class ServerConnectorManager:
+    """Manages multiple server connections with failover and health monitoring."""
+    
+    def __init__(self, server_configs: List[ServerConfig]):
+        """Initialize with list of server configurations."""
+        if not server_configs:
+            raise ValueError("At least one server configuration is required")
+        
+        self.server_configs = sorted(server_configs, key=lambda x: x.priority)
+        self.connectors: Dict[str, Union[ServerConnector, WebSocketServerConnector]] = {}
+        self.connection_status: Dict[str, bool] = {}
+        self.last_health_check: Dict[str, datetime] = {}
+        self.health_check_interval = 60  # seconds
+        
+        logger.info(f"🔗 ServerConnectorManager initialized with {len(server_configs)} servers")
+        for config in self.server_configs:
+            logger.info(f"   - {config.url} ({config.connector_type}, priority: {config.priority})")
+    
+    def connect_all_servers(self) -> Dict[str, bool]:
+        """Connect to all enabled servers."""
+        results = {}
+        
+        for config in self.server_configs:
+            if not config.enabled:
+                logger.info(f"⏭️ Skipping disabled server: {config.url}")
+                continue
+            
+            connector = self._create_connector(config)
+            if connector is None:
+                results[config.url] = False
+                continue
+            
+            self.connectors[config.url] = connector
+            
+            # Test connection
+            success = self._test_server_connection(config, connector)
+            results[config.url] = success
+            self.connection_status[config.url] = success
+            self.last_health_check[config.url] = datetime.now()
+            
+            if success:
+                logger.info(f"✅ Connected to server: {config.url}")
+            else:
+                logger.error(f"❌ Failed to connect to server: {config.url}")
+        
+        connected_count = sum(results.values())
+        logger.info(f"🔗 Connected to {connected_count}/{len(results)} servers")
+        
+        return results
+    
+    def register_with_all_servers(self, client_id: str) -> Dict[str, bool]:
+        """Register client with all connected servers."""
+        results = {}
+        
+        for url, connector in self.connectors.items():
+            if not self.connection_status.get(url, False):
+                logger.warning(f"⏭️ Skipping registration with disconnected server: {url}")
+                results[url] = False
+                continue
+            
+            try:
+                success = connector.register_client(client_id)
+                results[url] = success
+                
+                if success:
+                    logger.info(f"✅ Registered with server: {url}")
+                else:
+                    logger.error(f"❌ Registration failed with server: {url}")
+                    self.connection_status[url] = False
+                    
+            except Exception as e:
+                logger.error(f"❌ Registration error with {url}: {str(e)}")
+                results[url] = False
+                self.connection_status[url] = False
+        
+        successful_registrations = sum(results.values())
+        logger.info(f"📝 Registered with {successful_registrations}/{len(results)} servers")
+        
+        return results
+    
+    def send_to_all_servers(self, game_update: GameUpdateMessage) -> Dict[str, bool]:
+        """Send game update to all healthy servers."""
+        results = {}
+        
+        # Check if health checks are needed
+        self._perform_health_checks_if_needed()
+        
+        healthy_servers = self.get_healthy_connectors()
+        if not healthy_servers:
+            logger.error("❌ No healthy servers available for game update")
+            return results
+        
+        for url, connector in healthy_servers.items():
+            try:
+                success = connector.send_game_update(game_update)
+                results[url] = success
+                
+                if not success:
+                    logger.warning(f"⚠️ Game update failed for server: {url}")
+                    self.connection_status[url] = False
+                    
+            except Exception as e:
+                logger.error(f"❌ Game update error with {url}: {str(e)}")
+                results[url] = False
+                self.connection_status[url] = False
+        
+        successful_sends = sum(results.values())
+        if successful_sends > 0:
+            logger.debug(f"📤 Game update sent to {successful_sends}/{len(results)} servers")
+        else:
+            logger.error(f"❌ Game update failed for all servers")
+        
+        return results
+    
+    def get_healthy_connectors(self) -> Dict[str, Union[ServerConnector, WebSocketServerConnector]]:
+        """Get dictionary of healthy server connectors."""
+        healthy = {}
+        for url, connector in self.connectors.items():
+            if self.connection_status.get(url, False):
+                healthy[url] = connector
+        return healthy
+    
+    def get_server_status(self) -> Dict[str, Dict]:
+        """Get status of all servers."""
+        status = {}
+        for config in self.server_configs:
+            url = config.url
+            status[url] = {
+                'config': config.to_dict(),
+                'connected': self.connection_status.get(url, False),
+                'last_health_check': self.last_health_check.get(url),
+                'connector_available': url in self.connectors
+            }
+        return status
+    
+    def reconnect_failed_servers(self) -> Dict[str, bool]:
+        """Attempt to reconnect to failed servers."""
+        results = {}
+        
+        for config in self.server_configs:
+            if not config.enabled:
+                continue
+                
+            url = config.url
+            if self.connection_status.get(url, False):
+                continue  # Already connected
+            
+            logger.info(f"🔄 Attempting to reconnect to: {url}")
+            
+            if url not in self.connectors:
+                # Create new connector
+                connector = self._create_connector(config)
+                if connector is None:
+                    results[url] = False
+                    continue
+                self.connectors[url] = connector
+            
+            connector = self.connectors[url]
+            success = self._test_server_connection(config, connector)
+            results[url] = success
+            self.connection_status[url] = success
+            self.last_health_check[url] = datetime.now()
+            
+            if success:
+                logger.info(f"✅ Reconnected to server: {url}")
+            else:
+                logger.warning(f"❌ Reconnection failed for server: {url}")
+        
+        return results
+    
+    def close_all_connections(self):
+        """Close all server connections."""
+        logger.info("🔌 Closing all server connections...")
+        
+        for url, connector in self.connectors.items():
+            try:
+                connector.close()
+                logger.info(f"✅ Closed connection to: {url}")
+            except Exception as e:
+                logger.error(f"❌ Error closing connection to {url}: {str(e)}")
+        
+        self.connectors.clear()
+        self.connection_status.clear()
+        self.last_health_check.clear()
+        
+        logger.info("🔌 All connections closed")
+    
+    def _create_connector(self, config: ServerConfig) -> Optional[Union[ServerConnector, WebSocketServerConnector]]:
+        """Create connector for server configuration."""
+        try:
+            return ServerConnectorFactory.create_connector(
+                server_url=config.url,
+                connector_type=config.connector_type,
+                timeout=config.timeout,
+                retry_attempts=config.retry_attempts,
+                retry_delay=config.retry_delay
+            )
+        except Exception as e:
+            logger.error(f"❌ Failed to create connector for {config.url}: {str(e)}")
+            return None
+    
+    def _test_server_connection(self, config: ServerConfig, connector) -> bool:
+        """Test connection to a server."""
+        try:
+            if hasattr(connector, 'connect'):  # WebSocket connector
+                return connector.connect()
+            else:  # HTTP connector
+                return connector.test_connection()
+        except Exception as e:
+            logger.error(f"❌ Connection test failed for {config.url}: {str(e)}")
+            return False
+    
+    def _perform_health_checks_if_needed(self):
+        """Perform health checks if enough time has passed."""
+        current_time = datetime.now()
+        
+        for url in list(self.connection_status.keys()):
+            last_check = self.last_health_check.get(url)
+            if last_check is None:
+                continue
+            
+            time_since_check = (current_time - last_check).total_seconds()
+            if time_since_check >= self.health_check_interval:
+                self._perform_health_check(url)
+    
+    def _perform_health_check(self, url: str):
+        """Perform health check for specific server."""
+        if url not in self.connectors:
+            return
+        
+        connector = self.connectors[url]
+        config = next((c for c in self.server_configs if c.url == url), None)
+        if config is None:
+            return
+        
+        try:
+            is_healthy = self._test_server_connection(config, connector)
+            self.connection_status[url] = is_healthy
+            self.last_health_check[url] = datetime.now()
+            
+            if not is_healthy and self.connection_status.get(url, True):
+                logger.warning(f"⚠️ Health check failed for server: {url}")
+            elif is_healthy and not self.connection_status.get(url, False):
+                logger.info(f"✅ Server recovered: {url}")
+                
+        except Exception as e:
+            logger.error(f"❌ Health check error for {url}: {str(e)}")
+            self.connection_status[url] = False
+            self.last_health_check[url] = datetime.now()
 
 
 class ServerConnectorFactory:
