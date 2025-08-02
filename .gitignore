@@ -120,7 +120,7 @@ pip-wheel-metadata/
 !/libs/web3-wizzard-lib/web3_wizzard_lib/data/config_default.py
 !/libs/web3-wizzard-lib/web3_wizzard_lib/data/module_config_default.py
 
-/resources/logs/*
+/apps/table-detector/resources/logs/*
 node_modules
 .env
 coverage
@@ -136,5 +136,5 @@ artifacts
 /libs/web3-wizzard-lib/requirements.txt
 /libs/pk-encryptor/requirements.txt
 
-resources/*
-!resources/templates/
+/apps/table-detector/resources/*
+!/apps/table-detector/resources/templates/
