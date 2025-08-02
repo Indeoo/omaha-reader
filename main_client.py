@@ -12,71 +12,65 @@ load_dotenv()
 
 
 def parse_server_configurations() -> List[ServerConfig]:
-    """Parse server configurations from environment variables with backward compatibility."""
+    """Parse server configurations from environment variables."""
     
-    # Check for new SERVER_URLS array format first
+    # Check for SERVER_URLS first (preferred)
     server_urls_env = os.getenv('SERVER_URLS')
-    if server_urls_env:
+    if not server_urls_env:
+        # Fall back to single SERVER_URL and convert to array
+        server_url = os.getenv('SERVER_URL', 'http://localhost:5001')
+        server_urls_env = server_url
+        logger.info("📡 Converting single SERVER_URL to array format")
+    else:
         logger.info("📡 Using SERVER_URLS configuration")
-        try:
-            # Try parsing as JSON array first
-            if server_urls_env.startswith('['):
-                urls = json.loads(server_urls_env)
+    
+    try:
+        # Try parsing as JSON array first
+        if server_urls_env.startswith('['):
+            urls = json.loads(server_urls_env)
+        else:
+            # Treat as comma-separated URLs or single URL
+            urls = [url.strip() for url in server_urls_env.split(',') if url.strip()]
+        
+        configs = []
+        for i, url in enumerate(urls):
+            if isinstance(url, str):
+                # Simple URL string
+                config = ServerConfig.from_url(
+                    url=url,
+                    connector_type=os.getenv('CONNECTOR_TYPE', 'auto').lower(),
+                    timeout=int(os.getenv('CONNECTION_TIMEOUT', '10')),
+                    retry_attempts=int(os.getenv('RETRY_ATTEMPTS', '3')),
+                    retry_delay=int(os.getenv('RETRY_DELAY', '5')),
+                    priority=i + 1  # Order from configuration
+                )
+            elif isinstance(url, dict):
+                # Full configuration object
+                config = ServerConfig(
+                    url=url.get('url'),
+                    connector_type=url.get('connector_type', os.getenv('CONNECTOR_TYPE', 'auto')).lower(),
+                    timeout=url.get('timeout', int(os.getenv('CONNECTION_TIMEOUT', '10'))),
+                    retry_attempts=url.get('retry_attempts', int(os.getenv('RETRY_ATTEMPTS', '3'))),
+                    retry_delay=url.get('retry_delay', int(os.getenv('RETRY_DELAY', '5'))),
+                    priority=url.get('priority', i + 1),
+                    enabled=url.get('enabled', True)
+                )
             else:
-                # Fallback to comma-separated URLs
-                urls = [url.strip() for url in server_urls_env.split(',') if url.strip()]
+                logger.warning(f"⚠️ Invalid server config format: {url}")
+                continue
             
-            configs = []
-            for i, url in enumerate(urls):
-                if isinstance(url, str):
-                    # Simple URL string
-                    config = ServerConfig.from_url(
-                        url=url,
-                        connector_type=os.getenv('CONNECTOR_TYPE', 'auto').lower(),
-                        timeout=int(os.getenv('CONNECTION_TIMEOUT', '10')),
-                        retry_attempts=int(os.getenv('RETRY_ATTEMPTS', '3')),
-                        retry_delay=int(os.getenv('RETRY_DELAY', '5')),
-                        priority=i + 1  # Order from configuration
-                    )
-                elif isinstance(url, dict):
-                    # Full configuration object
-                    config = ServerConfig(
-                        url=url.get('url'),
-                        connector_type=url.get('connector_type', os.getenv('CONNECTOR_TYPE', 'auto')).lower(),
-                        timeout=url.get('timeout', int(os.getenv('CONNECTION_TIMEOUT', '10'))),
-                        retry_attempts=url.get('retry_attempts', int(os.getenv('RETRY_ATTEMPTS', '3'))),
-                        retry_delay=url.get('retry_delay', int(os.getenv('RETRY_DELAY', '5'))),
-                        priority=url.get('priority', i + 1),
-                        enabled=url.get('enabled', True)
-                    )
-                else:
-                    logger.warning(f"⚠️ Invalid server config format: {url}")
-                    continue
+            configs.append(config)
+        
+        if not configs:
+            raise ValueError("No valid server configurations found")
+        
+        return configs
                 
-                configs.append(config)
-            
-            if configs:
-                return configs
-            else:
-                logger.warning("⚠️ No valid server configurations found in SERVER_URLS")
-                
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.error(f"❌ Error parsing SERVER_URLS: {str(e)}")
-    
-    # Backward compatibility: fall back to single SERVER_URL
-    server_url = os.getenv('SERVER_URL', 'http://localhost:5001')
-    logger.info("📡 Using backward compatible SERVER_URL configuration")
-    
-    config = ServerConfig.from_url(
-        url=server_url,
-        connector_type=os.getenv('CONNECTOR_TYPE', 'auto').lower(),
-        timeout=int(os.getenv('CONNECTION_TIMEOUT', '10')),
-        retry_attempts=int(os.getenv('RETRY_ATTEMPTS', '3')),
-        retry_delay=int(os.getenv('RETRY_DELAY', '5')),
-        priority=1
-    )
-    
-    return [config]
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(f"❌ Error parsing server configuration: {str(e)}")
+        # Default fallback
+        logger.info("📡 Using default localhost configuration")
+        return [ServerConfig.from_url('http://localhost:5001')]
 
 
 # Client Configuration

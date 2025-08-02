@@ -222,19 +222,14 @@ class DetectionClient:
         return protocol_positions
 
     def register_with_server(self) -> bool:
-        """Register this client with the server(s)."""
+        """Register this client with all servers."""
         if not self._validate_server_connector("registration"):
             return False
 
-        # Check if it's a ServerConnectorManager (multi-server) or single connector
-        if hasattr(self.server_connector, 'register_with_all_servers'):
-            # Multi-server setup
-            results = self.server_connector.register_with_all_servers(self.client_id)
-            successful_registrations = sum(results.values())
-            return successful_registrations > 0
-        else:
-            # Single server setup (backward compatibility)
-            return self.server_connector.register_client(self.client_id)
+        # Always using ServerConnectorManager now
+        results = self.server_connector.register_with_all_servers(self.client_id)
+        successful_registrations = sum(results.values())
+        return successful_registrations > 0
 
     def get_client_id(self) -> str:
         """Get the client ID."""
