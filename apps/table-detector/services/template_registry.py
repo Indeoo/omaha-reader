@@ -18,7 +18,7 @@ class TemplateRegistry:
         self._actions_templates: Optional[Dict[str, np.ndarray]] = None
         self._jurojin_action_templates: Optional[Dict[str, np.ndarray]] = None
 
-        self._templates_dir = os.path.join(project_root, "resources", "templates", country)
+        self._templates_dir = os.path.join(project_root, "apps", "table-detector", "resources", "templates", country)
 
     @staticmethod
     def load_templates(template_dir):
