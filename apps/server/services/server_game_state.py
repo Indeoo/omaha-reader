@@ -2,7 +2,10 @@ from typing import Dict, List, Optional, Any
 from datetime import datetime
 from dataclasses import dataclass
 
-from apps.shared.protocol.message_protocol import GameUpdateMessage
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
+from protocol.message_protocol import GameUpdateMessage
 
 
 @dataclass

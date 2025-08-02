@@ -7,8 +7,8 @@ from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from loguru import logger
 
-from apps.server.services.game_data_receiver import GameDataReceiver
-from apps.server.services.server_game_state import ServerGameStateService
+from .services.game_data_receiver import GameDataReceiver
+from .services.server_game_state import ServerGameStateService
 
 
 class ServerWebApi:

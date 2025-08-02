@@ -2,13 +2,16 @@ from typing import Optional, Callable
 from loguru import logger
 from datetime import datetime
 
-from apps.shared.protocol.message_protocol import (
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
+from protocol.message_protocol import (
     GameUpdateMessage, 
     ClientRegistrationMessage, 
     MessageParser,
     ServerResponseMessage
 )
-from apps.server.services.server_game_state import ServerGameStateService
+from .server_game_state import ServerGameStateService
 
 
 class GameDataReceiver:
