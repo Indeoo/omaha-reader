@@ -79,7 +79,7 @@ def parse_server_configurations() -> List[ServerConfig]:
 # Client Configuration
 SERVER_CONFIGS = parse_server_configurations()
 CLIENT_ID = os.getenv('CLIENT_ID', None)  # Auto-generated if not provided
-DETECTION_INTERVAL = int(os.getenv('DETECTION_INTERVAL', '10'))
+DETECTION_INTERVAL = int(os.getenv('DETECTION_INTERVAL', '3'))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 COUNTRY = os.getenv('COUNTRY', "canada").lower()
 
