@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Card Detector - Client {{ client_id }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='poker-app.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="client-header-main">
+            <div class="client-nav">
+                <a href="/" class="back-link">← All Clients</a>
+                <h1>🎰 Client: {{ client_id }}</h1>
+                <div class="client-status" id="clientStatus">
+                    <span class="status-indicator" id="statusIndicator">🔴</span>
+                    <span id="statusText">Connecting...</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status" id="status">Connecting to client {{ client_id }}...</div>
+        <div id="content">
+            <div class="loading">Connecting to client {{ client_id }}...</div>
+        </div>
+    </div>
+
+    <div class="connection-status connecting" id="connectionStatus">
+        🔗 Connecting...
+    </div>
+
+    <div class="timer-info" id="timerInfo">
+        <div>Client: <span class="client-name">{{ client_id }}</span></div>
+        <div>Mode: <span class="countdown">Real-time WebSocket</span></div>
+        <div>Backend: <span id="backendInfo">-</span>s</div>
+    </div>
+
+    <div class="update-indicator" id="updateIndicator">
+        🔄
+    </div>
+
+    <div class="toast" id="toast">Copied to clipboard!</div>
+
+    <script>
+        // Pass client_id to JavaScript
+        window.CLIENT_ID = '{{ client_id }}';
+    </script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='client-app.js') }}"></script>
+</body>
+</html>
