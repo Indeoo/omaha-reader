@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime
 import json
 
-from apps.shared.domain.domain.detection import Detection
+from ..domain.domain.detection import Detection
 
 
 @dataclass

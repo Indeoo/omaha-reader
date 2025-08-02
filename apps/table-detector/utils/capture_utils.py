@@ -4,9 +4,9 @@ from typing import List, Dict
 from PIL import ImageGrab, Image
 from loguru import logger
 
-from apps.shared.domain.domain.captured_window import CapturedWindow
-from apps.client.utils.fs_utils import get_image_names
-from apps.client.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, \
+from shared.domain.domain.captured_window import CapturedWindow
+from utils.fs_utils import get_image_names
+from utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region, \
     write_windows_list
 
 

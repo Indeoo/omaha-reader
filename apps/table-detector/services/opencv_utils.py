@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 from loguru import logger
 
-from apps.shared.domain.domain.detected_bid import DetectedBid
+from shared.domain.domain.detected_bid import DetectedBid
 
 
 def pil_to_cv2(pil_image: Image.Image) -> np.ndarray:

@@ -4,8 +4,8 @@ import unittest
 import cv2
 from matplotlib import pyplot as plt
 
-from apps.client.utils.detect_utils import DetectUtils
-from apps.client.utils.drawing_utils import draw_all_detections, DetectionGroup, DetectionType, _flatten_action_lists
+from utils.detect_utils import DetectUtils
+from utils.drawing_utils import draw_all_detections, DetectionGroup, DetectionType, _flatten_action_lists
 
 
 class TestDetectUtils(unittest.TestCase):

@@ -14,7 +14,7 @@ except ImportError:
     SOCKETIO_AVAILABLE = False
     logger.warning("python-socketio not installed. WebSocket connector will not be available.")
 
-from apps.shared.protocol.message_protocol import (
+from shared.protocol.message_protocol import (
     GameUpdateMessage, 
     ClientRegistrationMessage
 )

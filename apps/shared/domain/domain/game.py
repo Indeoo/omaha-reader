@@ -2,11 +2,11 @@ from typing import List, Dict, Optional, Tuple
 from datetime import datetime
 from collections import defaultdict
 
-from apps.shared.domain.domain.street import Street
-from apps.shared.domain.domain.detection import Detection
-from apps.shared.domain.domain.position import Position
-from apps.shared.domain.domain.moves import MoveType
-from apps.shared.utils.card_format_utils import format_cards_simple
+from .street import Street
+from .detection import Detection
+from .position import Position
+from .moves import MoveType
+from ...utils.card_format_utils import format_cards_simple
 
 
 class Game:

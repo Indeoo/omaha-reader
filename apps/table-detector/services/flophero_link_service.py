@@ -2,11 +2,11 @@ from typing import List, Dict, Optional, Tuple
 from urllib.parse import urlencode
 from loguru import logger
 
-from apps.shared.domain.domain.game import Game
-from apps.shared.domain.domain.street import Street
-from apps.shared.domain.domain.moves import MoveType
-from apps.shared.domain.domain.position import Position
-from apps.shared.domain.domain.detection import Detection
+from shared.domain.domain.game import Game
+from shared.domain.domain.street import Street
+from shared.domain.domain.moves import MoveType
+from shared.domain.domain.position import Position
+from shared.domain.domain.detection import Detection
 
 
 class FlopHeroLinkService:

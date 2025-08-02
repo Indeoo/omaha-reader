@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from loguru import logger
 
-from apps.client.services.opencv_utils import match_template_at_scale
+from services.opencv_utils import match_template_at_scale
 
 
 def find_template_matches_parallel(

@@ -4,7 +4,7 @@ from typing import Dict, Optional
 import numpy as np
 from loguru import logger
 
-from apps.client.services.opencv_utils import read_cv2_image
+from services.opencv_utils import read_cv2_image
 
 
 class TemplateRegistry:

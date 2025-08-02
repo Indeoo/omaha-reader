@@ -1,8 +1,8 @@
 from typing import Dict, List, Tuple, Set, Optional
 from enum import Enum
-from apps.shared.domain.domain.moves import MoveType
-from apps.shared.domain.domain.position import Position
-from apps.shared.domain.domain.street import Street
+from .moves import MoveType
+from .position import Position
+from .street import Street
 
 
 class GameState(Enum):

@@ -2,14 +2,14 @@ import traceback
 
 from loguru import logger
 
-from apps.shared.domain.domain.captured_window import CapturedWindow
-from apps.shared.domain.domain.game_snapshot import GameSnapshot
-from apps.client.services.game_state_service import GameStateService
-from apps.client.services.omaha_action_processor import group_moves_by_street
-from apps.client.services.template_matcher_service import TemplateMatchService
-from apps.client.utils.bid_detect_utils import detect_bids
-from apps.client.utils.detect_utils import DetectUtils
-from apps.client.utils.drawing_utils import save_detection_result
+from shared.domain.domain.captured_window import CapturedWindow
+from shared.domain.domain.game_snapshot import GameSnapshot
+from services.game_state_service import GameStateService
+from services.omaha_action_processor import group_moves_by_street
+from services.template_matcher_service import TemplateMatchService
+from utils.bid_detect_utils import detect_bids
+from utils.detect_utils import DetectUtils
+from utils.drawing_utils import save_detection_result
 
 
 class PokerGameProcessor:

@@ -4,7 +4,10 @@ import hashlib
 import numpy as np
 from loguru import logger
 
-from apps.client.services.opencv_utils import pil_to_cv2
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'table-detector'))
+from services.opencv_utils import pil_to_cv2
 
 
 class CapturedWindow:

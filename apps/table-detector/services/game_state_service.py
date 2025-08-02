@@ -2,12 +2,12 @@ from typing import List, Dict, Optional
 
 from loguru import logger
 
-from apps.shared.domain.domain.game import Game
-from apps.shared.domain.domain.game_snapshot import GameSnapshot
-from apps.shared.domain.domain.detection import Detection
-from apps.shared.domain.domain.position import Position
-from apps.client.services.state_repository import GameStateRepository
-from apps.shared.utils.card_format_utils import format_cards_simple
+from shared.domain.domain.game import Game
+from shared.domain.domain.game_snapshot import GameSnapshot
+from shared.domain.domain.detection import Detection
+from shared.domain.domain.position import Position
+from services.state_repository import GameStateRepository
+from shared.utils.card_format_utils import format_cards_simple
 
 
 class GameStateService:
@@ -163,7 +163,7 @@ class GameStateService:
 
 
     def _get_solver_link_for_web(self, game: Game) -> Optional[str]:
-        from apps.client.services.flophero_link_service import FlopHeroLinkService
+        from services.flophero_link_service import FlopHeroLinkService
 
         # Only generate link if we have meaningful data
         if not (game.player_cards or game.table_cards) and not game.has_moves():

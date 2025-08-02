@@ -3,9 +3,9 @@ from typing import List, Dict
 import numpy as np
 from loguru import logger
 
-from apps.client.services.template_matcher_service import TemplateMatchService
-from apps.shared.domain.domain.detection import Detection
-from apps.client.services.opencv_utils import coords_to_search_region
+from services.template_matcher_service import TemplateMatchService
+from shared.domain.domain.detection import Detection
+from services.opencv_utils import coords_to_search_region
 
 ACTION_POSITIONS = {
     1: (300, 430, 200, 30),  # Bottom center (hero)

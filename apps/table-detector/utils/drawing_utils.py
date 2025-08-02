@@ -4,12 +4,12 @@ import cv2
 import numpy as np
 from loguru import logger
 
-from apps.shared.domain.domain.captured_window import CapturedWindow
-from apps.shared.domain.domain.detected_bid import DetectedBid
-from apps.shared.domain.domain.game_snapshot import GameSnapshot
-from apps.shared.domain.domain.detection import Detection
-from apps.client.utils.detect_utils import PLAYER_POSITIONS, ACTION_POSITIONS
-from apps.client.services.opencv_utils import save_opencv_image
+from shared.domain.domain.captured_window import CapturedWindow
+from shared.domain.domain.detected_bid import DetectedBid
+from shared.domain.domain.game_snapshot import GameSnapshot
+from shared.domain.domain.detection import Detection
+from utils.detect_utils import PLAYER_POSITIONS, ACTION_POSITIONS
+from services.opencv_utils import save_opencv_image
 
 
 class DetectionType(Enum):

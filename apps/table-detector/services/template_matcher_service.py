@@ -5,9 +5,9 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 
-from apps.shared.domain.domain.detection import Detection
-from apps.client.services.template_registry import TemplateRegistry
-from apps.client.utils.template_matching_utils import (
+from shared.domain.domain.detection import Detection
+from services.template_registry import TemplateRegistry
+from utils.template_matching_utils import (
     find_single_template_matches,
     filter_overlapping_detections,
     sort_detections_by_position
