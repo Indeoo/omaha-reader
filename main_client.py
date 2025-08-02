@@ -9,7 +9,7 @@ from src.client.connectors.server_connector import ServerConnectorFactory
 load_dotenv()
 
 # Client Configuration
-SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5003')
+SERVER_URL = os.getenv('SERVER_URL', 'https://omaha-reader-d8e5455cfdd5.herokuapp.com/')
 CLIENT_ID = os.getenv('CLIENT_ID', None)  # Auto-generated if not provided
 DETECTION_INTERVAL = int(os.getenv('DETECTION_INTERVAL', '10'))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'

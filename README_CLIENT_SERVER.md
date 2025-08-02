@@ -308,3 +308,5 @@ heroku builds:create --app omaha-reader
 heroku logs --tail --app omaha-reader
 heroku restart --app omaha-reader
 heroku run bash -a omaha-reader
+
+heroku open --app omaha-reader
