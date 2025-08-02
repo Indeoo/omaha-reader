@@ -212,9 +212,20 @@ function createTableContainer(detection, isUpdate) {
         mainCardsContent += positionsSection;
     }
 
+    const clientId = detection.client_id || 'Unknown';
+    const clientLink = detection.client_id ? `/client/${detection.client_id}` : '#';
+
     return `
         <div class="${tableClass}">
-            <div class="table-name">${detection.window_name}</div>
+            <div class="client-header">
+                <div class="client-info">
+                    <a href="${clientLink}" class="client-link">
+                        <span class="client-id">Client: ${clientId}</span>
+                    </a>
+                    <span class="window-name">${detection.window_name}</span>
+                </div>
+                <div class="last-update">Updated: ${new Date(detection.last_update).toLocaleTimeString()}</div>
+            </div>
             <div class="main-cards-section">
                 ${mainCardsContent}
             </div>
@@ -300,7 +311,7 @@ function initializeSocketIO() {
     });
 
     socket.on('detection_update', function(data) {
-        console.log('Received detection update:', data);
+        console.log('Received global detection update:', data);
 
         const hasChanges = detectChanges(data.detections);
         if (hasChanges) {
@@ -309,7 +320,16 @@ function initializeSocketIO() {
 
         updateStatus(data.last_update);
         renderCards(data.detections, hasChanges);
+        updateClientsNavigation(data.detections);
         previousDetections = data.detections;
+    });
+
+    socket.on('client_data_changed', function(data) {
+        console.log('Received incremental client update:', data);
+        
+        // Handle incremental update for specific client
+        updateClientDataIncrementally(data.client_id, data.client_data);
+        showUpdateIndicator();
     });
 
     socket.on('connect_error', function(error) {
@@ -330,8 +350,82 @@ async function loadConfig() {
     }
 }
 
+async function loadClientsList() {
+    try {
+        const response = await fetch('/api/clients');
+        const data = await response.json();
+        
+        const clientsNav = document.getElementById('clientsNav');
+        const clientCount = document.getElementById('clientCount');
+        const clientLinks = document.getElementById('clientLinks');
+        
+        if (data.connected_clients && data.connected_clients.length > 0) {
+            clientCount.textContent = data.connected_clients.length;
+            
+            const linksHtml = data.connected_clients.map(clientId => 
+                `<a href="/client/${clientId}" class="client-nav-link">${clientId}</a>`
+            ).join('');
+            
+            clientLinks.innerHTML = linksHtml;
+            clientsNav.style.display = 'block';
+        } else {
+            clientsNav.style.display = 'none';
+        }
+        
+        console.log('Loaded clients list:', data.connected_clients);
+    } catch (error) {
+        console.error('Error loading clients list:', error);
+    }
+}
+
+function updateClientsNavigation(detections) {
+    // Extract unique client IDs from detections
+    const clientIds = [...new Set(detections.map(d => d.client_id).filter(id => id))];
+    
+    const clientsNav = document.getElementById('clientsNav');
+    const clientCount = document.getElementById('clientCount');
+    const clientLinks = document.getElementById('clientLinks');
+    
+    if (clientIds.length > 0) {
+        clientCount.textContent = clientIds.length;
+        
+        const linksHtml = clientIds.map(clientId => 
+            `<a href="/client/${clientId}" class="client-nav-link">${clientId}</a>`
+        ).join('');
+        
+        clientLinks.innerHTML = linksHtml;
+        clientsNav.style.display = 'block';
+    } else {
+        clientsNav.style.display = 'none';
+    }
+}
+
+function updateClientDataIncrementally(clientId, clientData) {
+    // Update existing detections array with new client data
+    if (!previousDetections || !Array.isArray(previousDetections)) {
+        previousDetections = [];
+    }
+    
+    // Remove old data for this client
+    const otherClientsData = previousDetections.filter(d => d.client_id !== clientId);
+    
+    // Add new data for this client
+    const newDetections = [...otherClientsData, ...clientData.detections];
+    
+    // Update the display
+    updateStatus(clientData.last_update);
+    renderCards(newDetections, true); // Mark as update for animations
+    updateClientsNavigation(newDetections);
+    
+    // Update cached data
+    previousDetections = newDetections;
+    
+    console.log(`Incrementally updated client ${clientId}: ${clientData.detections.length} tables`);
+}
+
 async function initialize() {
     await loadConfig();
+    await loadClientsList();
 
     if (typeof io !== "undefined") {
         console.log('Initializing with SocketIO...');

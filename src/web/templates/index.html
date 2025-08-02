@@ -8,7 +8,16 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎰 Poker Card Detector</h1>
+        <h1>🎰 Poker Card Detector - All Clients</h1>
+        <div class="clients-nav" id="clientsNav" style="display: none;">
+            <div class="nav-header">
+                <span class="nav-title">Connected Clients:</span>
+                <span class="client-count" id="clientCount">0</span>
+            </div>
+            <div class="client-links" id="clientLinks">
+                <!-- Client links will be populated by JavaScript -->
+            </div>
+        </div>
         <div class="status" id="status">Connecting to server...</div>
         <div id="content">
             <div class="loading">Connecting...</div>

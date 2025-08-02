@@ -14,11 +14,20 @@ from src.server.services.server_game_state import ServerGameStateService
 class GameDataReceiver:
     def __init__(self, game_state_service: ServerGameStateService):
         self.game_state_service = game_state_service
-        self.update_callbacks: list[Callable] = []
+        self.global_update_callbacks: list[Callable] = []
+        self.client_update_callbacks: list[Callable] = []
 
     def add_update_callback(self, callback: Callable[[dict], None]) -> None:
-        """Add callback to be called when game state updates occur."""
-        self.update_callbacks.append(callback)
+        """Add callback to be called when game state updates occur (legacy - global updates)."""
+        self.global_update_callbacks.append(callback)
+    
+    def add_global_update_callback(self, callback: Callable[[dict], None]) -> None:
+        """Add callback for global updates (all clients data)."""
+        self.global_update_callbacks.append(callback)
+    
+    def add_client_update_callback(self, callback: Callable[[str, str, dict], None]) -> None:
+        """Add callback for client-specific updates (client_id, window_name, client_data)."""
+        self.client_update_callbacks.append(callback)
 
     def handle_client_message(self, message_json: str, client_id: Optional[str] = None) -> Optional[ServerResponseMessage]:
         """Process incoming message from client and return response if needed."""
@@ -63,8 +72,11 @@ class GameDataReceiver:
             
             logger.info(f"🎯 Game state updated - Client: {message.client_id}, Window: {message.window_name}")
             
-            # Notify all registered callbacks
-            self._notify_update_callbacks()
+            # Notify client-specific callbacks first (more efficient)
+            self._notify_client_update_callbacks(message.client_id, message.window_name)
+            
+            # Notify global callbacks (for main view)
+            self._notify_global_update_callbacks()
             
             return MessageParser.create_response("success", "Game state updated")
         
@@ -73,7 +85,11 @@ class GameDataReceiver:
             return MessageParser.create_response("error", f"Update failed: {str(e)}")
 
     def _notify_update_callbacks(self) -> None:
-        """Notify all registered callbacks that game state has updated."""
+        """Notify all registered callbacks that game state has updated (legacy method)."""
+        self._notify_global_update_callbacks()
+    
+    def _notify_global_update_callbacks(self) -> None:
+        """Notify global callbacks with all clients data."""
         try:
             # Get current state data
             current_state = self.game_state_service.get_all_game_states()
@@ -85,15 +101,53 @@ class GameDataReceiver:
                 'last_update': current_state['last_update']
             }
             
-            # Call all registered callbacks
-            for callback in self.update_callbacks:
+            # Call all registered global callbacks
+            for callback in self.global_update_callbacks:
                 try:
                     callback(notification_data)
                 except Exception as e:
-                    logger.error(f"Error in update callback: {str(e)}")
+                    logger.error(f"Error in global update callback: {str(e)}")
         
         except Exception as e:
-            logger.error(f"Error notifying update callbacks: {str(e)}")
+            logger.error(f"Error notifying global update callbacks: {str(e)}")
+    
+    def _notify_client_update_callbacks(self, client_id: str, window_name: str) -> None:
+        """Notify client-specific callbacks with targeted data."""
+        try:
+            # Get only this client's data (efficient)
+            client_games = self.game_state_service.get_client_game_states(client_id)
+            
+            if not client_games:
+                logger.warning(f"No data found for client {client_id}")
+                return
+            
+            # Find the latest update time for this client
+            latest_update = None
+            for game in client_games:
+                if 'last_update' in game:
+                    game_time = datetime.fromisoformat(game['last_update'].replace('Z', '+00:00'))
+                    if latest_update is None or game_time > latest_update:
+                        latest_update = game_time
+            
+            # Prepare client-specific notification data
+            client_data = {
+                'type': 'client_detection_update',
+                'client_id': client_id,
+                'window_name': window_name,
+                'detections': client_games,
+                'last_update': latest_update.isoformat() if latest_update else datetime.now().isoformat(),
+                'total_tables': len(client_games)
+            }
+            
+            # Call all registered client-specific callbacks
+            for callback in self.client_update_callbacks:
+                try:
+                    callback(client_id, window_name, client_data)
+                except Exception as e:
+                    logger.error(f"Error in client update callback for {client_id}: {str(e)}")
+        
+        except Exception as e:
+            logger.error(f"Error notifying client update callbacks for {client_id}: {str(e)}")
 
     def handle_client_disconnect(self, client_id: str) -> None:
         """Handle client disconnection."""
@@ -101,8 +155,8 @@ class GameDataReceiver:
             self.game_state_service.disconnect_client(client_id)
             logger.info(f"🔌 Client disconnected: {client_id}")
             
-            # Notify callbacks of state change
-            self._notify_update_callbacks()
+            # Notify global callbacks of state change (main view needs to update)
+            self._notify_global_update_callbacks()
         
         except Exception as e:
             logger.error(f"Error handling client disconnect {client_id}: {str(e)}")

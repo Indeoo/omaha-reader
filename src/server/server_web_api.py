@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+from datetime import datetime
 from flask import Flask, render_template, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
@@ -22,14 +23,34 @@ class ServerWebApi:
         self.game_state_service = ServerGameStateService()
         self.game_data_receiver = GameDataReceiver(self.game_state_service)
         
-        # Register callback to notify web clients when game state updates
-        self.game_data_receiver.add_update_callback(self._on_game_state_update)
+        # Register callbacks to notify web clients when game state updates
+        self.game_data_receiver.add_global_update_callback(self._on_global_update)
+        self.game_data_receiver.add_client_update_callback(self._on_client_update)
 
-    def _on_game_state_update(self, data: dict):
-        """Called when game state is updated from client."""
+    def _on_global_update(self, data: dict):
+        """Called when global game state needs to be broadcast (all clients data)."""
         if self.socketio:
+            # Broadcast to all web clients (main view showing all clients)
             self.socketio.emit('detection_update', data)
-            logger.info(f"🔄 Broadcasted update to web clients: {len(data.get('detections', []))} games")
+            logger.info(f"🔄 Global update broadcast: {len(data.get('detections', []))} total games")
+    
+    def _on_client_update(self, client_id: str, window_name: str, client_data: dict):
+        """Called when specific client data is updated (targeted update)."""
+        if self.socketio:
+            # Send targeted update to client-specific room (O(1) operation)
+            self.socketio.emit('client_detection_update', client_data, room=f"client_{client_id}")
+            
+            # Send incremental update to main view (only the changed client data)
+            incremental_data = {
+                'type': 'client_data_changed',
+                'client_id': client_id,
+                'window_name': window_name,
+                'client_data': client_data,
+                'timestamp': datetime.now().isoformat()
+            }
+            self.socketio.emit('client_data_changed', incremental_data)
+            
+            logger.info(f"🎯 Client-specific update: {client_id}/{window_name} → {len(client_data.get('detections', []))} tables")
 
     def create_app(self):
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -54,6 +75,16 @@ class ServerWebApi:
         def index():
             return render_template('index.html')
 
+        @app.route('/client/<client_id>')
+        def client_view(client_id):
+            """Individual client view page."""
+            # Check if client exists
+            connected_clients = self.game_data_receiver.get_connected_clients()
+            if client_id not in connected_clients:
+                return render_template('index.html', error=f"Client '{client_id}' not found"), 404
+            
+            return render_template('client.html', client_id=client_id)
+
         @app.route('/api/config')
         def get_config():
             return jsonify({
@@ -63,6 +94,47 @@ class ServerWebApi:
                 'show_moves': self.show_moves,
                 'show_solver_link': self.show_solver_link
             })
+
+        @app.route('/api/client/<client_id>/config')
+        def get_client_config(client_id):
+            """Client-specific configuration."""
+            # Check if client exists
+            connected_clients = self.game_data_receiver.get_connected_clients()
+            if client_id not in connected_clients:
+                return jsonify({'error': 'Client not found'}), 404
+            
+            return jsonify({
+                'client_id': client_id,
+                'backend_capture_interval': int(os.getenv('DETECTION_INTERVAL', '10')),
+                'show_table_cards': self.show_table_cards,
+                'show_positions': self.show_positions,
+                'show_moves': self.show_moves,
+                'show_solver_link': self.show_solver_link
+            })
+
+        @app.route('/api/client/<client_id>/data')
+        def get_client_data(client_id):
+            """Get data for a specific client."""
+            try:
+                client_games = self.game_state_service.get_client_game_states(client_id)
+                latest_update = None
+                
+                # Find the latest update time
+                for game in client_games:
+                    if 'last_update' in game:
+                        game_time = datetime.fromisoformat(game['last_update'].replace('Z', '+00:00'))
+                        if latest_update is None or game_time > latest_update:
+                            latest_update = game_time
+                
+                return jsonify({
+                    'client_id': client_id,
+                    'detections': client_games,
+                    'last_update': latest_update.isoformat() if latest_update else datetime.now().isoformat(),
+                    'total_tables': len(client_games)
+                })
+            except Exception as e:
+                logger.error(f"Error getting client data for {client_id}: {str(e)}")
+                return jsonify({'error': str(e)}), 500
 
         @app.route('/api/clients')
         def get_connected_clients():
@@ -141,6 +213,54 @@ class ServerWebApi:
         @self.socketio.on('disconnect')
         def handle_web_client_disconnect():
             logger.info(f"🔌 Web client disconnected")
+
+        @self.socketio.on('subscribe_client')
+        def handle_subscribe_client(data):
+            """Subscribe to updates for a specific client."""
+            try:
+                client_id = data.get('client_id')
+                if not client_id:
+                    emit('subscription_error', {'error': 'client_id required'})
+                    return
+                
+                # Join room for this client
+                from flask_socketio import join_room
+                join_room(f"client_{client_id}")
+                
+                # Send current state for this client
+                client_games = self.game_state_service.get_client_game_states(client_id)
+                latest_update = None
+                
+                for game in client_games:
+                    if 'last_update' in game:
+                        game_time = datetime.fromisoformat(game['last_update'].replace('Z', '+00:00'))
+                        if latest_update is None or game_time > latest_update:
+                            latest_update = game_time
+                
+                emit('client_detection_update', {
+                    'type': 'client_detection_update',
+                    'client_id': client_id,
+                    'detections': client_games,
+                    'last_update': latest_update.isoformat() if latest_update else datetime.now().isoformat()
+                })
+                
+                logger.info(f"📤 Client {client_id} subscription established: {len(client_games)} games")
+                
+            except Exception as e:
+                logger.error(f"Error in client subscription: {str(e)}")
+                emit('subscription_error', {'error': str(e)})
+
+        @self.socketio.on('unsubscribe_client')
+        def handle_unsubscribe_client(data):
+            """Unsubscribe from client updates."""
+            try:
+                client_id = data.get('client_id')
+                if client_id:
+                    from flask_socketio import leave_room
+                    leave_room(f"client_{client_id}")
+                    logger.info(f"📤 Client {client_id} subscription ended")
+            except Exception as e:
+                logger.error(f"Error in client unsubscription: {str(e)}")
 
         @self.socketio.on('client_register')
         def handle_client_register_ws(data):
