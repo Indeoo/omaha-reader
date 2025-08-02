@@ -35,9 +35,10 @@ def parse_server_configurations() -> List[ServerConfig]:
         configs = []
         for i, url in enumerate(urls):
             if isinstance(url, str):
-                # Simple URL string
+                # Clean URL string (remove quotes if present)
+                clean_url = url.strip().strip('"').strip("'")
                 config = ServerConfig.from_url(
-                    url=url,
+                    url=clean_url,
                     connector_type=os.getenv('CONNECTOR_TYPE', 'auto').lower(),
                     timeout=int(os.getenv('CONNECTION_TIMEOUT', '10')),
                     retry_attempts=int(os.getenv('RETRY_ATTEMPTS', '3')),
@@ -46,8 +47,10 @@ def parse_server_configurations() -> List[ServerConfig]:
                 )
             elif isinstance(url, dict):
                 # Full configuration object
+                raw_url = url.get('url', '')
+                clean_url = raw_url.strip().strip('"').strip("'") if raw_url else ''
                 config = ServerConfig(
-                    url=url.get('url'),
+                    url=clean_url,
                     connector_type=url.get('connector_type', os.getenv('CONNECTOR_TYPE', 'auto')).lower(),
                     timeout=url.get('timeout', int(os.getenv('CONNECTION_TIMEOUT', '10'))),
                     retry_attempts=url.get('retry_attempts', int(os.getenv('RETRY_ATTEMPTS', '3'))),
