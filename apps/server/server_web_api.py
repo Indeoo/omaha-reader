@@ -54,11 +54,11 @@ class ServerWebApi:
 
     def create_app(self):
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        template_dir = os.path.abspath(os.path.join(current_dir, '..', '..', '..', 'src', 'templates'))
+        template_dir = os.path.abspath(os.path.join(current_dir, 'web', 'templates'))
 
         app = Flask(__name__,
-                    template_folder="../web/templates",
-                    static_folder="../web/templates/static")
+                    template_folder="web/templates",
+                    static_folder="web/templates/static")
 
         CORS(app, origins="*")
 

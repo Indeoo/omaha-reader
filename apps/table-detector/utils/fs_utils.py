@@ -4,7 +4,7 @@ from datetime import datetime
 
 from loguru import logger
 
-DEBUG_FOLDER = "src/test/resources/default_debug"
+DEBUG_FOLDER = "test/resources/default_debug"
 
 
 def create_timestamp_folder(DEBUG_MODE=False) -> str:
