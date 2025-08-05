@@ -24,7 +24,7 @@ from services.poker_game_processor import PokerGameProcessor
 from utils.fs_utils import create_timestamp_folder, create_window_folder
 from utils.logs import load_logger
 from utils.windows_utils import initialize_platform
-from shared.protocol.message_protocol import GameUpdateMessage
+from shared.protocol.message_protocol import GameUpdateMessage, TableRemovalMessage
 
 
 class DetectionClient:
@@ -141,6 +141,10 @@ class DetectionClient:
         for window_name in removed_window_names:
             logger.info(f"    Removing: {window_name}")
 
+        # Send removal message to server before updating local state
+        self._send_removal_message(removed_window_names)
+        
+        # Remove from local state
         self.game_state_service.remove_windows(removed_window_names)
 
     def _send_updates_to_server(self):
@@ -205,6 +209,46 @@ class DetectionClient:
 
         except Exception as e:
             logger.error(f"Error preparing game update: {str(e)}")
+
+    def _send_removal_message(self, removed_window_names):
+        """Send table removal message to server."""
+        if not self._validate_server_connector("sending removal message"):
+            return
+
+        if not removed_window_names:
+            return
+
+        try:
+            # Create removal message
+            removal_message = TableRemovalMessage(
+                type='table_removal',
+                client_id=self.client_id,
+                removed_windows=removed_window_names,
+                timestamp=datetime.now().isoformat()
+            )
+
+            # Send to server(s) via connector
+            if hasattr(self.server_connector, 'send_to_all_servers'):
+                # Multi-server setup
+                results = self.server_connector.send_to_all_servers(removal_message)
+                successful_sends = sum(results.values())
+                total_servers = len(results)
+                
+                if successful_sends > 0:
+                    logger.info(f"✅ Sent removal message to {successful_sends}/{total_servers} servers: {removed_window_names}")
+                else:
+                    logger.error(f"❌ Failed to send removal message to any server: {removed_window_names}")
+            else:
+                # Single server setup (backward compatibility)
+                success = self.server_connector.send_game_update(removal_message)
+                
+                if success:
+                    logger.info(f"✅ Sent removal message to server: {removed_window_names}")
+                else:
+                    logger.error(f"❌ Failed to send removal message: {removed_window_names}")
+
+        except Exception as e:
+            logger.error(f"Error sending removal message: {str(e)}")
 
     def _convert_cards_to_protocol(self, cards: list) -> list:
         """Convert card format from web format to protocol format."""

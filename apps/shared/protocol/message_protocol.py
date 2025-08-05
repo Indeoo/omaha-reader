@@ -68,6 +68,34 @@ class ClientRegistrationMessage:
         return json.dumps(self.to_dict())
 
 
+@dataclass 
+class TableRemovalMessage:
+    type: str  # "table_removal"
+    client_id: str
+    removed_windows: List[str]
+    timestamp: str
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'TableRemovalMessage':
+        return cls(
+            type=data['type'],
+            client_id=data['client_id'],
+            removed_windows=data['removed_windows'],
+            timestamp=data['timestamp']
+        )
+
+    def to_dict(self) -> dict:
+        return {
+            'type': self.type,
+            'client_id': self.client_id,
+            'removed_windows': self.removed_windows,
+            'timestamp': self.timestamp
+        }
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
+
+
 @dataclass
 class ServerResponseMessage:
     type: str  # "response"
@@ -131,6 +159,8 @@ class MessageParser:
                 return GameUpdateMessage.from_dict(data)
             elif message_type == 'client_register':
                 return ClientRegistrationMessage.from_dict(data)
+            elif message_type == 'table_removal':
+                return TableRemovalMessage.from_dict(data)
             else:
                 return None
         except (json.JSONDecodeError, KeyError) as e:

@@ -8,6 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
 from protocol.message_protocol import (
     GameUpdateMessage, 
     ClientRegistrationMessage, 
+    TableRemovalMessage,
     MessageParser,
     ServerResponseMessage
 )
@@ -46,6 +47,9 @@ class GameDataReceiver:
             
             elif isinstance(message, GameUpdateMessage):
                 return self._handle_game_update(message)
+                
+            elif isinstance(message, TableRemovalMessage):
+                return self._handle_table_removal(message)
             
             else:
                 logger.warning(f"Unknown message type received: {message}")
@@ -86,6 +90,26 @@ class GameDataReceiver:
         except Exception as e:
             logger.error(f"Error updating game state for {message.client_id}: {str(e)}")
             return MessageParser.create_response("error", f"Update failed: {str(e)}")
+
+    def _handle_table_removal(self, message: TableRemovalMessage) -> ServerResponseMessage:
+        """Handle table removal from client."""
+        try:
+            # Remove windows from game state
+            removed_count = 0
+            for window_name in message.removed_windows:
+                if self.game_state_service.remove_client_window(message.client_id, window_name):
+                    removed_count += 1
+            
+            logger.info(f"🗑️ Removed {removed_count}/{len(message.removed_windows)} tables - Client: {message.client_id}")
+            
+            # Notify callbacks of state change
+            self._notify_global_update_callbacks()
+            
+            return MessageParser.create_response("success", f"Removed {removed_count} tables")
+        
+        except Exception as e:
+            logger.error(f"Error removing tables for {message.client_id}: {str(e)}")
+            return MessageParser.create_response("error", f"Removal failed: {str(e)}")
 
     def _notify_update_callbacks(self) -> None:
         """Notify all registered callbacks that game state has updated (legacy method)."""
