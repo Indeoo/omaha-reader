@@ -53,10 +53,10 @@ def create_server_config():
     show_table_cards = "false" if show_table_cards == 'n' else "true"
     
     show_positions = input("Show player positions in UI? (Y/n): ").strip().lower()
-    show_positions = "false" if show_positions == 'n' else "true"
+    show_positions = "false" if show_positions == 'n' else "false"
     
     show_moves = input("Show move history in UI? (Y/n): ").strip().lower()
-    show_moves = "false" if show_moves == 'n' else "true"
+    show_moves = "false" if show_moves == 'n' else "false"
     
     show_solver_link = input("Show solver links in UI? (Y/n): ").strip().lower()
     show_solver_link = "false" if show_solver_link == 'n' else "true"
