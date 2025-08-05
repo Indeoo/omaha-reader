@@ -14,8 +14,8 @@ MAX_CLIENTS = int(os.getenv('MAX_CLIENTS', '10'))
 
 # UI Display Configuration 
 SHOW_TABLE_CARDS = os.getenv('SHOW_TABLE_CARDS', 'true').lower() == 'true'
-SHOW_POSITIONS = os.getenv('SHOW_POSITIONS', 'true').lower() == 'true'
-SHOW_MOVES = os.getenv('SHOW_MOVES', 'true').lower() == 'true'
+SHOW_POSITIONS = os.getenv('SHOW_POSITIONS', 'false').lower() == 'true'
+SHOW_MOVES = os.getenv('SHOW_MOVES', 'false').lower() == 'true'
 SHOW_SOLVER_LINK = os.getenv('SHOW_SOLVER_LINK', 'true').lower() == 'true'
 
 
