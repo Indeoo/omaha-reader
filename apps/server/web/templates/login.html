@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Poker Card Detector - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='poker-app.css') }}">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-form">
+            <h1>🎰 Poker Card Detector</h1>
+            <h2>Authentication Required</h2>
+            
+            {% if error %}
+                <div class="error-message">{{ error }}</div>
+            {% endif %}
+            
+            <form method="POST" action="/login">
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="login-btn">Access Poker Detector</button>
+            </form>
+            
+            <div class="login-info">
+                <p>🔒 Enter password to access card detection interface</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

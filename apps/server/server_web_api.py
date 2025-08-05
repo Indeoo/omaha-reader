@@ -2,7 +2,8 @@
 
 import os
 from datetime import datetime
-from flask import Flask, render_template, jsonify, request
+from functools import wraps
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for, flash
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from loguru import logger
@@ -12,11 +13,13 @@ from services.server_game_state import ServerGameStateService
 
 
 class ServerWebApi:
-    def __init__(self, show_table_cards=True, show_positions=True, show_moves=True, show_solver_link=True):
+    def __init__(self, show_table_cards=True, show_positions=True, show_moves=True, show_solver_link=True, require_password=False, password='_test_password_'):
         self.show_table_cards = show_table_cards
         self.show_positions = show_positions
         self.show_moves = show_moves
         self.show_solver_link = show_solver_link
+        self.require_password = require_password
+        self.password = password
         self.socketio = None
         
         # Initialize server-side services
@@ -54,11 +57,24 @@ class ServerWebApi:
 
     def create_app(self):
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        template_dir = os.path.abspath(os.path.join(current_dir, 'web', 'templates'))
+        template_dir = os.path.join(current_dir, "web", "templates")
+        static_dir = os.path.join(current_dir, "web", "templates", "static")
+        
+        # Debug logging for Heroku deployment
+        logger.info(f"🔍 Current directory: {current_dir}")
+        logger.info(f"🔍 Template directory: {template_dir}")
+        logger.info(f"🔍 Template directory exists: {os.path.exists(template_dir)}")
+        if os.path.exists(template_dir):
+            logger.info(f"🔍 Template files: {os.listdir(template_dir)}")
+        logger.info(f"🔍 Static directory: {static_dir}")
+        logger.info(f"🔍 Static directory exists: {os.path.exists(static_dir)}")
 
         app = Flask(__name__,
-                    template_folder="web/templates",
-                    static_folder="web/templates/static")
+                    template_folder=template_dir,
+                    static_folder=static_dir)
+        
+        # Set secret key for sessions (required for flash messages and session)
+        app.secret_key = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
         CORS(app, origins="*")
 
@@ -70,12 +86,41 @@ class ServerWebApi:
         self._setup_client_endpoints(app)
         return app
 
+    def _require_auth(self, f):
+        """Decorator to require authentication if password protection is enabled."""
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not self.require_password:
+                return f(*args, **kwargs)
+            if 'authenticated' not in session or not session['authenticated']:
+                return redirect(url_for('login'))
+            return f(*args, **kwargs)
+        return decorated_function
+
     def _setup_routes(self, app):
+        @app.route('/login', methods=['GET', 'POST'])
+        def login():
+            if not self.require_password:
+                return redirect(url_for('index'))
+            
+            if request.method == 'POST':
+                password = request.form.get('password')
+                if password == self.password:
+                    session['authenticated'] = True
+                    return redirect(url_for('index'))
+                else:
+                    flash('Invalid password')
+                    return render_template('login.html', error='Invalid password')
+            
+            return render_template('login.html')
+
         @app.route('/')
+        @self._require_auth
         def index():
             return render_template('index.html')
 
         @app.route('/client/<client_id>')
+        @self._require_auth
         def client_view(client_id):
             """Individual client view page."""
             # Check if client exists

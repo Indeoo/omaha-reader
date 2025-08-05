@@ -18,6 +18,10 @@ SHOW_POSITIONS = os.getenv('SHOW_POSITIONS', 'false').lower() == 'true'
 SHOW_MOVES = os.getenv('SHOW_MOVES', 'false').lower() == 'true'
 SHOW_SOLVER_LINK = os.getenv('SHOW_SOLVER_LINK', 'true').lower() == 'true'
 
+# Security Configuration
+REQUIRE_PASSWORD = os.getenv('REQUIRE_PASSWORD', 'false').lower() == 'true'
+PASSWORD = os.getenv('PASSWORD', '_test_password_')
+
 
 def main():
     logger.info("🌐 Initializing Omaha Poker Server")
@@ -30,7 +34,9 @@ def main():
             show_table_cards=SHOW_TABLE_CARDS,
             show_positions=SHOW_POSITIONS,
             show_moves=SHOW_MOVES,
-            show_solver_link=SHOW_SOLVER_LINK
+            show_solver_link=SHOW_SOLVER_LINK,
+            require_password=REQUIRE_PASSWORD,
+            password=PASSWORD
         )
         
         app = server_api.create_app()
