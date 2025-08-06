@@ -105,8 +105,8 @@ def careful_capture_window(hwnd, width, height):
 def capture_screen_region(rect):
     """Capture a region of the screen using PIL as fallback"""
     try:
-        screen = ImageGrab.grab()
-        window_img = screen.crop(rect)
+        with ImageGrab.grab() as screen:
+            window_img = screen.crop(rect)
         return window_img
     except Exception as e:
         logger.error(f"  Error capturing screen region: {e}")

@@ -103,7 +103,10 @@ def _load_images_from_folder(timestamp_folder: str) -> List[CapturedWindow]:
     for filename in sorted(image_files):
         try:
             filepath = os.path.join(timestamp_folder, filename)
-            image = Image.open(filepath)
+            # Load image and create a copy to avoid file handle leaks
+            with Image.open(filepath) as source_image:
+                # Create a copy so we can close the original file handle
+                image = source_image.copy()
 
             window_name = filename.replace('.png', '')
 
@@ -142,7 +145,10 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
 
     if save_windows:
         try:
-            full_screen = ImageGrab.grab()
+            with ImageGrab.grab() as full_screen_source:
+                # Create a copy to avoid keeping the original reference
+                full_screen = full_screen_source.copy()
+            
             full_screen_captured = CapturedWindow(
                 image=full_screen,
                 filename="full_screen.png",

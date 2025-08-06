@@ -136,6 +136,9 @@ class DetectionClient:
             except Exception as e:
                 traceback.print_exc()
                 logger.error(f"❌ Error processing {captured_image.window_name}: {str(e)}")
+            finally:
+                # Clean up the image immediately after processing to prevent memory leaks
+                captured_image.close()
 
     def _handle_removed_windows(self, removed_window_names):
         """Handle removed windows."""

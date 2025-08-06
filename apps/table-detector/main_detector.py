@@ -175,6 +175,11 @@ def main():
         
         if 'server_connector_manager' in locals():
             server_connector_manager.close_all_connections()
+        
+        # Force garbage collection to help with memory cleanup
+        import gc
+        gc.collect()
+        logger.debug("🧹 Forced garbage collection")
             
         logger.info("✅ Client stopped")
 

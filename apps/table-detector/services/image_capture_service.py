@@ -32,6 +32,7 @@ class ImageCaptureService:
             return WindowChanges(changed_images=[], removed_windows=removed_windows)
 
         changed_images = []
+        unchanged_windows = []
         current_hashes = {}
         current_window_names = set()
 
@@ -43,6 +44,12 @@ class ImageCaptureService:
 
             if self._window_hashes.get(window_name) != current_hash:
                 changed_images.append(captured_window)
+            else:
+                unchanged_windows.append(captured_window)
+
+        # Clean up unchanged images immediately to prevent memory leaks
+        for unchanged_window in unchanged_windows:
+            unchanged_window.close()
 
         previous_window_names = set(self._window_hashes.keys())
         removed_windows = list(previous_window_names - current_window_names)
