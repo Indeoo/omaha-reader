@@ -71,7 +71,6 @@ class DetectionClient:
             name='Poker Detection and Send Job',
             replace_existing=True,
             max_instances=1,
-            coalesce=True
         )
 
     def start_detection(self):
