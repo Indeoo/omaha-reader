@@ -24,7 +24,7 @@ from services.poker_game_processor import PokerGameProcessor
 from utils.fs_utils import create_timestamp_folder, create_window_folder
 from utils.logs import load_logger
 from utils.windows_utils import initialize_platform
-from shared.protocol.message_protocol import GameUpdateMessage, TableRemovalMessage
+from apps.shared.protocol.message_protocol import GameUpdateMessage, TableRemovalMessage
 
 
 class DetectionClient:
@@ -35,7 +35,7 @@ class DetectionClient:
         self.client_id = client_id or f"client_{uuid.uuid4().hex[:8]}"
         self.debug_mode = debug_mode
         self.detection_interval = detection_interval
-        self.server_connector = server_connector  # Can be single connector or ServerConnectorManager
+        self.http_connector = server_connector  # SimpleHttpConnector
 
         # Initialize detection services (reuse existing components)
         self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
@@ -54,12 +54,6 @@ class DetectionClient:
 
         logger.info(f"🎯 Detection client initialized: {self.client_id}")
 
-    def _validate_server_connector(self, operation: str) -> bool:
-        """Validate server connector is available."""
-        if not self.server_connector:
-            logger.error(f"No server connector configured for {operation}")
-            return False
-        return True
 
     def _setup_scheduler(self):
         self.scheduler.add_job(
@@ -153,8 +147,9 @@ class DetectionClient:
         self.game_state_service.remove_windows(removed_window_names)
 
     def _send_updates_to_server(self):
-        """Send current game states to server."""
-        if not self._validate_server_connector("sending updates"):
+        """Send current game states to servers via simple HTTP requests."""
+        if not self.http_connector:
+            logger.debug("No HTTP connector configured - skipping server updates")
             return
 
         try:
@@ -162,7 +157,7 @@ class DetectionClient:
             all_games = self.game_state_service.get_all_games()
             
             if not all_games['detections']:
-                logger.info("No game data to send to server")
+                logger.debug("No game data to send to server")
                 return
 
             # Send each game state as separate message
@@ -170,13 +165,13 @@ class DetectionClient:
                 self._send_game_update(game_data)
 
         except Exception as e:
-            logger.error(f"Error sending updates to server: {str(e)}")
-            traceback.print_exc()
+            logger.debug(f"Error getting game data: {str(e)}")
+            # Continue detection regardless of server errors
 
     def _send_game_update(self, game_data: dict):
-        """Send individual game update to server."""
+        """Send individual game update via HTTP."""
         try:
-            # Extract game state from existing format and convert to message protocol
+            # Convert game state to message protocol
             game_update = GameUpdateMessage(
                 type='game_update',
                 client_id=self.client_id,
@@ -192,35 +187,16 @@ class DetectionClient:
                 }
             )
 
-            # Send to server(s) via connector
-            if hasattr(self.server_connector, 'send_to_all_servers'):
-                # Multi-server setup
-                results = self.server_connector.send_to_all_servers(game_update)
-                successful_sends = sum(results.values())
-                total_servers = len(results)
-                
-                if successful_sends > 0:
-                    logger.info(f"✅ Sent game update to {successful_sends}/{total_servers} servers: {game_data.get('window_name')}")
-                else:
-                    logger.error(f"❌ Failed to send game update to any server: {game_data.get('window_name')}")
-            else:
-                # Single server setup (backward compatibility)
-                success = self.server_connector.send_game_update(game_update)
-                
-                if success:
-                    logger.info(f"✅ Sent game update to server: {game_data.get('window_name')}")
-                else:
-                    logger.error(f"❌ Failed to send game update: {game_data.get('window_name')}")
-
+            # Simple HTTP request - fire and forget
+            self.http_connector.send_game_update(game_update)
+            
         except Exception as e:
-            logger.error(f"Error preparing game update: {str(e)}")
+            logger.debug(f"Failed to send game update for {game_data.get('window_name', 'unknown')}: {str(e)}")
 
     def _send_removal_message(self, removed_window_names):
-        """Send table removal message to server."""
-        if not self._validate_server_connector("sending removal message"):
-            return
-
-        if not removed_window_names:
+        """Send table removal message via HTTP."""
+        if not self.http_connector or not removed_window_names:
+            logger.debug("No HTTP connector or empty removal list - skipping removal message")
             return
 
         try:
@@ -232,28 +208,11 @@ class DetectionClient:
                 timestamp=datetime.now().isoformat()
             )
 
-            # Send to server(s) via connector
-            if hasattr(self.server_connector, 'send_to_all_servers'):
-                # Multi-server setup
-                results = self.server_connector.send_to_all_servers(removal_message)
-                successful_sends = sum(results.values())
-                total_servers = len(results)
-                
-                if successful_sends > 0:
-                    logger.info(f"✅ Sent removal message to {successful_sends}/{total_servers} servers: {removed_window_names}")
-                else:
-                    logger.error(f"❌ Failed to send removal message to any server: {removed_window_names}")
-            else:
-                # Single server setup (backward compatibility)
-                success = self.server_connector.send_game_update(removal_message)
-                
-                if success:
-                    logger.info(f"✅ Sent removal message to server: {removed_window_names}")
-                else:
-                    logger.error(f"❌ Failed to send removal message: {removed_window_names}")
-
+            # Simple HTTP request - fire and forget
+            self.http_connector.send_removal_message(removal_message)
+            
         except Exception as e:
-            logger.error(f"Error sending removal message: {str(e)}")
+            logger.debug(f"Failed to send removal message: {str(e)}")
 
     def _convert_cards_to_protocol(self, cards: list) -> list:
         """Convert card format from web format to protocol format."""
@@ -283,14 +242,13 @@ class DetectionClient:
         return protocol_positions
 
     def register_with_server(self) -> bool:
-        """Register this client with all servers."""
-        if not self._validate_server_connector("registration"):
+        """Register this client with servers via HTTP."""
+        if not self.http_connector:
+            logger.debug("No HTTP connector configured - skipping registration")
             return False
 
-        # Always using ServerConnectorManager now
-        results = self.server_connector.register_with_all_servers(self.client_id)
-        successful_registrations = sum(results.values())
-        return successful_registrations > 0
+        # Simple HTTP registration request
+        return self.http_connector.register_client(self.client_id)
 
     def get_client_id(self) -> str:
         """Get the client ID."""
