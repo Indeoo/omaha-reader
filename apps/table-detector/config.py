@@ -43,12 +43,12 @@ def create_client_config():
             server_urls.append(url)
             
             # Ask for connector type for this server
-            connector_type = input(f"Connector type for {url} (http/websocket/auto, default: auto): ").strip().lower()
-            if connector_type not in ['http', 'websocket', 'auto']:
-                connector_type = 'auto'
+            connector_type = input(f"Connector type for {url} (http, default: http): ").strip().lower()
+            if connector_type not in ['http']:
+                connector_type = 'http'
             
             # Store as JSON object for advanced configuration
-            if connector_type != 'auto':
+            if connector_type != 'http':
                 server_urls[-1] = {"url": url, "connector_type": connector_type}
             
             i += 1
@@ -99,9 +99,9 @@ def create_client_config():
     if not retry_delay:
         retry_delay = "5"
     
-    connector_type = input("Connector type (auto/http/websocket, default: auto): ").strip().lower()
-    if connector_type not in ['auto', 'http', 'websocket']:
-        connector_type = "auto"
+    connector_type = input("Connector type (http, default: http): ").strip().lower()
+    if connector_type not in ['http']:
+        connector_type = "http"
     
     # Create configuration content
     config_content = f"""# Omaha Poker Client Configuration

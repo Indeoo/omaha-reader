@@ -5,7 +5,6 @@ let config = {
     show_moves: true,
     show_solver_link: true
 };
-let socket = null;
 let previousDetections = [];
 
 // Stable table ID management
