@@ -67,6 +67,7 @@ class DetectionClient:
             trigger='interval',
             seconds=self.detection_interval,
             id='detect_and_send',
+            coalesce=True,
             name='Poker Detection and Send Job',
             replace_existing=True
         )

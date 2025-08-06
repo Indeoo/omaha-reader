@@ -68,6 +68,8 @@ class MoveType(Enum):
             'call': cls.CALL,
             'call_35': cls.CALL,
             'c': cls.CALL,
+            'limps': cls.CALL,  # Limp = call the big blind preflop
+            'limp': cls.CALL,   # Alternative form
             'raise': cls.RAISE,
             'or_35': cls.RAISE,
             'r': cls.RAISE,
