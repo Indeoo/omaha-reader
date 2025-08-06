@@ -45,7 +45,7 @@
         // Pass client_id to JavaScript
         window.CLIENT_ID = '{{ client_id }}';
     </script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- WebSocket removed - using HTTP polling instead -->
     <script src="{{ url_for('static', filename='client-app.js') }}"></script>
 </body>
 </html>
