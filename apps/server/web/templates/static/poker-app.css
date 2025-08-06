@@ -574,6 +574,158 @@ h1 {
     border-bottom: 1px solid #444;
 }
 
+/* Tables Grid Layout */
+.tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+.table-slot {
+    background-color: #2a2a2a;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    min-height: 200px;
+    border: 2px solid transparent;
+}
+
+.table-slot.empty {
+    background-color: #1a1a1a;
+    border: 2px dashed #444;
+    display: flex;
+    flex-direction: column;
+}
+
+.table-slot.active {
+    border: 2px solid #4CAF50;
+}
+
+.table-slot.updated {
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.5);
+    border: 2px solid #4CAF50;
+    animation: slotUpdateGlow 2s ease-in-out;
+}
+
+@keyframes slotUpdateGlow {
+    0% { 
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        border-color: #4CAF50; 
+    }
+    50% { 
+        box-shadow: 0 0 30px rgba(76, 175, 80, 0.8);
+        border-color: #66BB6A; 
+    }
+    100% { 
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        border-color: #4CAF50; 
+    }
+}
+
+.slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #444;
+}
+
+.slot-label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+.slot-status {
+    font-size: 12px;
+    color: #888;
+}
+
+.slot-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.no-table-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    color: #666;
+}
+
+.no-table-icon {
+    font-size: 48px;
+    opacity: 0.5;
+}
+
+.no-table-text {
+    font-size: 16px;
+    font-style: italic;
+}
+
+/* Updated table info styles */
+.table-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.table-id {
+    font-size: 16px;
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+.window-name-small {
+    font-size: 12px;
+    color: #888;
+    font-weight: normal;
+}
+
+/* Responsive grid adjustments */
+@media (max-width: 1200px) {
+    .tables-grid {
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 15px;
+    }
+}
+
+@media (max-width: 900px) {
+    .tables-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .table-slot {
+        min-height: 180px;
+    }
+}
+
+@media (max-width: 600px) {
+    .main-cards-section {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .table-slot {
+        padding: 15px;
+        min-height: 160px;
+    }
+    
+    .slot-header {
+        flex-direction: column;
+        gap: 5px;
+        text-align: center;
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .client-nav {

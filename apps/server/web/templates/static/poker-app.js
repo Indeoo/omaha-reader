@@ -8,6 +8,68 @@ let config = {
 let socket = null;
 let previousDetections = [];
 
+// Stable table ID management
+let tableIdMapping = new Map();
+let nextTableId = 1;
+const MAX_TABLES = 6;
+
+// Load table ID mapping from localStorage
+function loadTableIdMapping() {
+    try {
+        const stored = localStorage.getItem('tableIdMapping');
+        if (stored) {
+            const data = JSON.parse(stored);
+            tableIdMapping = new Map(Object.entries(data.mapping));
+            nextTableId = data.nextId || 1;
+        }
+    } catch (error) {
+        console.warn('Failed to load table ID mapping:', error);
+    }
+}
+
+// Save table ID mapping to localStorage
+function saveTableIdMapping() {
+    try {
+        const data = {
+            mapping: Object.fromEntries(tableIdMapping),
+            nextId: nextTableId
+        };
+        localStorage.setItem('tableIdMapping', JSON.stringify(data));
+    } catch (error) {
+        console.warn('Failed to save table ID mapping:', error);
+    }
+}
+
+// Assign stable ID to a detection
+function assignStableTableId(detection) {
+    const key = `${detection.client_id}_${detection.window_name}`;
+    
+    if (!tableIdMapping.has(key)) {
+        tableIdMapping.set(key, nextTableId.toString().padStart(2, '0'));
+        nextTableId++;
+        saveTableIdMapping();
+    }
+    
+    return tableIdMapping.get(key);
+}
+
+// Clean up old mappings that are no longer active
+function cleanupStaleTableMappings(activeDetections) {
+    const activeKeys = new Set(activeDetections.map(d => `${d.client_id}_${d.window_name}`));
+    let cleaned = false;
+    
+    for (const [key] of tableIdMapping) {
+        if (!activeKeys.has(key)) {
+            tableIdMapping.delete(key);
+            cleaned = true;
+        }
+    }
+    
+    if (cleaned) {
+        saveTableIdMapping();
+    }
+}
+
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
         showToast('Copied to clipboard!');
@@ -186,7 +248,7 @@ function createSolverLinkSection(detection, isUpdate) {
     `;
 }
 
-function createTableContainer(detection, isUpdate) {
+function createTableContainer(detection, isUpdate, tableId) {
     const tableClass = isUpdate ? 'table-container updated' : 'table-container';
 
     const tableCardsSection = createTableCardsSection(detection, isUpdate);
@@ -222,7 +284,10 @@ function createTableContainer(detection, isUpdate) {
                     <a href="${clientLink}" class="client-link">
                         <span class="client-id">Client: ${clientId}</span>
                     </a>
-                    <span class="window-name">${detection.window_name}</span>
+                    <div class="table-info">
+                        <span class="table-id">Table ${tableId}</span>
+                        <span class="window-name-small">${detection.window_name}</span>
+                    </div>
                 </div>
                 <div class="last-update">Updated: ${new Date(detection.last_update).toLocaleTimeString()}</div>
             </div>
@@ -235,20 +300,103 @@ function createTableContainer(detection, isUpdate) {
     `;
 }
 
+// Create empty table slot
+function createEmptyTableSlot(slotId) {
+    return `
+        <div class="table-slot empty" id="table-slot-${slotId}">
+            <div class="slot-header">
+                <div class="slot-label">Table ${slotId}</div>
+                <div class="slot-status">No table detected</div>
+            </div>
+            <div class="slot-content">
+                <div class="no-table-message">
+                    <div class="no-table-icon">⚫</div>
+                    <div class="no-table-text">Waiting for table...</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function initializeTablesGrid() {
+    const content = document.getElementById('content');
+    
+    // Create the tables grid container
+    let gridHtml = '<div class="tables-grid">';
+    
+    // Create fixed slots for each table
+    for (let i = 1; i <= MAX_TABLES; i++) {
+        const slotId = i.toString().padStart(2, '0');
+        gridHtml += createEmptyTableSlot(slotId);
+    }
+    
+    gridHtml += '</div>';
+    content.innerHTML = gridHtml;
+}
+
 function renderCards(detections, isUpdate = false) {
     const content = document.getElementById('content');
-
-    if (!detections || detections.length === 0) {
-        content.innerHTML = '<div class="error">No tables detected</div>';
-        return;
+    
+    // Initialize grid if it doesn't exist
+    if (!content.querySelector('.tables-grid')) {
+        initializeTablesGrid();
     }
-
-    const html = detections.map(detection =>
-        createTableContainer(detection, isUpdate)
-    ).join('');
-
-    content.innerHTML = html;
-
+    
+    // Clean up old mappings and assign stable IDs
+    cleanupStaleTableMappings(detections || []);
+    
+    // Create mapping of detection to table ID
+    const detectionMap = new Map();
+    const assignedIds = new Set();
+    
+    if (detections && detections.length > 0) {
+        // Sort detections by assigned ID to maintain consistent ordering
+        const sortedDetections = detections.slice().sort((a, b) => {
+            const idA = assignStableTableId(a);
+            const idB = assignStableTableId(b);
+            return idA.localeCompare(idB);
+        });
+        
+        sortedDetections.forEach(detection => {
+            const tableId = assignStableTableId(detection);
+            detectionMap.set(tableId, detection);
+            assignedIds.add(tableId);
+        });
+    }
+    
+    // Update each table slot
+    for (let i = 1; i <= MAX_TABLES; i++) {
+        const slotId = i.toString().padStart(2, '0');
+        const slot = document.getElementById(`table-slot-${slotId}`);
+        
+        if (!slot) continue;
+        
+        if (detectionMap.has(slotId)) {
+            // This slot has an active detection
+            const detection = detectionMap.get(slotId);
+            const tableHtml = createTableContainer(detection, isUpdate, slotId);
+            
+            slot.className = `table-slot active ${isUpdate ? 'updated' : ''}`;
+            slot.innerHTML = tableHtml;
+        } else {
+            // This slot is empty
+            slot.className = 'table-slot empty';
+            slot.innerHTML = `
+                <div class="slot-header">
+                    <div class="slot-label">Table ${slotId}</div>
+                    <div class="slot-status">No table detected</div>
+                </div>
+                <div class="slot-content">
+                    <div class="no-table-message">
+                        <div class="no-table-icon">⚫</div>
+                        <div class="no-table-text">Waiting for table...</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // Handle update animations
     if (isUpdate) {
         setTimeout(() => {
             document.querySelectorAll('.updated').forEach(el => {
@@ -268,6 +416,10 @@ function renderCards(detections, isUpdate = false) {
             });
         }, 2000);
     }
+    
+    // Log detection summary
+    const activeCount = assignedIds.size;
+    console.log(`Rendered ${activeCount}/${MAX_TABLES} tables in fixed positions`);
 }
 
 function updateStatus(lastUpdate) {
@@ -424,6 +576,9 @@ function updateClientDataIncrementally(clientId, clientData) {
 }
 
 async function initialize() {
+    // Load table ID mapping from localStorage
+    loadTableIdMapping();
+    
     await loadConfig();
     await loadClientsList();
 
