@@ -169,7 +169,7 @@ class DetectionClient:
         """Send specific changed game states and removal messages to servers via HTTP requests.
         
         Args:
-            changed_games: List of game data dicts to send. If None, sends all current games.
+            changed_games: List of game data dicts to send.
             removal_messages: List of removal message dicts to send.
         """
         if not self.http_connector:
@@ -177,29 +177,20 @@ class DetectionClient:
             return
 
         try:
-            # Handle changed games
-            if changed_games is not None:
-                games_to_send = changed_games
-                logger.debug(f"Sending {len(games_to_send)} changed game states to server")
-            else:
-                # Fall back to all current games for backward compatibility
-                all_games = self.game_state_service.get_all_games()
-                games_to_send = all_games['detections']
-                logger.debug(f"Sending all {len(games_to_send)} game states to server (fallback mode)")
-            
-            # Send each game state as separate message
-            if games_to_send:
-                for game_data in games_to_send:
+            # Send changed games (if any)
+            if changed_games:
+                logger.debug(f"Sending {len(changed_games)} changed game states to server")
+                for game_data in changed_games:
                     self._send_game_update(game_data)
             
-            # Handle removal messages
+            # Send removal messages (if any)
             if removal_messages:
                 logger.debug(f"Sending {len(removal_messages)} removal messages to server")
                 for removal_data in removal_messages:
                     self._send_removal_update(removal_data)
             
             # Log if nothing to send
-            if not games_to_send and not removal_messages:
+            if not changed_games and not removal_messages:
                 logger.debug("No game data or removal messages to send to server")
 
         except Exception as e:
