@@ -95,28 +95,29 @@ class DetectionClient:
             
             window_changes = self.image_capture_service.get_changed_images(base_timestamp_folder)
 
-            changes_detected = False
+            changed_games = []
 
-            # Process changed windows
+            # Process changed windows and collect changed game states
             if window_changes.changed_images:
-                self._handle_changed_windows(window_changes.changed_images, base_timestamp_folder)
-                changes_detected = True
+                changed_games = self._handle_changed_windows(window_changes.changed_images, base_timestamp_folder)
 
             # Handle removed windows
             if window_changes.removed_windows:
                 self._handle_removed_windows(window_changes.removed_windows)
-                changes_detected = True
 
-            # Send updates to server if changes detected
-            if changes_detected:
-                self._send_updates_to_server()
+            # Send updates to server if we have changes or removals
+            if changed_games or window_changes.removed_windows:
+                self._send_updates_to_server(changed_games)
+                logger.debug(f"Sent {len(changed_games)} game updates to server")
 
         except Exception as e:
             logger.error(f"Error in detection cycle: {str(e)}")
             traceback.print_exc()
 
     def _handle_changed_windows(self, captured_windows, base_timestamp_folder):
-        """Process changed windows using existing poker game processor."""
+        """Process changed windows using existing poker game processor and return list of changed game states."""
+        changed_games = []
+        
         for i, captured_image in enumerate(captured_windows):
             try:
                 logger.info(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
@@ -125,7 +126,12 @@ class DetectionClient:
                 # Create window-specific folder
                 window_folder = create_window_folder(base_timestamp_folder, captured_image.window_name)
 
-                self.poker_game_processor.process(captured_image, window_folder)
+                # Process and get formatted game data for transmission
+                game_data = self.poker_game_processor.process_and_get_changes(captured_image, window_folder)
+                
+                if game_data:
+                    changed_games.append(game_data)
+                    logger.debug(f"✅ Captured changes for {captured_image.window_name}")
 
             except Exception as e:
                 traceback.print_exc()
@@ -133,6 +139,8 @@ class DetectionClient:
             finally:
                 # Clean up the image immediately after processing to prevent memory leaks
                 captured_image.close()
+        
+        return changed_games
 
     def _handle_removed_windows(self, removed_window_names):
         """Handle removed windows."""
@@ -146,26 +154,36 @@ class DetectionClient:
         # Remove from local state
         self.game_state_service.remove_windows(removed_window_names)
 
-    def _send_updates_to_server(self):
-        """Send current game states to servers via simple HTTP requests."""
+    def _send_updates_to_server(self, changed_games=None):
+        """Send specific changed game states to servers via HTTP requests.
+        
+        Args:
+            changed_games: List of game data dicts to send. If None, sends all current games.
+        """
         if not self.http_connector:
             logger.debug("No HTTP connector configured - skipping server updates")
             return
 
         try:
-            # Get all current game states
-            all_games = self.game_state_service.get_all_games()
+            # Use provided changed games or fall back to all current games for backward compatibility
+            if changed_games is not None:
+                games_to_send = changed_games
+                logger.debug(f"Sending {len(games_to_send)} changed game states to server")
+            else:
+                all_games = self.game_state_service.get_all_games()
+                games_to_send = all_games['detections']
+                logger.debug(f"Sending all {len(games_to_send)} game states to server (fallback mode)")
             
-            if not all_games['detections']:
+            if not games_to_send:
                 logger.debug("No game data to send to server")
                 return
 
             # Send each game state as separate message
-            for game_data in all_games['detections']:
+            for game_data in games_to_send:
                 self._send_game_update(game_data)
 
         except Exception as e:
-            logger.debug(f"Error getting game data: {str(e)}")
+            logger.debug(f"Error sending game data: {str(e)}")
             # Continue detection regardless of server errors
 
     def _send_game_update(self, game_data: dict):
