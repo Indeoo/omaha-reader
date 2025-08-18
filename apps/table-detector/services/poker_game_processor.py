@@ -27,6 +27,7 @@ class PokerGameProcessor:
 
 
     def process(self, captured_image: CapturedWindow, timestamp_folder):
+        """Process captured image and update game state. Returns None for backward compatibility."""
         window_name = captured_image.window_name
 
         game_snapshot = self.create_game_snapshot(captured_image, timestamp_folder)
@@ -36,6 +37,21 @@ class PokerGameProcessor:
         is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot.table_cards)
 
         self.game_state_service.create_or_update_game(window_name, game_snapshot, True, is_new_street)
+
+    def process_and_get_changes(self, captured_image: CapturedWindow, timestamp_folder):
+        """Process captured image and return formatted game data for transmission."""
+        window_name = captured_image.window_name
+
+        game_snapshot = self.create_game_snapshot(captured_image, timestamp_folder)
+
+        #is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
+
+        is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot.table_cards)
+
+        updated_game = self.game_state_service.create_or_update_game(window_name, game_snapshot, True, is_new_street)
+        
+        # Return formatted game data for transmission
+        return self.game_state_service._game_to_dict(window_name, updated_game)
 
     def create_game_snapshot(self, captured_image, timestamp_folder):
         cv2_image = captured_image.get_cv2_image()

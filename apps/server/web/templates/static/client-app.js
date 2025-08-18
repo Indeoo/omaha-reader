@@ -5,7 +5,7 @@ let config = {
     show_moves: true,
     show_solver_link: true
 };
-let socket = null;
+// WebSocket removed - using HTTP polling instead
 let previousDetections = [];
 let clientId = window.CLIENT_ID;
 
@@ -292,46 +292,73 @@ function updateTimerDisplay() {
     document.getElementById('backendInfo').textContent = `every ${config.backend_capture_interval}`;
 }
 
-function initializeSocketIO() {
-    if (socket) {
-        socket.disconnect();
+// HTTP Polling system for client-specific data
+let pollingInterval = null;
+let pollingActive = false;
+let lastETag = null;
+
+function startClientPolling() {
+    if (pollingActive) {
+        return; // Already polling
     }
-
+    
+    pollingActive = true;
     updateConnectionStatus('connecting', '🔗 Connecting...');
+    
+    console.log('Starting HTTP polling for client:', clientId);
+    
+    // Initial poll
+    pollForClientUpdates();
+    
+    // Start polling every 5 seconds
+    pollingInterval = setInterval(() => {
+        if (pollingActive) {
+            pollForClientUpdates();
+        }
+    }, 5000);
+}
 
-    // Initialize Socket.IO
-    socket = io();
+function stopClientPolling() {
+    pollingActive = false;
+    if (pollingInterval) {
+        clearInterval(pollingInterval);
+        pollingInterval = null;
+    }
+    updateConnectionStatus('disconnected', '🔴 Disconnected');
+    updateClientStatus(false);
+    console.log('Stopped HTTP polling for client:', clientId);
+}
 
-    socket.on('connect', function() {
-        console.log('SocketIO connected for client:', clientId);
-        updateConnectionStatus('connected', '🟢 Connected');
+async function pollForClientUpdates() {
+    try {
+        const headers = {};
+        if (lastETag) {
+            headers['If-None-Match'] = lastETag;
+        }
         
-        // Subscribe to this specific client
-        socket.emit('subscribe_client', { client_id: clientId });
-    });
-
-    socket.on('disconnect', function() {
-        console.log('SocketIO disconnected');
-        updateConnectionStatus('disconnected', '🔴 Disconnected');
-        updateClientStatus(false);
-
-        // Attempt to reconnect after 3 seconds
-        setTimeout(() => {
-            if (socket && !socket.connected) {
-                console.log('Attempting to reconnect...');
-                socket.connect();
-            }
-        }, 3000);
-    });
-
-    socket.on('client_detection_update', function(data) {
-        console.log('Received client detection update:', data);
+        const response = await fetch(`/api/client/${clientId}/detections`, { 
+            headers,
+            cache: 'no-cache'
+        });
         
-        // Only process if this is for our client
-        if (data.client_id !== clientId) {
+        if (response.status === 304) {
+            // No changes - server returned 304 Not Modified
+            updateConnectionStatus('connected', '🟢 Connected (No changes)');
+            updateClientStatus(true);
             return;
         }
-
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        // Update ETag for next request
+        lastETag = response.headers.get('ETag');
+        
+        const data = await response.json();
+        
+        console.log('Received client detection update via polling:', data);
+        
         const hasChanges = detectChanges(data.detections);
         if (hasChanges) {
             showUpdateIndicator();
@@ -340,18 +367,27 @@ function initializeSocketIO() {
         updateStatus(data.last_update, data.detections.length);
         renderCards(data.detections, hasChanges);
         previousDetections = data.detections;
-    });
-
-    socket.on('subscription_error', function(error) {
-        console.error('Subscription error:', error);
-        updateConnectionStatus('disconnected', '🔴 Subscription Error');
-        document.getElementById('content').innerHTML = `<div class="error">Error: ${error.error}</div>`;
-    });
-
-    socket.on('connect_error', function(error) {
-        console.error('SocketIO connection error:', error);
+        
+        updateConnectionStatus('connected', '🟢 Connected');
+        updateClientStatus(true);
+        
+    } catch (error) {
+        console.error('Client polling error:', error);
         updateConnectionStatus('disconnected', '🔴 Connection Error');
-    });
+        updateClientStatus(false);
+        
+        // Check if it's a 404 (client not found)
+        if (error.message.includes('404')) {
+            document.getElementById('content').innerHTML = `<div class="error">Client ${clientId} not found on server</div>`;
+        }
+        
+        // On error, retry after 10 seconds
+        setTimeout(() => {
+            if (pollingActive) {
+                console.log('Retrying client connection...');
+            }
+        }, 10000);
+    }
 }
 
 async function loadConfig() {
@@ -395,36 +431,33 @@ async function initialize() {
     await loadConfig();
     await loadInitialData();
 
-    if (typeof io !== "undefined") {
-        console.log('Initializing with SocketIO for client:', clientId);
-        initializeSocketIO();
-    } else {
-        console.error('SocketIO not loaded');
-        document.getElementById('content').innerHTML = '<div class="error">SocketIO library not loaded</div>';
-        updateConnectionStatus('disconnected', '🔴 Not Supported');
-    }
+    console.log('Initializing with HTTP polling for client:', clientId);
+    startClientPolling();
 }
 
 // Handle page visibility changes
 document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && socket && !socket.connected) {
-        console.log('Page visible again, reconnecting...');
-        socket.connect();
+    if (!document.hidden && !pollingActive) {
+        console.log('Page visible again, resuming client polling...');
+        startClientPolling();
+    } else if (document.hidden && pollingActive) {
+        console.log('Page hidden, stopping client polling...');
+        stopClientPolling();
     }
 });
 
 // Handle page restoration from cache
 window.addEventListener('pageshow', function(event) {
-    if (event.persisted && socket && !socket.connected) {
-        console.log('Page restored from cache, reconnecting...');
-        socket.connect();
+    if (event.persisted && !pollingActive) {
+        console.log('Page restored from cache, starting client polling...');
+        startClientPolling();
     }
 });
 
-// Clean up subscription on page unload
+// Clean up polling on page unload
 window.addEventListener('beforeunload', function() {
-    if (socket && socket.connected) {
-        socket.emit('unsubscribe_client', { client_id: clientId });
+    if (pollingActive) {
+        stopClientPolling();
     }
 });
 

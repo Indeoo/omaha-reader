@@ -42,14 +42,7 @@ def create_client_config():
                 break
             server_urls.append(url)
             
-            # Ask for connector type for this server
-            connector_type = input(f"Connector type for {url} (http/websocket/auto, default: auto): ").strip().lower()
-            if connector_type not in ['http', 'websocket', 'auto']:
-                connector_type = 'auto'
-            
-            # Store as JSON object for advanced configuration
-            if connector_type != 'auto':
-                server_urls[-1] = {"url": url, "connector_type": connector_type}
+            # HTTP is the only supported protocol
             
             i += 1
         
@@ -99,9 +92,7 @@ def create_client_config():
     if not retry_delay:
         retry_delay = "5"
     
-    connector_type = input("Connector type (auto/http/websocket, default: auto): ").strip().lower()
-    if connector_type not in ['auto', 'http', 'websocket']:
-        connector_type = "auto"
+    # HTTP is the only supported protocol
     
     # Create configuration content
     config_content = f"""# Omaha Poker Client Configuration
@@ -133,7 +124,6 @@ COUNTRY={country}
 CONNECTION_TIMEOUT={connection_timeout}
 RETRY_ATTEMPTS={retry_attempts}
 RETRY_DELAY={retry_delay}
-CONNECTOR_TYPE={connector_type}
 """
     
     # Write configuration file
@@ -159,7 +149,6 @@ CONNECTOR_TYPE={connector_type}
         print(f"  Detection interval: {detection_interval}s")
         print(f"  Debug mode: {debug_mode}")
         print(f"  Country: {country}")
-        print(f"  Default connector type: {connector_type}")
         
     except Exception as e:
         print(f"❌ Error saving configuration: {str(e)}")

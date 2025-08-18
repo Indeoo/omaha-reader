@@ -31,7 +31,7 @@
 
     <div class="timer-info" id="timerInfo">
         <div>Client: <span class="client-name">{{ client_id }}</span></div>
-        <div>Mode: <span class="countdown">Real-time WebSocket</span></div>
+        <div>Mode: <span class="countdown">Real-time HTTP Polling</span></div>
         <div>Backend: <span id="backendInfo">-</span>s</div>
     </div>
 
@@ -45,7 +45,7 @@
         // Pass client_id to JavaScript
         window.CLIENT_ID = '{{ client_id }}';
     </script>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- Using HTTP polling -->
     <script src="{{ url_for('static', filename='client-app.js') }}"></script>
 </body>
 </html>

@@ -15,82 +15,61 @@ if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
 from detection_client import DetectionClient
-from connectors.server_connector import  ServerConnectorManager, ServerConfig
+from connectors.server_connector import SimpleHttpConnector, ServerConfig
 
 load_dotenv()
 
 
-def parse_server_configurations() -> List[ServerConfig]:
-    """Parse server configurations from environment variables."""
+def parse_server_urls() -> List[str]:
+    """Parse server URLs from environment variables."""
     
     # Check for SERVER_URLS first (preferred)
     server_urls_env = os.getenv('SERVER_URLS')
     if not server_urls_env:
-        # Fall back to single SERVER_URL and convert to array
+        # Fall back to single SERVER_URL
         server_url = os.getenv('SERVER_URL', 'http://localhost:5001')
-        server_urls_env = server_url
-        logger.info("📡 Converting single SERVER_URL to array format")
-    else:
-        logger.info("📡 Using SERVER_URLS configuration")
+        return [server_url]
     
     try:
         # Try parsing as JSON array first
         if server_urls_env.startswith('['):
             urls = json.loads(server_urls_env)
         else:
-            # Treat as comma-separated URLs or single URL
+            # Treat as comma-separated URLs
             urls = [url.strip() for url in server_urls_env.split(',') if url.strip()]
         
-        configs = []
-        for i, url in enumerate(urls):
+        # Clean URLs and extract URL strings
+        clean_urls = []
+        for url in urls:
             if isinstance(url, str):
-                # Clean URL string (remove quotes if present)
                 clean_url = url.strip().strip('"').strip("'")
-                config = ServerConfig.from_url(
-                    url=clean_url,
-                    connector_type=os.getenv('CONNECTOR_TYPE', 'auto').lower(),
-                    timeout=int(os.getenv('CONNECTION_TIMEOUT', '10')),
-                    retry_attempts=int(os.getenv('RETRY_ATTEMPTS', '3')),
-                    retry_delay=int(os.getenv('RETRY_DELAY', '5')),
-                    priority=i + 1  # Order from configuration
-                )
-            elif isinstance(url, dict):
-                # Full configuration object
-                raw_url = url.get('url', '')
-                clean_url = raw_url.strip().strip('"').strip("'") if raw_url else ''
-                config = ServerConfig(
-                    url=clean_url,
-                    connector_type=url.get('connector_type', os.getenv('CONNECTOR_TYPE', 'auto')).lower(),
-                    timeout=url.get('timeout', int(os.getenv('CONNECTION_TIMEOUT', '10'))),
-                    retry_attempts=url.get('retry_attempts', int(os.getenv('RETRY_ATTEMPTS', '3'))),
-                    retry_delay=url.get('retry_delay', int(os.getenv('RETRY_DELAY', '5'))),
-                    priority=url.get('priority', i + 1),
-                    enabled=url.get('enabled', True)
-                )
+                clean_urls.append(clean_url)
+            elif isinstance(url, dict) and 'url' in url:
+                clean_url = url['url'].strip().strip('"').strip("'")
+                clean_urls.append(clean_url)
             else:
-                logger.warning(f"⚠️ Invalid server config format: {url}")
-                continue
-            
-            configs.append(config)
+                logger.warning(f"⚠️ Invalid server URL format: {url}")
         
-        if not configs:
-            raise ValueError("No valid server configurations found")
+        if not clean_urls:
+            logger.warning("No valid server URLs found, using default")
+            return ['http://localhost:5001']
         
-        return configs
+        return clean_urls
                 
     except (json.JSONDecodeError, ValueError) as e:
-        logger.error(f"❌ Error parsing server configuration: {str(e)}")
-        # Default fallback
+        logger.error(f"❌ Error parsing server URLs: {str(e)}")
         logger.info("📡 Using default localhost configuration")
-        return [ServerConfig.from_url('http://localhost:5001')]
+        return ['http://localhost:5001']
 
 
-# Client Configuration
-SERVER_CONFIGS = parse_server_configurations()
+# Client Configuration  
+SERVER_URLS = parse_server_urls()
 CLIENT_ID = os.getenv('CLIENT_ID', None)  # Auto-generated if not provided
 DETECTION_INTERVAL = int(os.getenv('DETECTION_INTERVAL', '3'))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 COUNTRY = os.getenv('COUNTRY', "canada").lower()
+CONNECTION_TIMEOUT = int(os.getenv('CONNECTION_TIMEOUT', '10'))
+RETRY_ATTEMPTS = int(os.getenv('RETRY_ATTEMPTS', '3'))
 
 
 def main():
@@ -99,59 +78,44 @@ def main():
     logger.info(f"🐛 Debug mode: {DEBUG_MODE}")
     logger.info(f"🌍 Country: {COUNTRY}")
     
-    # Log server configurations
-    logger.info(f"🌐 Configured servers ({len(SERVER_CONFIGS)}):")
-    for config in SERVER_CONFIGS:
-        logger.info(f"   - {config.url} ({config.connector_type}, priority: {config.priority})")
+    # Log configured servers
+    logger.info(f"🌐 Configured servers ({len(SERVER_URLS)}):")
+    for url in SERVER_URLS:
+        logger.info(f"   - {url}")
 
     try:
-        # Initialize server connector manager
-        logger.info("🔗 Creating server connector manager...")
-        server_connector_manager = ServerConnectorManager(SERVER_CONFIGS)
-        
-        # Connect to all servers
-        logger.info("🔗 Connecting to all servers...")
-        connection_results = server_connector_manager.connect_all_servers()
-        
-        # Check if at least one server is connected
-        successful_connections = sum(connection_results.values())
-        if successful_connections == 0:
-            logger.error("❌ Cannot connect to any server. Please check:")
-            for config in SERVER_CONFIGS:
-                logger.error(f"   - Server is running at {config.url}")
-            logger.error(f"   - Network connectivity")
-            logger.error(f"   - SERVER_URL/SERVER_URLS environment variables")
-            return
-        
-        logger.info(f"✅ Successfully connected to {successful_connections}/{len(SERVER_CONFIGS)} servers")
+        # Create simple HTTP connector
+        logger.info("🔗 Creating HTTP connector...")
+        server_configs = [
+            ServerConfig(url=url, timeout=CONNECTION_TIMEOUT, retry_attempts=RETRY_ATTEMPTS)
+            for url in SERVER_URLS
+        ]
+        http_connector = SimpleHttpConnector(server_configs)
 
-        # Initialize detection client with connector manager
+        # Initialize detection client
         detection_client = DetectionClient(
             client_id=CLIENT_ID,
             country=COUNTRY,
             debug_mode=DEBUG_MODE,
             detection_interval=DETECTION_INTERVAL,
-            server_connector=server_connector_manager
+            server_connector=http_connector
         )
 
-        # Register client with all servers
-        logger.info("📝 Registering with all servers...")
-        registration_results = server_connector_manager.register_with_all_servers(detection_client.get_client_id())
-        
-        successful_registrations = sum(registration_results.values())
-        if successful_registrations == 0:
-            logger.error("❌ Failed to register with any server")
-            return
-        
-        logger.info(f"✅ Successfully registered with {successful_registrations}/{len(connection_results)} servers")
+        # Try to register with servers (but continue regardless)
+        logger.info("📝 Attempting registration with servers...")
+        registration_success = detection_client.register_with_server()
+        if registration_success:
+            logger.info("✅ Registration successful with at least one server")
+        else:
+            logger.warning("⚠️ Registration failed, but detection will continue")
 
-        # Start detection
+        # Start detection (works regardless of server connectivity)
         logger.info("🚀 Starting poker detection...")
         detection_client.start_detection()
 
-        logger.info("✅ Client is running!")
-        logger.info(f"🔍 Detection client ID: {detection_client.get_client_id()}")
-        logger.info(f"📡 Sending data to {successful_connections} servers")
+        logger.info("✅ Detection client is running!")
+        logger.info(f"🔍 Client ID: {detection_client.get_client_id()}")
+        logger.info(f"📡 Will attempt to send data to {len(SERVER_URLS)} servers")
         logger.info(f"⏱️  Detection interval: {DETECTION_INTERVAL} seconds")
         logger.info("\nPress Ctrl+C to stop the client")
         logger.info("-" * 50)
@@ -173,14 +137,9 @@ def main():
         if 'detection_client' in locals():
             detection_client.stop_detection()
         
-        if 'server_connector_manager' in locals():
-            server_connector_manager.close_all_connections()
+        if 'http_connector' in locals():
+            http_connector.close()
         
-        # Force garbage collection to help with memory cleanup
-        import gc
-        gc.collect()
-        logger.debug("🧹 Forced garbage collection")
-            
         logger.info("✅ Client stopped")
 
 

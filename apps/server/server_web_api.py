@@ -5,7 +5,6 @@ from datetime import datetime
 from functools import wraps
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for, flash
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
 from loguru import logger
 
 from services.game_data_receiver import GameDataReceiver
@@ -20,40 +19,12 @@ class ServerWebApi:
         self.show_solver_link = show_solver_link
         self.require_password = require_password
         self.password = password
-        self.socketio = None
         
         # Initialize server-side services
         self.game_state_service = ServerGameStateService()
         self.game_data_receiver = GameDataReceiver(self.game_state_service)
         
-        # Register callbacks to notify web clients when game state updates
-        self.game_data_receiver.add_global_update_callback(self._on_global_update)
-        self.game_data_receiver.add_client_update_callback(self._on_client_update)
-
-    def _on_global_update(self, data: dict):
-        """Called when global game state needs to be broadcast (all clients data)."""
-        if self.socketio:
-            # Broadcast to all web clients (main view showing all clients)
-            self.socketio.emit('detection_update', data)
-            logger.info(f"🔄 Global update broadcast: {len(data.get('detections', []))} total games")
-    
-    def _on_client_update(self, client_id: str, window_name: str, client_data: dict):
-        """Called when specific client data is updated (targeted update)."""
-        if self.socketio:
-            # Send targeted update to client-specific room (O(1) operation)
-            self.socketio.emit('client_detection_update', client_data, room=f"client_{client_id}")
-            
-            # Send incremental update to main view (only the changed client data)
-            incremental_data = {
-                'type': 'client_data_changed',
-                'client_id': client_id,
-                'window_name': window_name,
-                'client_data': client_data,
-                'timestamp': datetime.now().isoformat()
-            }
-            self.socketio.emit('client_data_changed', incremental_data)
-            
-            logger.info(f"🎯 Client-specific update: {client_id}/{window_name} → {len(client_data.get('detections', []))} tables")
+        logger.info("🔄 Server initialized with HTTP polling (WebSocket removed)")
 
     def create_app(self):
         current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -78,11 +49,9 @@ class ServerWebApi:
 
         CORS(app, origins="*")
 
-        # Initialize SocketIO
-        self.socketio = SocketIO(app, cors_allowed_origins="*")
-
+        # WebSocket removed - using HTTP polling instead
+        
         self._setup_routes(app)
-        self._setup_socketio_events()
         self._setup_client_endpoints(app)
         return app
 
@@ -181,6 +150,92 @@ class ServerWebApi:
                 logger.error(f"Error getting client data for {client_id}: {str(e)}")
                 return jsonify({'error': str(e)}), 500
 
+        @app.route('/api/client/<client_id>/detections')
+        def get_client_detections(client_id):
+            """API endpoint for polling specific client data (replaces WebSocket subscription)."""
+            try:
+                import hashlib
+                import json
+                
+                # Get client-specific game state
+                client_games = self.game_state_service.get_client_game_states(client_id)
+                
+                # Generate ETag for this client
+                client_json = json.dumps(client_games, sort_keys=True)
+                etag = hashlib.md5(client_json.encode()).hexdigest()[:8]
+                
+                # Check If-None-Match header for 304 response
+                if request.headers.get('If-None-Match') == etag:
+                    return '', 304  # Not Modified
+                
+                # Find latest update time
+                latest_update = None
+                for game in client_games:
+                    if 'last_update' in game:
+                        game_time = datetime.fromisoformat(game['last_update'].replace('Z', '+00:00'))
+                        if latest_update is None or game_time > latest_update:
+                            latest_update = game_time
+                
+                # Prepare response
+                response_data = {
+                    'type': 'client_detection_update',
+                    'client_id': client_id,
+                    'detections': client_games,
+                    'last_update': latest_update.isoformat() if latest_update else datetime.now().isoformat(),
+                    'total_tables': len(client_games),
+                    'polling_interval': 5000
+                }
+                
+                # Create response with ETag
+                response = jsonify(response_data)
+                response.headers['ETag'] = etag
+                response.headers['Cache-Control'] = 'no-cache'
+                
+                return response
+                
+            except Exception as e:
+                logger.error(f"Error in /api/client/{client_id}/detections: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+
+        @app.route('/api/detections')
+        def get_detections():
+            """API endpoint for polling current game state (replaces WebSocket)."""
+            try:
+                import hashlib
+                import json
+                
+                # Get current game state
+                current_state = self.game_data_receiver.get_current_state()
+                
+                # Generate ETag for efficient polling
+                state_json = json.dumps(current_state, sort_keys=True)
+                etag = hashlib.md5(state_json.encode()).hexdigest()[:8]
+                
+                # Check If-None-Match header for 304 response
+                if request.headers.get('If-None-Match') == etag:
+                    return '', 304  # Not Modified
+                
+                # Prepare response with additional metadata
+                response_data = {
+                    'type': 'detection_update',
+                    'detections': current_state.get('detections', []),
+                    'last_update': current_state.get('last_update'),
+                    'connected_clients': self.game_data_receiver.get_connected_clients(),
+                    'total_clients': len(self.game_data_receiver.get_connected_clients()),
+                    'polling_interval': 5000  # Suggest 5 second polling
+                }
+                
+                # Create response with ETag
+                response = jsonify(response_data)
+                response.headers['ETag'] = etag
+                response.headers['Cache-Control'] = 'no-cache'
+                
+                return response
+                
+            except Exception as e:
+                logger.error(f"Error in /api/detections: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+
         @app.route('/api/clients')
         def get_connected_clients():
             """API endpoint to see connected detection clients."""
@@ -240,97 +295,6 @@ class ServerWebApi:
                 logger.error(f"Error in game state update: {str(e)}")
                 return jsonify({'error': str(e)}), 500
 
-    def _setup_socketio_events(self):
-        @self.socketio.on('connect')
-        def handle_web_client_connect():
-            logger.info(f"🔌 New web client connected")
-
-            # Send current state immediately to new web client
-            current_state = self.game_data_receiver.get_current_state()
-            if current_state['detections']:
-                emit('detection_update', {
-                    'type': 'detection_update',
-                    'detections': current_state['detections'],
-                    'last_update': current_state['last_update']
-                })
-                logger.info(f"📤 Sent current state to new web client: {len(current_state['detections'])} games")
-
-        @self.socketio.on('disconnect')
-        def handle_web_client_disconnect():
-            logger.info(f"🔌 Web client disconnected")
-
-        @self.socketio.on('subscribe_client')
-        def handle_subscribe_client(data):
-            """Subscribe to updates for a specific client."""
-            try:
-                client_id = data.get('client_id')
-                if not client_id:
-                    emit('subscription_error', {'error': 'client_id required'})
-                    return
-                
-                # Join room for this client
-                from flask_socketio import join_room
-                join_room(f"client_{client_id}")
-                
-                # Send current state for this client
-                client_games = self.game_state_service.get_client_game_states(client_id)
-                latest_update = None
-                
-                for game in client_games:
-                    if 'last_update' in game:
-                        game_time = datetime.fromisoformat(game['last_update'].replace('Z', '+00:00'))
-                        if latest_update is None or game_time > latest_update:
-                            latest_update = game_time
-                
-                emit('client_detection_update', {
-                    'type': 'client_detection_update',
-                    'client_id': client_id,
-                    'detections': client_games,
-                    'last_update': latest_update.isoformat() if latest_update else datetime.now().isoformat()
-                })
-                
-                logger.info(f"📤 Client {client_id} subscription established: {len(client_games)} games")
-                
-            except Exception as e:
-                logger.error(f"Error in client subscription: {str(e)}")
-                emit('subscription_error', {'error': str(e)})
-
-        @self.socketio.on('unsubscribe_client')
-        def handle_unsubscribe_client(data):
-            """Unsubscribe from client updates."""
-            try:
-                client_id = data.get('client_id')
-                if client_id:
-                    from flask_socketio import leave_room
-                    leave_room(f"client_{client_id}")
-                    logger.info(f"📤 Client {client_id} subscription ended")
-            except Exception as e:
-                logger.error(f"Error in client unsubscription: {str(e)}")
-
-        @self.socketio.on('client_register')
-        def handle_client_register_ws(data):
-            """WebSocket endpoint for client registration."""
-            try:
-                import json
-                response = self.game_data_receiver.handle_client_message(json.dumps(data))
-                emit('register_response', response.to_dict() if response else {'status': 'error', 'message': 'Unknown error'})
-            except Exception as e:
-                logger.error(f"WebSocket client registration error: {str(e)}")
-                emit('register_response', {'status': 'error', 'message': str(e)})
-
-        @self.socketio.on('game_update')
-        def handle_game_update_ws(data):
-            """WebSocket endpoint for game updates."""
-            try:
-                import json
-                response = self.game_data_receiver.handle_client_message(json.dumps(data))
-                emit('update_response', response.to_dict() if response else {'status': 'error', 'message': 'Unknown error'})
-            except Exception as e:
-                logger.error(f"WebSocket game update error: {str(e)}")
-                emit('update_response', {'status': 'error', 'message': str(e)})
-
-    def get_socketio(self):
-        return self.socketio
 
     def get_game_data_receiver(self):
         return self.game_data_receiver

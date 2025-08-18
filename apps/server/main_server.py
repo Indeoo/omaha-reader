@@ -40,27 +40,24 @@ def main():
         )
         
         app = server_api.create_app()
-        socketio = server_api.get_socketio()
 
         logger.info(f"✅ Server starting on {HOST}:{PORT}")
         logger.info(f"🌍 Web UI will be accessible at http://{HOST}:{PORT}")
-        logger.info(f"🔌 WebSocket endpoint: ws://{HOST}:{PORT}/socket.io/")
         logger.info(f"📡 Client HTTP endpoints:")
         logger.info(f"   - POST http://{HOST}:{PORT}/api/client/register")
         logger.info(f"   - POST http://{HOST}:{PORT}/api/client/update")
+        logger.info(f"   - GET  http://{HOST}:{PORT}/api/detections")
         logger.info(f"   - GET  http://{HOST}:{PORT}/api/clients")
+        logger.info(f"🔄 Using HTTP polling (5 second interval)")
         logger.info("\nPress Ctrl+C to stop the server")
         logger.info("-" * 50)
 
-        # Start server (this blocks)
-        socketio.run(
-            app, 
+        # Start server with standard Flask (this blocks)
+        app.run(
             host=HOST, 
             port=PORT, 
-            debug=False, 
-            allow_unsafe_werkzeug=True, 
-            use_reloader=False, 
-            log_output=True
+            debug=False,
+            threaded=True  # Enable threading for concurrent requests
         )
 
     except KeyboardInterrupt:
