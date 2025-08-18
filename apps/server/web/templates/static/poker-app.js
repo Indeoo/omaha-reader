@@ -5,69 +5,9 @@ let config = {
     show_moves: true,
     show_solver_link: true
 };
+
+// Simple dynamic table management
 let previousDetections = [];
-
-// Stable table ID management
-let tableIdMapping = new Map();
-let nextTableId = 1;
-const MAX_TABLES = 6;
-
-// Load table ID mapping from localStorage
-function loadTableIdMapping() {
-    try {
-        const stored = localStorage.getItem('tableIdMapping');
-        if (stored) {
-            const data = JSON.parse(stored);
-            tableIdMapping = new Map(Object.entries(data.mapping));
-            nextTableId = data.nextId || 1;
-        }
-    } catch (error) {
-        console.warn('Failed to load table ID mapping:', error);
-    }
-}
-
-// Save table ID mapping to localStorage
-function saveTableIdMapping() {
-    try {
-        const data = {
-            mapping: Object.fromEntries(tableIdMapping),
-            nextId: nextTableId
-        };
-        localStorage.setItem('tableIdMapping', JSON.stringify(data));
-    } catch (error) {
-        console.warn('Failed to save table ID mapping:', error);
-    }
-}
-
-// Assign stable ID to a detection
-function assignStableTableId(detection) {
-    const key = `${detection.client_id}_${detection.window_name}`;
-    
-    if (!tableIdMapping.has(key)) {
-        tableIdMapping.set(key, nextTableId.toString().padStart(2, '0'));
-        nextTableId++;
-        saveTableIdMapping();
-    }
-    
-    return tableIdMapping.get(key);
-}
-
-// Clean up old mappings that are no longer active
-function cleanupStaleTableMappings(activeDetections) {
-    const activeKeys = new Set(activeDetections.map(d => `${d.client_id}_${d.window_name}`));
-    let cleaned = false;
-    
-    for (const [key] of tableIdMapping) {
-        if (!activeKeys.has(key)) {
-            tableIdMapping.delete(key);
-            cleaned = true;
-        }
-    }
-    
-    if (cleaned) {
-        saveTableIdMapping();
-    }
-}
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
@@ -299,104 +239,64 @@ function createTableContainer(detection, isUpdate, tableId) {
     `;
 }
 
-// Create empty table slot
-function createEmptyTableSlot(slotId) {
+
+// Create no clients connected message
+function createNoClientsMessage() {
     return `
-        <div class="table-slot empty" id="table-slot-${slotId}">
-            <div class="slot-header">
-                <div class="slot-label">Table ${slotId}</div>
-                <div class="slot-status">No table detected</div>
+        <div class="no-clients-container">
+            <div class="no-clients-header">
+                <div class="no-clients-icon">🔌</div>
+                <div class="no-clients-title">No Detection Clients Connected</div>
             </div>
-            <div class="slot-content">
-                <div class="no-table-message">
-                    <div class="no-table-icon">⚫</div>
-                    <div class="no-table-text">Waiting for table...</div>
+            <div class="no-clients-message">
+                <p>Start a detection client to begin monitoring poker tables.</p>
+                <div class="no-clients-steps">
+                    <div class="step">1. Run detection client on machine with poker tables</div>
+                    <div class="step">2. Configure client to connect to this server</div>
+                    <div class="step">3. Tables will appear here automatically</div>
                 </div>
             </div>
         </div>
     `;
 }
 
-function initializeTablesGrid() {
-    const content = document.getElementById('content');
-    
-    // Create the tables grid container
+function createDynamicTablesGrid(detections) {
     let gridHtml = '<div class="tables-grid">';
     
-    // Create fixed slots for each table
-    for (let i = 1; i <= MAX_TABLES; i++) {
-        const slotId = i.toString().padStart(2, '0');
-        gridHtml += createEmptyTableSlot(slotId);
-    }
+    // Create containers only for active detections
+    detections.forEach((detection, index) => {
+        const tableId = (index + 1).toString().padStart(2, '0');
+        gridHtml += createTableContainer(detection, false, tableId);
+    });
     
     gridHtml += '</div>';
-    content.innerHTML = gridHtml;
+    return gridHtml;
 }
 
 function renderCards(detections, isUpdate = false) {
     const content = document.getElementById('content');
     
-    // Initialize grid if it doesn't exist
-    if (!content.querySelector('.tables-grid')) {
-        initializeTablesGrid();
+    // Check if we have any detections from any clients
+    const hasDetections = detections && detections.length > 0;
+    const hasClientsWithDetections = hasDetections && detections.some(d => d.client_id);
+    
+    // If no clients are connected, show the no clients message
+    if (!hasClientsWithDetections) {
+        content.innerHTML = createNoClientsMessage();
+        console.log('No clients connected - showing connection message');
+        return;
     }
     
-    // Clean up old mappings and assign stable IDs
-    cleanupStaleTableMappings(detections || []);
-    
-    // Create mapping of detection to table ID
-    const detectionMap = new Map();
-    const assignedIds = new Set();
-    
-    if (detections && detections.length > 0) {
-        // Sort detections by assigned ID to maintain consistent ordering
-        const sortedDetections = detections.slice().sort((a, b) => {
-            const idA = assignStableTableId(a);
-            const idB = assignStableTableId(b);
-            return idA.localeCompare(idB);
-        });
-        
-        sortedDetections.forEach(detection => {
-            const tableId = assignStableTableId(detection);
-            detectionMap.set(tableId, detection);
-            assignedIds.add(tableId);
-        });
-    }
-    
-    // Update each table slot
-    for (let i = 1; i <= MAX_TABLES; i++) {
-        const slotId = i.toString().padStart(2, '0');
-        const slot = document.getElementById(`table-slot-${slotId}`);
-        
-        if (!slot) continue;
-        
-        if (detectionMap.has(slotId)) {
-            // This slot has an active detection
-            const detection = detectionMap.get(slotId);
-            const tableHtml = createTableContainer(detection, isUpdate, slotId);
-            
-            slot.className = `table-slot active ${isUpdate ? 'updated' : ''}`;
-            slot.innerHTML = tableHtml;
-        } else {
-            // This slot is empty
-            slot.className = 'table-slot empty';
-            slot.innerHTML = `
-                <div class="slot-header">
-                    <div class="slot-label">Table ${slotId}</div>
-                    <div class="slot-status">No table detected</div>
-                </div>
-                <div class="slot-content">
-                    <div class="no-table-message">
-                        <div class="no-table-icon">⚫</div>
-                        <div class="no-table-text">Waiting for table...</div>
-                    </div>
-                </div>
-            `;
-        }
-    }
+    // Create dynamic grid with only active tables
+    content.innerHTML = createDynamicTablesGrid(detections);
     
     // Handle update animations
     if (isUpdate) {
+        // Add update classes to all table containers
+        content.querySelectorAll('.table-container').forEach(container => {
+            container.classList.add('updated');
+        });
+        
         setTimeout(() => {
             document.querySelectorAll('.updated').forEach(el => {
                 el.classList.remove('updated');
@@ -417,8 +317,7 @@ function renderCards(detections, isUpdate = false) {
     }
     
     // Log detection summary
-    const activeCount = assignedIds.size;
-    console.log(`Rendered ${activeCount}/${MAX_TABLES} tables in fixed positions`);
+    console.log(`Rendered ${detections.length} active tables in dynamic grid`);
 }
 
 function updateStatus(lastUpdate) {
@@ -591,9 +490,6 @@ function updateClientsNavigation(detections) {
 // (incremental updates were a WebSocket optimization)
 
 async function initialize() {
-    // Load table ID mapping from localStorage
-    loadTableIdMapping();
-    
     await loadConfig();
     await loadClientsList();
 
