@@ -99,17 +99,13 @@ class DetectionClient:
             removal_messages = []
 
             # Process changed windows and collect changed game states
-            if window_changes.changed_images:
-                changed_games = self._handle_changed_windows(window_changes.changed_images, base_timestamp_folder)
+            changed_games = self._handle_changed_windows(window_changes.changed_images, base_timestamp_folder)
 
             # Handle removed windows and collect removal messages
-            if window_changes.removed_windows:
-                removal_messages = self._handle_removed_windows(window_changes.removed_windows)
+            removal_messages = self._handle_removed_windows(window_changes.removed_windows)
 
-            # Send updates to server if we have changes or removals
-            if changed_games or removal_messages:
-                self._send_updates_to_server(changed_games, removal_messages)
-                logger.debug(f"Sent {len(changed_games)} game updates and {len(removal_messages)} removal messages to server")
+            # Send updates to server (let the method handle empty inputs)
+            self._send_updates_to_server(changed_games, removal_messages)
 
         except Exception as e:
             logger.error(f"Error in detection cycle: {str(e)}")
