@@ -84,9 +84,9 @@ def create_client_config():
     if not connection_timeout:
         connection_timeout = "10"
     
-    retry_attempts = input("Retry attempts (default: 3): ").strip()
+    retry_attempts = input("Retry attempts (default: 1): ").strip()
     if not retry_attempts:
-        retry_attempts = "3"
+        retry_attempts = "1"
     
     retry_delay = input("Retry delay in seconds (default: 5): ").strip()
     if not retry_delay:

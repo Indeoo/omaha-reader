@@ -69,7 +69,7 @@ DETECTION_INTERVAL = int(os.getenv('DETECTION_INTERVAL', '3'))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 COUNTRY = os.getenv('COUNTRY', "canada").lower()
 CONNECTION_TIMEOUT = int(os.getenv('CONNECTION_TIMEOUT', '10'))
-RETRY_ATTEMPTS = int(os.getenv('RETRY_ATTEMPTS', '3'))
+RETRY_ATTEMPTS = int(os.getenv('RETRY_ATTEMPTS', '1'))
 
 
 def main():
@@ -101,13 +101,8 @@ def main():
             server_connector=http_connector
         )
 
-        # Try to register with servers (but continue regardless)
-        logger.info("📝 Attempting registration with servers...")
-        registration_success = detection_client.register_with_server()
-        if registration_success:
-            logger.info("✅ Registration successful with at least one server")
-        else:
-            logger.warning("⚠️ Registration failed, but detection will continue")
+        # Registration will happen automatically when sending data
+        logger.info("📝 Registration will occur automatically when sending data")
 
         # Start detection (works regardless of server connectivity)
         logger.info("🚀 Starting poker detection...")
