@@ -4,6 +4,7 @@ from typing import Optional, List
 from dataclasses import dataclass
 import requests
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor
 from loguru import logger
 
 from apps.shared.protocol.message_protocol import (
@@ -50,6 +51,9 @@ class SimpleHttpConnector:
         
         # Track registration status per server URL
         self.registration_status = {config.url: False for config in self.server_configs}
+        
+        # Thread pool for async HTTP requests
+        self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="http-sender")
         
         logger.info(f"🔗 HTTP connector initialized with {len(self.server_configs)} servers:")
         for config in self.server_configs:
@@ -101,72 +105,66 @@ class SimpleHttpConnector:
             return False
 
     def send_game_update(self, game_update: GameUpdateMessage) -> bool:
-        """Send game update to all servers via HTTP POST. Ensures registration first."""
+        """Send game update to all servers via HTTP POST (async fire-and-forget). Ensures registration first."""
         if not self.server_configs:
             logger.debug("No servers configured - skipping game update")
             return False
 
-        successful_sends = 0
-        
+        # Submit async tasks for all servers
         for config in self.server_configs:
-            try:
-                # Ensure registration before sending data
-                if not self._ensure_registration(game_update.client_id, config):
-                    logger.debug(f"Skipping game update for {config.url} - registration failed")
-                    continue
-                
-                endpoint = f"{config.url.rstrip('/')}/api/client/update"
-                success = self._send_http_request(endpoint, game_update.to_dict(), config, "game update")
-                if success:
-                    successful_sends += 1
-                else:
-                    # If data send fails, mark as unregistered to retry registration next time
-                    self.registration_status[config.url] = False
-            except Exception as e:
-                logger.debug(f"Game update failed for {config.url}: {str(e)}")
-                # If exception occurs, mark as unregistered to retry registration next time
-                self.registration_status[config.url] = False
+            self.executor.submit(self._send_game_update_async, game_update, config)
         
-        if successful_sends > 0:
-            logger.debug(f"📤 Game update sent to {successful_sends}/{len(self.server_configs)} servers")
-            return True
-        else:
-            logger.debug("Game update failed for all servers")
-            return False
+        logger.debug(f"📤 Game update submitted to {len(self.server_configs)} servers (async)")
+        return True
+
+    def _send_game_update_async(self, game_update: GameUpdateMessage, config: ServerConfig):
+        """Async worker method to send game update to a single server."""
+        try:
+            # Ensure registration before sending data
+            if not self._ensure_registration(game_update.client_id, config):
+                logger.debug(f"Skipping game update for {config.url} - registration failed")
+                return
+            
+            endpoint = f"{config.url.rstrip('/')}/api/client/update"
+            success = self._send_http_request(endpoint, game_update.to_dict(), config, "game update")
+            if not success:
+                # If data send fails, mark as unregistered to retry registration next time
+                self.registration_status[config.url] = False
+        except Exception as e:
+            logger.debug(f"Game update failed for {config.url}: {str(e)}")
+            # If exception occurs, mark as unregistered to retry registration next time
+            self.registration_status[config.url] = False
 
     def send_removal_message(self, removal_message) -> bool:
-        """Send table removal message to all servers via HTTP POST. Ensures registration first."""
+        """Send table removal message to all servers via HTTP POST (async fire-and-forget). Ensures registration first."""
         if not self.server_configs:
             logger.debug("No servers configured - skipping removal message")
             return False
 
-        successful_sends = 0
-        
+        # Submit async tasks for all servers
         for config in self.server_configs:
-            try:
-                # Ensure registration before sending data
-                if not self._ensure_registration(removal_message.client_id, config):
-                    logger.debug(f"Skipping removal message for {config.url} - registration failed")
-                    continue
-                
-                endpoint = f"{config.url.rstrip('/')}/api/client/update"
-                success = self._send_http_request(endpoint, removal_message.to_dict(), config, "removal message")
-                if success:
-                    successful_sends += 1
-                else:
-                    # If data send fails, mark as unregistered to retry registration next time
-                    self.registration_status[config.url] = False
-            except Exception as e:
-                logger.debug(f"Removal message failed for {config.url}: {str(e)}")
-                # If exception occurs, mark as unregistered to retry registration next time
-                self.registration_status[config.url] = False
+            self.executor.submit(self._send_removal_message_async, removal_message, config)
         
-        if successful_sends > 0:
-            logger.debug(f"📤 Removal message sent to {successful_sends}/{len(self.server_configs)} servers")
-            return True
-        else:
-            logger.debug("Removal message failed for all servers")
-            return False
+        logger.debug(f"📤 Removal message submitted to {len(self.server_configs)} servers (async)")
+        return True
+
+    def _send_removal_message_async(self, removal_message, config: ServerConfig):
+        """Async worker method to send removal message to a single server."""
+        try:
+            # Ensure registration before sending data
+            if not self._ensure_registration(removal_message.client_id, config):
+                logger.debug(f"Skipping removal message for {config.url} - registration failed")
+                return
+            
+            endpoint = f"{config.url.rstrip('/')}/api/client/update"
+            success = self._send_http_request(endpoint, removal_message.to_dict(), config, "removal message")
+            if not success:
+                # If data send fails, mark as unregistered to retry registration next time
+                self.registration_status[config.url] = False
+        except Exception as e:
+            logger.debug(f"Removal message failed for {config.url}: {str(e)}")
+            # If exception occurs, mark as unregistered to retry registration next time
+            self.registration_status[config.url] = False
 
     def _send_http_request(self, endpoint: str, data: dict, config: ServerConfig, operation: str) -> bool:
         """Send HTTP request with simple retry logic."""
@@ -224,8 +222,12 @@ class SimpleHttpConnector:
         return results
 
     def close(self):
-        """Close the HTTP session."""
-        if self.session:
+        """Close the HTTP session and thread pool."""
+        if hasattr(self, 'executor') and self.executor:
+            self.executor.shutdown(wait=False)
+            logger.debug("⚡ Thread pool shutdown initiated")
+        
+        if hasattr(self, 'session') and self.session:
             self.session.close()
             logger.debug("🔌 HTTP session closed")
 
