@@ -149,12 +149,11 @@ class GameDataReceiver:
                 return
             
             # Find the latest update time for this client
-            latest_update = None
+            latest_update_str = None
             for game in client_games:
-                if 'last_update' in game:
-                    game_time = datetime.fromisoformat(game['last_update'].replace('Z', '+00:00'))
-                    if latest_update is None or game_time > latest_update:
-                        latest_update = game_time
+                game_update = game.get('last_update')
+                if game_update and (latest_update_str is None or game_update > latest_update_str):
+                    latest_update_str = game_update
             
             # Prepare client-specific notification data
             client_data = {
@@ -162,7 +161,7 @@ class GameDataReceiver:
                 'client_id': client_id,
                 'window_name': window_name,
                 'detections': client_games,
-                'last_update': latest_update.isoformat() if latest_update else datetime.now().isoformat(),
+                'last_update': latest_update_str if latest_update_str else datetime.now().isoformat(),
                 'total_tables': len(client_games)
             }
             
