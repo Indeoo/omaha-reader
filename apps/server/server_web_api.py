@@ -7,8 +7,9 @@ from flask import Flask, render_template, jsonify, request, session, redirect, u
 from flask_cors import CORS
 from loguru import logger
 
-from services.game_data_receiver import GameDataReceiver
-from services.server_game_state import ServerGameStateService
+from .services.game_data_receiver import GameDataReceiver
+from .services.server_game_state import ServerGameStateService
+from .utils.game_data_formatter import format_game_data_for_web
 
 
 class ServerWebApi:
@@ -142,7 +143,7 @@ class ServerWebApi:
                 
                 return jsonify({
                     'client_id': client_id,
-                    'detections': client_games,
+                    'detections': [format_game_data_for_web(game) for game in client_games],
                     'last_update': latest_update.isoformat() if latest_update else datetime.now().isoformat(),
                     'total_tables': len(client_games)
                 })
@@ -180,7 +181,7 @@ class ServerWebApi:
                 response_data = {
                     'type': 'client_detection_update',
                     'client_id': client_id,
-                    'detections': client_games,
+                    'detections': [format_game_data_for_web(game) for game in client_games],
                     'last_update': latest_update.isoformat() if latest_update else datetime.now().isoformat(),
                     'total_tables': len(client_games),
                     'polling_interval': 5000
@@ -215,10 +216,14 @@ class ServerWebApi:
                 if request.headers.get('If-None-Match') == etag:
                     return '', 304  # Not Modified
                 
+                # Format detections for web display
+                raw_detections = current_state.get('detections', [])
+                formatted_detections = [format_game_data_for_web(detection) for detection in raw_detections]
+                
                 # Prepare response with additional metadata
                 response_data = {
                     'type': 'detection_update',
-                    'detections': current_state.get('detections', []),
+                    'detections': formatted_detections,
                     'last_update': current_state.get('last_update'),
                     'connected_clients': self.game_data_receiver.get_connected_clients(),
                     'total_clients': len(self.game_data_receiver.get_connected_clients()),
