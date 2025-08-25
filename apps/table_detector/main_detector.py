@@ -61,7 +61,6 @@ SERVER_URLS = parse_server_urls()
 CLIENT_ID = os.getenv('CLIENT_ID', None)  # Auto-generated if not provided
 DETECTION_INTERVAL = int(os.getenv('DETECTION_INTERVAL', '3'))
 DEBUG_MODE = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
-COUNTRY = os.getenv('COUNTRY', "canada").lower()
 CONNECTION_TIMEOUT = int(os.getenv('CONNECTION_TIMEOUT', '10'))
 RETRY_ATTEMPTS = int(os.getenv('RETRY_ATTEMPTS', '1'))
 
@@ -70,8 +69,7 @@ def main():
     logger.info("🎯 Initializing Omaha Poker Detection Client")
     logger.info(f"🔍 Detection interval: {DETECTION_INTERVAL}s")
     logger.info(f"🐛 Debug mode: {DEBUG_MODE}")
-    logger.info(f"🌍 Country: {COUNTRY}")
-    
+
     # Log configured servers
     logger.info(f"🌐 Configured servers ({len(SERVER_URLS)}):")
     for url in SERVER_URLS:
@@ -89,7 +87,6 @@ def main():
         # Initialize detection client
         detection_client = DetectionClient(
             client_id=CLIENT_ID,
-            country=COUNTRY,
             debug_mode=DEBUG_MODE,
             detection_interval=DETECTION_INTERVAL,
             server_connector=http_connector

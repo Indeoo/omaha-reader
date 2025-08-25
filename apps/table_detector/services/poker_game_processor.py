@@ -16,7 +16,6 @@ class PokerGameProcessor:
     def __init__(
             self,
             game_state_service: GameStateService,
-            country="canada",
             save_result_images=True,
             write_detection_files=True,
     ):

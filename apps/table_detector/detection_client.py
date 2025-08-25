@@ -18,7 +18,7 @@ from shared.protocol.message_protocol import GameUpdateMessage, TableRemovalMess
 
 
 class DetectionClient:
-    def __init__(self, client_id: str = None, country="canada", debug_mode: bool = True, 
+    def __init__(self, client_id: str = None, debug_mode: bool = True,
                  detection_interval: int = 10, server_connector=None):
         initialize_platform()
 
@@ -34,7 +34,6 @@ class DetectionClient:
 
         self.poker_game_processor = PokerGameProcessor(
             self.game_state_service,
-            country=country,
             save_result_images=debug_mode,  # Save result images only in debug mode
             write_detection_files=debug_mode  # Write detection files only in debug mode
         )
