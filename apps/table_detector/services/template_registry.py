@@ -5,7 +5,7 @@ from typing import Dict, Optional
 import numpy as np
 from loguru import logger
 
-from table_detector.services.opencv_utils import read_cv2_image
+from table_detector.utils.opencv_utils import read_cv2_image
 
 
 class TemplateRegistry:

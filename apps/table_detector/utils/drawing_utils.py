@@ -9,7 +9,7 @@ from shared.domain.captured_window import CapturedWindow
 from shared.domain.detected_bid import DetectedBid
 from shared.domain.detection import Detection
 from shared.domain.game_snapshot import GameSnapshot
-from table_detector.services.opencv_utils import save_opencv_image
+from table_detector.utils.opencv_utils import save_opencv_image
 from table_detector.utils.detect_utils import PLAYER_POSITIONS, ACTION_POSITIONS
 
 

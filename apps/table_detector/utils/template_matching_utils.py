@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict
 import numpy as np
 from loguru import logger
 
-from table_detector.services.opencv_utils import match_template_at_scale
+from table_detector.utils.opencv_utils import match_template_at_scale
 
 
 def find_template_matches_parallel(

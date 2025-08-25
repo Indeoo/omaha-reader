@@ -3,8 +3,8 @@ import unittest
 import cv2
 from matplotlib import pyplot as plt
 
-from table_detector.services.opencv_utils import draw_detected_bids
-from table_detector.utils.bid_detect_utils import detect_bids
+from table_detector.utils.opencv_utils import draw_detected_bids
+from table_detector.services.bid_detect_utils import detect_bids
 
 
 class TestDetectBids(unittest.TestCase):
