@@ -1,7 +1,7 @@
 import os
 from typing import List, Dict
 
-from PIL import Image
+from PIL import Image, ImageGrab
 from loguru import logger
 
 from table_detector.domain.captured_window import CapturedWindow
@@ -87,7 +87,7 @@ def save_images_to_window_folders(
     logger.info("Screenshot process completed.")
 
 
-def _load_images_from_folder(timestamp_folder: str) -> List[CapturedWindow]:
+def load_images_from_folder(timestamp_folder: str) -> List[CapturedWindow]:
     captured_images = []
 
     if not os.path.exists(timestamp_folder):
@@ -121,3 +121,13 @@ def _load_images_from_folder(timestamp_folder: str) -> List[CapturedWindow]:
             logger.error(f"  ❌ Failed to load {filename}: {str(e)}")
 
     return captured_images
+
+
+def capture_fullscreen():
+    try:
+        with ImageGrab.grab() as full_screen_source:
+            # Create a copy to avoid keeping the original reference
+            full_screen = full_screen_source.copy()
+    except Exception as e:
+        logger.error(f"Error capturing full screen: {e}")
+    return full_screen

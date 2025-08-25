@@ -1,18 +1,17 @@
 import os
 from typing import List
 
-from PIL import ImageGrab
 from loguru import logger
 
 from table_detector.domain.captured_window import CapturedWindow
-from table_detector.utils.capture_utils import _load_images_from_folder, get_poker_window_info, _capture_windows, \
-    save_images_to_window_folders
+from table_detector.utils.capture_utils import load_images_from_folder, get_poker_window_info, _capture_windows, \
+    save_images_to_window_folders, capture_fullscreen
 from table_detector.utils.windows_utils import write_windows_list
 
 
 def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, debug=False) -> List[CapturedWindow]:
     if debug:
-        captured_images = _load_images_from_folder(timestamp_folder)
+        captured_images = load_images_from_folder(timestamp_folder)
         if captured_images:
             logger.info(f"✅ Loaded {len(captured_images)} images from debug folder")
         else:
@@ -29,21 +28,16 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
     captured_images = _capture_windows(windows=windows)
 
     if save_windows:
-        try:
-            with ImageGrab.grab() as full_screen_source:
-                # Create a copy to avoid keeping the original reference
-                full_screen = full_screen_source.copy()
+        full_screen = capture_fullscreen()
 
-            full_screen_captured = CapturedWindow(
-                image=full_screen,
-                filename="full_screen.png",
-                window_name='full_screen',
-                description="Full screen"
-            )
-            captured_images.append(full_screen_captured)
-            logger.info(f"Captured full screen")
-        except Exception as e:
-            logger.error(f"Error capturing full screen: {e}")
+        full_screen_captured = CapturedWindow(
+            image=full_screen,
+            filename="full_screen.png",
+            window_name='full_screen',
+            description="Full screen"
+        )
+        captured_images.append(full_screen_captured)
+        logger.info(f"Captured full screen")
 
         # Create window folder mapping - each window gets its own folder
         window_folder_mapping = {}
@@ -69,3 +63,5 @@ def capture_and_save_windows(timestamp_folder: str = None, save_windows=True, de
         captured_images = [img for img in captured_images if img.window_name != 'full_screen']
 
     return captured_images
+
+
