@@ -3,8 +3,8 @@ from typing import Optional, Callable
 
 from loguru import logger
 
-from server.services.server_game_state import ServerGameStateService
-from shared.protocol.message_protocol import ServerResponseMessage, MessageParser, ClientRegistrationMessage, \
+from apps.server.services.server_game_state import ServerGameStateService
+from apps.shared.protocol.message_protocol import ServerResponseMessage, MessageParser, ClientRegistrationMessage, \
     GameUpdateMessage, TableRemovalMessage
 
 

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 
-from shared.domain.detection import Detection
+from apps.shared.domain.detection import Detection
 
 
 @dataclass
