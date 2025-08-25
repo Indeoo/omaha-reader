@@ -1,0 +1,16 @@
+# Table Detector Component Dependencies
+# Includes shared dependencies from root requirements.txt
+-r ../../requirements.txt
+
+# Image processing and computer vision
+pytesseract==0.3.13
+opencv-python==4.11.0.86
+
+# Task scheduling for detection intervals
+apscheduler==3.10.4
+
+# Plotting and visualization (for testing/debugging)
+matplotlib==3.10.3
+
+# HTTP client for sending data to server
+requests==2.31.0
