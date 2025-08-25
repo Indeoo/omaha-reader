@@ -1,5 +1,5 @@
 import glob
-import os
+from pathlib import Path
 from typing import Dict, Optional
 
 import numpy as np
@@ -19,15 +19,16 @@ class TemplateRegistry:
         self._actions_templates: Optional[Dict[str, np.ndarray]] = None
         self._jurojin_action_templates: Optional[Dict[str, np.ndarray]] = None
 
-        self._templates_dir = os.path.join(project_root, "apps", "table_detector", "resources", "templates", country)
+        self._templates_dir = Path(project_root) / "apps" / "table_detector" / "resources" / "templates" / country
 
     @staticmethod
     def load_templates(template_dir):
         logger.info(f"📁 Loading templates from: {template_dir}")
 
         templates = {}
-        for tpl_path in glob.glob(os.path.join(template_dir, '*.png')):
-            name = os.path.basename(tpl_path).split('.')[0]
+        template_path = Path(template_dir)
+        for tpl_path in template_path.glob('*.png'):
+            name = tpl_path.stem
             tpl = read_cv2_image(tpl_path)
             templates[name] = tpl
 
@@ -69,9 +70,9 @@ class TemplateRegistry:
         return self._jurojin_action_templates
 
     def _load_template_category(self, category: str) -> Dict[str, np.ndarray]:
-        templates_path = os.path.join(self._templates_dir, category)
+        templates_path = self._templates_dir / category
 
-        if not os.path.exists(templates_path):
+        if not templates_path.exists():
             logger.error(f"⚠️  Template directory not found: {templates_path}")
             return {}
 

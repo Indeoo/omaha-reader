@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from pathlib import Path
 
 from loguru import logger
 
@@ -19,10 +20,10 @@ def create_timestamp_folder(debug_mode=False) -> str:
 
     if debug_mode:
         # Debug mode - use existing folder
-        timestamp_folder = os.path.join(os.getcwd(), DEBUG_FOLDER)
+        timestamp_folder = Path.cwd() / DEBUG_FOLDER
     else:
         # Live mode - create new folder 
-        timestamp_folder = os.path.join(os.getcwd(), "resources/results", date_folder, time_folder)
+        timestamp_folder = Path.cwd() / "resources" / "results" / date_folder / time_folder
 
     return timestamp_folder
 
@@ -41,10 +42,10 @@ def create_window_folder(base_timestamp_folder: str, window_name: str) -> str:
     safe_window_name = "".join([c if c.isalnum() or c in ('_', '-', ' ') else "_" for c in window_name])
     safe_window_name = safe_window_name.strip().replace(' ', '_')
 
-    window_folder = os.path.join(base_timestamp_folder, safe_window_name)
+    window_folder = Path(base_timestamp_folder) / safe_window_name
 
     try:
-        os.makedirs(window_folder, exist_ok=True)
+        window_folder.mkdir(parents=True, exist_ok=True)
         logger.info(f"📁 Created window folder: {window_folder}")
     except Exception as e:
         logger.error(f"❌ Error creating window folder {window_folder}: {str(e)}")
