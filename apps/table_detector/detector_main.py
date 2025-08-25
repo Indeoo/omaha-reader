@@ -8,21 +8,14 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from loguru import logger
 
-# Add the current directory to path so we can import local modules
-current_dir = os.path.dirname(os.path.abspath(__file__))
-apps_dir = os.path.dirname(current_dir)
-if apps_dir not in sys.path:
-    sys.path.insert(0, apps_dir)
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
 
-from services.image_capture_service import ImageCaptureService
-from services.game_state_service import GameStateService
-from services.state_repository import GameStateRepository
-from services.poker_game_processor import PokerGameProcessor
-from utils.fs_utils import create_timestamp_folder, create_window_folder
-from utils.logs import load_logger
-from utils.windows_utils import initialize_platform
+from table_detector.services.image_capture_service import ImageCaptureService
+from table_detector.services.game_state_service import GameStateService
+from table_detector.services.state_repository import GameStateRepository
+from table_detector.services.poker_game_processor import PokerGameProcessor
+from table_detector.utils.fs_utils import create_timestamp_folder, create_window_folder
+from table_detector.utils.logs import load_logger
+from table_detector.utils.windows_utils import initialize_platform
 from apps.shared.protocol.message_protocol import GameUpdateMessage, TableRemovalMessage
 
 
