@@ -1,8 +1,8 @@
 import unittest
 
-from shared.domain.domain.moves import MoveType
-from shared.domain.domain.position import Position
-from shared.domain.domain.street import Street
+from shared.domain.moves import MoveType
+from shared.domain.position import Position
+from shared.domain.street import Street
 from table_detector.services.omaha_action_processor import group_moves_by_street
 
 

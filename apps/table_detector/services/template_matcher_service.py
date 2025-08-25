@@ -6,7 +6,7 @@ from typing import List, Dict, Optional, Tuple
 
 import numpy as np
 
-from shared.domain.domain.detection import Detection
+from shared.domain.detection import Detection
 from table_detector.services.template_registry import TemplateRegistry
 from table_detector.utils.template_matching_utils import (
     find_single_template_matches,

@@ -2,8 +2,8 @@ import traceback
 
 from loguru import logger
 
-from shared.domain.domain.captured_window import CapturedWindow
-from shared.domain.domain.game_snapshot import GameSnapshot
+from shared.domain.captured_window import CapturedWindow
+from shared.domain.game_snapshot import GameSnapshot
 from table_detector.services.game_state_service import GameStateService
 from table_detector.services.omaha_action_processor import group_moves_by_street
 from table_detector.services.template_matcher_service import TemplateMatchService

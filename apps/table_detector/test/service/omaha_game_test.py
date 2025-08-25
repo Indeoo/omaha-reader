@@ -1,9 +1,9 @@
 import unittest
 
-from shared.domain.domain.moves import MoveType
-from shared.domain.domain.omaha_game import OmahaGame, InvalidActionError, GameState
-from shared.domain.domain.position import Position
-from shared.domain.domain.street import Street
+from shared.domain.moves import MoveType
+from shared.domain.omaha_game import OmahaGame, InvalidActionError, GameState
+from shared.domain.position import Position
+from shared.domain.street import Street
 
 
 class TestOmahaGame(unittest.TestCase):

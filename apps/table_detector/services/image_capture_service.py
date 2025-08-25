@@ -3,7 +3,7 @@ from typing import List, Dict, NamedTuple
 
 from loguru import logger
 
-from shared.domain.domain.captured_window import CapturedWindow
+from shared.domain.captured_window import CapturedWindow
 from table_detector.utils.capture_utils import capture_and_save_windows
 from table_detector.utils.logs import console_logger
 

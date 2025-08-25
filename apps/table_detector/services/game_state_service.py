@@ -2,10 +2,10 @@ from typing import List, Dict, Optional
 
 from loguru import logger
 
-from shared.domain.domain.detection import Detection
-from shared.domain.domain.game import Game
-from shared.domain.domain.game_snapshot import GameSnapshot
-from shared.domain.domain.position import Position
+from shared.domain.detection import Detection
+from shared.domain.game import Game
+from shared.domain.game_snapshot import GameSnapshot
+from shared.domain.position import Position
 from shared.utils.card_format_utils import format_cards_simple
 from table_detector.services.state_repository import GameStateRepository
 

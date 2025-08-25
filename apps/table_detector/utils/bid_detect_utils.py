@@ -5,7 +5,7 @@ import numpy as np
 import pytesseract
 from loguru import logger
 
-from shared.domain.domain.detected_bid import DetectedBid
+from shared.domain.detected_bid import DetectedBid
 
 # Player position coordinates (position_id: (x, y, width, height))
 PLAYER_BID_POSITIONS = {

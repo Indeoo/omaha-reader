@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Dict, Optional, Any
 
 try:
-    from ..domain.domain.detection import Detection
+    from shared.domain.detection import Detection
 except ImportError:
     import sys
     import os

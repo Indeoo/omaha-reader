@@ -2,8 +2,8 @@ import threading
 from datetime import datetime
 from typing import Dict, Optional, List, Tuple
 
-from shared.domain.domain.game import Game
-from shared.domain.domain.game_snapshot import GameSnapshot
+from shared.domain.game import Game
+from shared.domain.game_snapshot import GameSnapshot
 
 
 class GameStateRepository:

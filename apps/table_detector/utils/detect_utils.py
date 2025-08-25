@@ -3,7 +3,7 @@ from typing import List, Dict
 import numpy as np
 from loguru import logger
 
-from shared.domain.domain.detection import Detection
+from shared.domain.detection import Detection
 from table_detector.services.opencv_utils import coords_to_search_region
 from table_detector.services.template_matcher_service import TemplateMatchService
 
