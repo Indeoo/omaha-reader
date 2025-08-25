@@ -1,9 +1,9 @@
 from typing import List, Union, Tuple, Dict
 
-from shared.domain.moves import MoveType
-from shared.domain.omaha_game import OmahaGame
-from shared.domain.position import Position
-from shared.domain.street import Street
+from apps.shared.domain.moves import MoveType
+from apps.shared.domain.omaha_game import OmahaGame
+from apps.shared.domain.position import Position
+from apps.shared.domain.street import Street
 
 
 def group_moves_by_street(
