@@ -1,12 +1,13 @@
-from typing import Optional
-from PIL import Image
 import hashlib
+import os
+import sys
+from typing import Optional
+
 import numpy as np
+from PIL import Image
 from loguru import logger
 
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'table-detector'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'table_detector'))
 from services.opencv_utils import pil_to_cv2
 
 

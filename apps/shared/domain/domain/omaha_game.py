@@ -1,5 +1,6 @@
-from typing import Dict, List, Tuple, Set, Optional
 from enum import Enum
+from typing import Dict, List, Tuple, Set, Optional
+
 from .moves import MoveType
 from .position import Position
 from .street import Street

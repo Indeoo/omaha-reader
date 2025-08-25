@@ -1,7 +1,7 @@
-from dataclasses import dataclass
-from typing import List, Dict, Optional, Any
-from datetime import datetime
 import json
+from dataclasses import dataclass
+from datetime import datetime
+from typing import List, Dict, Optional, Any
 
 try:
     from ..domain.domain.detection import Detection

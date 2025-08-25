@@ -1,9 +1,9 @@
-from typing import List, Dict, Any, Optional, Tuple
 from collections import defaultdict
+from typing import List, Dict, Any, Optional, Tuple
 
 from .detection import Detection
-from .position import Position
 from .moves import MoveType
+from .position import Position
 from .street import Street
 
 

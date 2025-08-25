@@ -1,9 +1,10 @@
-from typing import Optional, Callable
-from loguru import logger
-from datetime import datetime
-
-import sys
 import os
+import sys
+from datetime import datetime
+from typing import Optional, Callable
+
+from loguru import logger
+
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
 from protocol.message_protocol import (
     GameUpdateMessage, 

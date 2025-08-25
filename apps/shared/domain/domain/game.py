@@ -1,12 +1,11 @@
-from typing import List, Dict, Optional, Tuple
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
+from typing import List, Dict, Optional, Tuple
 
-from .street import Street
 from .detection import Detection
-from .position import Position
 from .moves import MoveType
-from ...utils.card_format_utils import format_cards_simple
+from .position import Position
+from .street import Street
 
 
 class Game:

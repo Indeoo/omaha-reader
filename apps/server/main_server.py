@@ -1,4 +1,5 @@
 import os
+
 from flask.cli import load_dotenv
 from loguru import logger
 
