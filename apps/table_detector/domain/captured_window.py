@@ -1,14 +1,11 @@
 import hashlib
-import os
-import sys
 from typing import Optional
 
 import numpy as np
 from PIL import Image
 from loguru import logger
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'table_detector'))
-from services.opencv_utils import pil_to_cv2
+from table_detector.utils.opencv_utils import pil_to_cv2
 
 
 class CapturedWindow:

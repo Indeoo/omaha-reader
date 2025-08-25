@@ -3,13 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 
-try:
-    from shared.domain.detection import Detection
-except ImportError:
-    import sys
-    import os
-    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-    from domain.domain.detection import Detection
+from ..domain.detection import Detection
 
 
 @dataclass

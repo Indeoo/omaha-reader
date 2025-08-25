@@ -2,7 +2,7 @@ import traceback
 
 from loguru import logger
 
-from shared.domain.captured_window import CapturedWindow
+from table_detector.domain.captured_window import CapturedWindow
 from shared.domain.game_snapshot import GameSnapshot
 from table_detector.services.game_state_service import GameStateService
 from table_detector.services.omaha_action_processor import group_moves_by_street

@@ -4,7 +4,7 @@ from typing import List
 from PIL import ImageGrab
 from loguru import logger
 
-from shared.domain.captured_window import CapturedWindow
+from table_detector.domain.captured_window import CapturedWindow
 from table_detector.utils.capture_utils import _load_images_from_folder, get_poker_window_info, _capture_windows, \
     save_images_to_window_folders
 from table_detector.utils.windows_utils import write_windows_list

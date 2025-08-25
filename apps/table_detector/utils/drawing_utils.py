@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 from loguru import logger
 
-from shared.domain.captured_window import CapturedWindow
+from table_detector.domain.captured_window import CapturedWindow
 from shared.domain.detected_bid import DetectedBid
 from shared.domain.detection import Detection
 from shared.domain.game_snapshot import GameSnapshot

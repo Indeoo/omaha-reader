@@ -5,8 +5,7 @@ from typing import Optional, Callable
 
 from loguru import logger
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
-from protocol.message_protocol import (
+from ...shared.protocol.message_protocol import (
     GameUpdateMessage, 
     ClientRegistrationMessage, 
     TableRemovalMessage,

@@ -4,7 +4,7 @@ from typing import List, Dict
 from PIL import Image
 from loguru import logger
 
-from shared.domain.captured_window import CapturedWindow
+from table_detector.domain.captured_window import CapturedWindow
 from table_detector.utils.fs_utils import get_image_names
 from table_detector.utils.windows_utils import get_window_info, careful_capture_window, capture_screen_region
 
