@@ -1,10 +1,10 @@
 from collections import defaultdict
 from typing import List, Dict, Any, Optional, Tuple
 
-from shared.domain.detection import Detection
-from shared.domain.moves import MoveType
-from shared.domain.position import Position
-from shared.domain.street import Street
+from apps.shared.domain.detection import Detection
+from apps.shared.domain.moves import MoveType
+from apps.shared.domain.position import Position
+from apps.shared.domain.street import Street
 
 
 class GameSnapshot:

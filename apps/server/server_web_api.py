@@ -262,7 +262,7 @@ class ServerWebApi:
                 if not data or 'client_id' not in data:
                     return jsonify({'error': 'client_id required'}), 400
                 
-                from shared.protocol.message_protocol import ClientRegistrationMessage
+                from apps.shared.protocol.message_protocol import ClientRegistrationMessage
                 from datetime import datetime
                 
                 message = ClientRegistrationMessage(
