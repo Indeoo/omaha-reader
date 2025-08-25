@@ -7,7 +7,7 @@ from typing import List
 import requests
 from loguru import logger
 
-from apps.shared.protocol.message_protocol import (
+from shared.protocol.message_protocol import (
     GameUpdateMessage,
     ClientRegistrationMessage
 )

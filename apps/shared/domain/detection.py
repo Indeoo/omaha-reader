@@ -1,5 +1,7 @@
 from typing import Tuple
 
+from shared.utils.card_format_utils import format_card_with_unicode
+
 
 class Detection:
     def __init__(self, name: str, center: Tuple[int, int],
@@ -36,7 +38,6 @@ class Detection:
         return self.name
 
     def format_with_unicode(self) -> str:
-        from apps.shared.utils.card_format_utils import format_card_with_unicode
         return format_card_with_unicode(self.name)
 
     def __repr__(self):

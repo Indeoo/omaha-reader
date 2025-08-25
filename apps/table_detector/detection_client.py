@@ -14,7 +14,7 @@ from table_detector.services.poker_game_processor import PokerGameProcessor
 from table_detector.utils.fs_utils import create_timestamp_folder, create_window_folder
 from table_detector.utils.logs import load_logger
 from table_detector.utils.windows_utils import initialize_platform
-from apps.shared.protocol.message_protocol import GameUpdateMessage, TableRemovalMessage
+from shared.protocol.message_protocol import GameUpdateMessage, TableRemovalMessage
 
 
 class DetectionClient:

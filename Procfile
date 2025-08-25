@@ -1,1 +1,1 @@
-web: cd apps/server && python -m apps.server.main_server
+web: cd apps/server && python -m main_server
