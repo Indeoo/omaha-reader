@@ -1,18 +1,11 @@
-import os
-import sys
 from datetime import datetime
 from typing import Optional, Callable
 
 from loguru import logger
 
-from ...shared.protocol.message_protocol import (
-    GameUpdateMessage, 
-    ClientRegistrationMessage, 
-    TableRemovalMessage,
-    MessageParser,
-    ServerResponseMessage
-)
-from .server_game_state import ServerGameStateService
+from server.services.server_game_state import ServerGameStateService
+from shared.protocol.message_protocol import ServerResponseMessage, MessageParser, ClientRegistrationMessage, \
+    GameUpdateMessage, TableRemovalMessage
 
 
 class GameDataReceiver:

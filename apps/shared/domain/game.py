@@ -2,10 +2,10 @@ from collections import defaultdict
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 
-from .detection import Detection
-from .moves import MoveType
-from .position import Position
-from .street import Street
+from shared.domain.detection import Detection
+from shared.domain.moves import MoveType
+from shared.domain.position import Position
+from shared.domain.street import Street
 
 
 class Game:

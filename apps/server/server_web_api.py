@@ -8,9 +8,9 @@ from flask import Flask, render_template, jsonify, request, session, redirect, u
 from flask_cors import CORS
 from loguru import logger
 
-from .services.game_data_receiver import GameDataReceiver
-from .services.server_game_state import ServerGameStateService
-from .utils.game_data_formatter import format_game_data_for_web
+from server.services.game_data_receiver import GameDataReceiver
+from server.services.server_game_state import ServerGameStateService
+from server.utils.game_data_formatter import format_game_data_for_web
 
 
 class ServerWebApi:

@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 from typing import Dict, List, Any
 
-from ...shared.protocol.message_protocol import GameUpdateMessage
+from shared.protocol.message_protocol import GameUpdateMessage
 
 
 class ServerGameStateService:

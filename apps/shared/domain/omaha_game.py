@@ -1,9 +1,9 @@
 from enum import Enum
 from typing import Dict, List, Tuple, Set, Optional
 
-from .moves import MoveType
-from .position import Position
-from .street import Street
+from shared.domain.moves import MoveType
+from shared.domain.position import Position
+from shared.domain.street import Street
 
 
 class GameState(Enum):
