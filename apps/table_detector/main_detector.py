@@ -1,23 +1,15 @@
 import json
 import os
-import sys
 import time
 from typing import List
 
 from flask.cli import load_dotenv
 from loguru import logger
 
-from table_detector.detector_main import DetectionClient
+from table_detector.detection_client import DetectionClient
 
-# Ensure proper path setup for imports
-current_dir = os.path.dirname(os.path.abspath(__file__))
-apps_dir = os.path.dirname(current_dir)
-if apps_dir not in sys.path:
-    sys.path.insert(0, apps_dir)
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
 
-from connectors.server_connector import SimpleHttpConnector, ServerConfig
+from table_detector.connectors.server_connector import SimpleHttpConnector, ServerConfig
 
 load_dotenv()
 
