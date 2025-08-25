@@ -234,27 +234,6 @@ class DetectionClient:
         except Exception as e:
             logger.debug(f"Failed to send removal update for {removal_data.get('window_name', 'unknown')}: {str(e)}")
 
-    def _send_removal_message(self, removed_window_names):
-        """Send table removal message via HTTP."""
-        if not self.http_connector or not removed_window_names:
-            logger.debug("No HTTP connector or empty removal list - skipping removal message")
-            return
-
-        try:
-            # Create removal message
-            removal_message = TableRemovalMessage(
-                type='table_removal',
-                client_id=self.client_id,
-                removed_windows=removed_window_names,
-                timestamp=datetime.now().isoformat()
-            )
-
-            # Simple HTTP request - fire and forget
-            self.http_connector.send_removal_message(removal_message)
-            
-        except Exception as e:
-            logger.debug(f"Failed to send removal message: {str(e)}")
-
     def _convert_cards_to_protocol(self, cards: list) -> list:
         """Convert card format from web format to protocol format."""
         protocol_cards = []
@@ -281,15 +260,6 @@ class DetectionClient:
                     'name': pos.get('name', '')
                 }
         return protocol_positions
-
-    def register_with_server(self) -> bool:
-        """Register this client with servers via HTTP."""
-        if not self.http_connector:
-            logger.debug("No HTTP connector configured - skipping registration")
-            return False
-
-        # Simple HTTP registration request
-        return self.http_connector.register_client(self.client_id)
 
     def get_client_id(self) -> str:
         """Get the client ID."""
