@@ -1,9 +1,9 @@
 import unittest
 
-from shared.domain.moves import MoveType
-from shared.domain.position import Position
-from shared.domain.street import Street
-from table_detector.services.omaha_action_processor import group_moves_by_street
+from apps.shared.domain.moves import MoveType
+from apps.shared.domain.position import Position
+from apps.shared.domain.street import Street
+from apps.table_detector.services.omaha_action_processor import group_moves_by_street
 
 
 class TestMovesByStreetWithExpectedResults(unittest.TestCase):
