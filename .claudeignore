@@ -2,4 +2,5 @@ venv*
 .venv
 Dropbox
 resources/*
+apps/table_detector/resources/*
 !resources/templates/
