@@ -1,10 +1,11 @@
-pytesseract==0.3.13
-opencv-python==4.11.0.86
-apscheduler==3.10.4
-#pywin32==310
-Flask==3.1.1
-flask-cors==6.0.1
-matplotlib==3.10.3
+# Shared Dependencies for All Components
+# Used by both table_detector and server components
+
+# Logging framework
 loguru==0.7.2
+
+# Environment variable loading
 python-dotenv==1.0.1
-requests==2.31.0
+
+# Platform-specific dependencies (commented out for cross-platform compatibility)
+#pywin32==310

@@ -2,14 +2,16 @@
 
 import os
 from datetime import datetime
+from pathlib import Path
 from functools import wraps
+
 from flask import Flask, render_template, jsonify, request, session, redirect, url_for, flash
 from flask_cors import CORS
 from loguru import logger
 
-from .services.game_data_receiver import GameDataReceiver
-from .services.server_game_state import ServerGameStateService
-from .utils.game_data_formatter import format_game_data_for_web
+from apps.server.services.game_data_receiver import GameDataReceiver
+from apps.server.services.server_game_state import ServerGameStateService
+from apps.server.utils.game_data_formatter import format_game_data_for_web
 
 
 class ServerWebApi:
@@ -28,18 +30,18 @@ class ServerWebApi:
         logger.info("🔄 Server initialized with HTTP polling (WebSocket removed)")
 
     def create_app(self):
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        template_dir = os.path.join(current_dir, "web", "templates")
-        static_dir = os.path.join(current_dir, "web", "templates", "static")
+        current_path = Path(__file__).resolve().parent
+        template_dir = current_path / "web" / "templates"
+        static_dir = current_path / "web" / "templates" / "static"
         
         # Debug logging for Heroku deployment
-        logger.info(f"🔍 Current directory: {current_dir}")
+        logger.info(f"🔍 Current directory: {current_path}")
         logger.info(f"🔍 Template directory: {template_dir}")
-        logger.info(f"🔍 Template directory exists: {os.path.exists(template_dir)}")
-        if os.path.exists(template_dir):
-            logger.info(f"🔍 Template files: {os.listdir(template_dir)}")
+        logger.info(f"🔍 Template directory exists: {template_dir.exists()}")
+        if template_dir.exists():
+            logger.info(f"🔍 Template files: {list(template_dir.iterdir())}")
         logger.info(f"🔍 Static directory: {static_dir}")
-        logger.info(f"🔍 Static directory exists: {os.path.exists(static_dir)}")
+        logger.info(f"🔍 Static directory exists: {static_dir.exists()}")
 
         app = Flask(__name__,
                     template_folder=template_dir,

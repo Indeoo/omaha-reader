@@ -1,6 +1,6 @@
 from typing import List
 
-from ..domain.domain.detection import Detection
+from apps.shared.domain.detection import Detection
 
 
 def format_cards_simple(cards: List[Detection]) -> str:

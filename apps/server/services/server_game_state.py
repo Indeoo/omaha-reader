@@ -1,10 +1,7 @@
-from typing import Dict, List, Optional, Any
 from datetime import datetime
+from typing import Dict, List, Any
 
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'shared'))
-from protocol.message_protocol import GameUpdateMessage
+from apps.shared.protocol.message_protocol import GameUpdateMessage
 
 
 class ServerGameStateService:

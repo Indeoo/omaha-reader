@@ -1,0 +1,9 @@
+# Server Component Dependencies  
+# Includes shared dependencies from root requirements.txt
+-r ../../requirements.txt
+
+# Web framework and HTTP server
+Flask==3.1.1
+
+# Cross-Origin Resource Sharing support
+flask-cors==6.0.1

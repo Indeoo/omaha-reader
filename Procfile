@@ -1,1 +1,1 @@
-web: cd apps/server && python -m apps.server.main_server
+web: pip install -r apps/server/requirements.txt && PYTHONPATH=. python -m apps.server.main_server

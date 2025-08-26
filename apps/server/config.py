@@ -4,7 +4,6 @@ Server Configuration Script
 Helps configure server environment variables for hosting the web UI.
 """
 
-import os
 import sys
 from pathlib import Path
 
