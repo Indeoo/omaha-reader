@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple, Dict
+from typing import List, Union, Tuple, Dict, overload
 
 from apps.shared.domain.moves import MoveType
 from apps.shared.domain.omaha_game import OmahaGame
@@ -6,15 +6,34 @@ from apps.shared.domain.position import Position
 from apps.shared.domain.street import Street
 
 
+@overload
 def group_moves_by_street(
-        player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> \
-Dict[Street, List[Tuple[Position, MoveType]]]:
+        player_moves: Dict[str, List[str]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
+    ...
+
+@overload
+def group_moves_by_street(
+        player_moves: Dict[Position, List[MoveType]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
+    ...
+
+@overload
+def group_moves_by_street(
+        player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
+    ...
+
+def group_moves_by_street(
+        player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
     """
     Groups player moves by street according to proper Omaha poker rules using state machine.
 
     This function serves as an adapter that converts the input format to work with
     the OmahaGame state machine, which handles all poker rule validation and
     street transition logic.
+
+    Function supports multiple input formats via overloads:
+    1. Dict[str, List[str]] - from detection pipeline (position names as strings)
+    2. Dict[Position, List[MoveType]] - from test code (enums directly)  
+    3. Dict[Union[str, Position], List[Union[MoveType, str]]] - mixed format
 
     Omaha Poker Rules:
     - A betting round ends when all active players have either called the last raise,
@@ -26,8 +45,9 @@ Dict[Street, List[Tuple[Position, MoveType]]]:
 
     Args:
         player_moves: Dict with Position enum or position strings as keys and lists of MoveType actions
-                     Actions can be MoveType, string, or tuples (MoveType, amount)
+                     Actions can be MoveType or string (normalized internally)
                      Only voluntary actions, blinds excluded
+                     Note: Tuple format (MoveType, amount) is no longer supported
 
     Returns:
         Dict with Street enum as keys and ordered lists of (Position, MoveType) tuples
@@ -81,7 +101,7 @@ Dict[Street, List[Tuple[Position, MoveType]]]:
     return game.get_moves_by_street()
 
 
-def _normalize_player_moves(player_moves: Dict[Union[str, Position], List[Union[MoveType, str, Tuple[Union[MoveType, str], float]]]]) -> Dict[str, List[MoveType]]:
+def _normalize_player_moves(player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[str, List[MoveType]]:
     """
     Normalize and validate input player moves for consistent processing.
     
@@ -91,7 +111,7 @@ def _normalize_player_moves(player_moves: Dict[Union[str, Position], List[Union[
     
     Args:
         player_moves: Dict with Position enum or position strings as keys and lists of MoveType actions
-                     Actions can be MoveType, string, or tuples (MoveType, amount)
+                     Actions can be MoveType or string (normalized internally)
     
     Returns:
         Dict with normalized position strings as keys and lists of MoveType enums as values
@@ -122,24 +142,13 @@ def _normalize_player_moves(player_moves: Dict[Union[str, Position], List[Union[
         normalized_move_list = []
         for i, move in enumerate(moves):
             try:
-                # Extract MoveType from various input formats
-                if isinstance(move, tuple):
-                    # Handle (MoveType, amount) tuples
-                    if len(move) < 1:
-                        raise ValueError(f"Empty tuple at position {pos_key}, move {i}")
-                    raw_move = move[0]
-                elif isinstance(move, (MoveType, str)):
-                    raw_move = move
-                else:
-                    raise TypeError(f"Invalid move type at position {pos_key}, move {i}: {type(move)}")
-                
                 # Convert string to MoveType if needed
-                if isinstance(raw_move, str):
-                    move_type = MoveType.normalize_action(raw_move)
-                elif isinstance(raw_move, MoveType):
-                    move_type = raw_move
+                if isinstance(move, str):
+                    move_type = MoveType.normalize_action(move)
+                elif isinstance(move, MoveType):
+                    move_type = move
                 else:
-                    raise TypeError(f"Move must be MoveType or string at position {pos_key}, move {i}: {type(raw_move)}")
+                    raise TypeError(f"Move must be MoveType or string at position {pos_key}, move {i}: {type(move)}")
                 
                 normalized_move_list.append(move_type)
                 
