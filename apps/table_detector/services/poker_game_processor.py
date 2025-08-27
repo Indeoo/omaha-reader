@@ -26,14 +26,13 @@ class PokerGameProcessor:
         self.save_result_images = save_result_images
         self.write_detection_files = write_detection_files
 
-
     def process(self, captured_image: CapturedWindow, timestamp_folder):
         """Process captured image and update game state. Returns None for backward compatibility."""
         window_name = captured_image.window_name
 
         game_snapshot = self.create_game_snapshot(captured_image, timestamp_folder)
 
-        #is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
+        # is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
 
         is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot.table_cards)
 
@@ -45,12 +44,12 @@ class PokerGameProcessor:
 
         game_snapshot = self.create_game_snapshot(captured_image, timestamp_folder)
 
-        #is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
+        # is_new_game = self.game_state_service.is_new_game(window_name, detected_player_cards, detected_positions)
 
         is_new_street = self.game_state_service.is_new_street(window_name, game_snapshot.table_cards)
 
         updated_game = self.game_state_service.create_or_update_game(window_name, game_snapshot, True, is_new_street)
-        
+
         # Return formatted game data for transmission
         return self.game_state_service._game_to_dict(window_name, updated_game)
 
@@ -62,29 +61,27 @@ class PokerGameProcessor:
         detected_positions = DetectUtils.detect_positions(cv2_image)
         detected_actions = DetectUtils.get_player_actions_detection(cv2_image)
         detected_bids = None
-        moves = self.get_moves(detected_actions, detected_positions)
-        game_snapshot_builder = (GameSnapshot.builder().with_player_cards(detected_player_cards)
-                                 .with_table_cards(detected_table_cards)
-                                 .with_bids(detected_bids)
-                                 .with_positions(detected_positions)
-                                 .with_actions(detected_actions)
-                                 .with_moves(moves)
-                                 )
-        game_snapshot = game_snapshot_builder.build()
+
+        position_actions = self.convert_to_position_actions(detected_actions, detected_positions)
+        moves = group_moves_by_street(position_actions)
+        logger.info(moves)
+
+        game_snapshot = (
+            GameSnapshot
+            .builder()
+            .with_player_cards(detected_player_cards)
+            .with_table_cards(detected_table_cards)
+            .with_bids(detected_bids)
+            .with_positions(detected_positions)
+            .with_actions(detected_actions)
+            .with_moves(moves)
+            .build()
+        )
+
         save_detection_result(timestamp_folder, captured_image, game_snapshot)
+
         return game_snapshot
 
-    def get_moves(self, detected_actions, detected_positions):
-        position_actions = self.convert_to_position_actions(detected_actions, detected_positions)
-        try:
-            moves = group_moves_by_street(position_actions)
-
-            logger.info(moves)
-
-            return moves
-        except Exception as e:
-            logger.error(f"Error while group_moves_by_street {e}")
-            traceback.print_exc()
 
     def convert_to_position_actions(self, actions, positions) -> Dict[Position, List[MoveType]]:
         result = {}
@@ -106,7 +103,7 @@ class PokerGameProcessor:
                 try:
                     # Convert position string to Position enum
                     position_enum = Position.normalize_position(position_name)
-                    
+
                     # Convert detection names to MoveType enums
                     move_types = []
                     for d in detection_list:
@@ -116,10 +113,10 @@ class PokerGameProcessor:
                         except ValueError as e:
                             logger.warning(f"Skipping invalid move '{d.name}' for position {position_name}: {e}")
                             continue
-                    
+
                     if move_types:  # Only add if we have valid moves
                         result[position_enum] = move_types
-                        
+
                 except ValueError as e:
                     logger.warning(f"Skipping invalid position '{position_name}': {e}")
                     continue
