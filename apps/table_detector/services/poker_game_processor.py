@@ -61,7 +61,7 @@ class PokerGameProcessor:
         detected_table_cards = TemplateMatchService.find_table_cards(cv2_image)
         detected_positions = DetectUtils.detect_positions(cv2_image)
         detected_actions = DetectUtils.get_player_actions_detection(cv2_image)
-        detected_bids = None #detect_bids(cv2_image)
+        detected_bids = None
         moves = self.get_moves(detected_actions, detected_positions)
         game_snapshot_builder = (GameSnapshot.builder().with_player_cards(detected_player_cards)
                                  .with_table_cards(detected_table_cards)

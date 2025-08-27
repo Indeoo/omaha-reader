@@ -54,15 +54,18 @@ def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
         return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
 
     # Phase 3: Use OmahaGame state machine to process actions
-    game = OmahaGame()
+    game = execute_game(all_actions, player_moves)
 
+    return game.get_moves_by_street()
+
+
+def execute_game(all_actions, player_moves):
+    game = OmahaGame()
     # Add all players to the game
     for position in player_moves.keys():
         game.add_player(position)
-
     # Start the game
     game.start_game()
-
     # Process all actions through the state machine
     for position, move in all_actions:
         # Process action if game is still active
@@ -77,9 +80,8 @@ def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
                 else:
                     # Re-raise if it's a real error
                     raise e
-
     # Return the final move history
-    return game.get_moves_by_street()
+    return game
 
 
 def _validate_input(player_moves: Dict[Position, List[MoveType]]) -> None:
