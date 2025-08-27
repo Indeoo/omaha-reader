@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict
 
 from apps.shared.domain.moves import MoveType
-from apps.shared.domain.omaha_game import OmahaGame
+from table_detector.domain.omaha_game import OmahaGame
 from apps.shared.domain.position import Position
 from apps.shared.domain.street import Street
 

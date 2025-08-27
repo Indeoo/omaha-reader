@@ -1,7 +1,7 @@
 import unittest
 
 from apps.shared.domain.moves import MoveType
-from apps.shared.domain.omaha_game import OmahaGame, InvalidActionError, GameState
+from table_detector.domain.omaha_game import OmahaGame, InvalidActionError, GameState
 from apps.shared.domain.position import Position
 from apps.shared.domain.street import Street
 
