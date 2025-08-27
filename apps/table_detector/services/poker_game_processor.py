@@ -83,7 +83,7 @@ class PokerGameProcessor:
 
             return moves
         except Exception as e:
-            logger.error("Error while group_moves_by_street")
+            logger.error(f"Error while group_moves_by_street {e}")
             traceback.print_exc()
 
     def convert_to_position_actions(self, actions, positions) -> Dict[Position, List[MoveType]]:

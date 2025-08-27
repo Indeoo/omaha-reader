@@ -1,7 +1,7 @@
 from typing import List, Tuple, Dict
 
 from apps.shared.domain.moves import MoveType
-from table_detector.domain.omaha_game import OmahaGame
+from apps.table_detector.domain.omaha_game import OmahaGame
 from apps.shared.domain.position import Position
 from apps.shared.domain.street import Street
 
@@ -44,11 +44,11 @@ def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
     if not player_moves:
         return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
 
-    # Phase 1: Normalize and validate input
-    normalized_moves = _normalize_player_moves(player_moves)
+    # Phase 1: Validate input
+    _validate_input(player_moves)
 
     # Phase 2: Build chronological action sequence
-    all_actions = _build_chronological_action_sequence(normalized_moves)
+    all_actions = _build_chronological_action_sequence(player_moves)
 
     if not all_actions:
         return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
@@ -57,21 +57,18 @@ def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
     game = OmahaGame()
 
     # Add all players to the game
-    for position_str in normalized_moves.keys():
-        position_enum = Position.normalize_position(position_str)
-        game.add_player(position_enum)
+    for position in player_moves.keys():
+        game.add_player(position)
 
     # Start the game
     game.start_game()
 
     # Process all actions through the state machine
-    for position_str, move in all_actions:
-        position_enum = Position.normalize_position(position_str)
-
+    for position, move in all_actions:
         # Process action if game is still active
         if not game.is_game_over():
             try:
-                game.process_action(position_enum, move)
+                game.process_action(position, move)
             except Exception as e:
                 # If action fails, it might be because the game ended
                 # In that case, we can ignore remaining actions
@@ -85,15 +82,12 @@ def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
     return game.get_moves_by_street()
 
 
-def _normalize_player_moves(player_moves: Dict[Position, List[MoveType]]) -> Dict[str, List[MoveType]]:
+def _validate_input(player_moves: Dict[Position, List[MoveType]]) -> None:
     """
-    Convert Position enum keys to string keys for internal processing.
+    Validate input types and structure for player moves.
     
     Args:
         player_moves: Dict with Position enum keys and MoveType enum values
-    
-    Returns:
-        Dict with position strings as keys and lists of MoveType enums as values
         
     Raises:
         TypeError: If input types are incorrect
@@ -101,10 +95,8 @@ def _normalize_player_moves(player_moves: Dict[Position, List[MoveType]]) -> Dic
     if not isinstance(player_moves, dict):
         raise TypeError("player_moves must be a dictionary")
     
-    normalized_moves = {}
-    
     for pos_key, moves in player_moves.items():
-        # Convert Position enum to string
+        # Validate Position enum key
         if not isinstance(pos_key, Position):
             raise TypeError(f"Position key must be Position enum, got {type(pos_key)}")
         
@@ -116,33 +108,29 @@ def _normalize_player_moves(player_moves: Dict[Position, List[MoveType]]) -> Dic
         for i, move in enumerate(moves):
             if not isinstance(move, MoveType):
                 raise TypeError(f"Move must be MoveType enum at position {pos_key}, move {i}: got {type(move)}")
-        
-        normalized_moves[pos_key.value] = moves
-    
-    return normalized_moves
 
 
-def _build_chronological_action_sequence(normalized_moves: Dict[str, List[MoveType]]) -> List[Tuple[str, MoveType]]:
+def _build_chronological_action_sequence(player_moves: Dict[Position, List[MoveType]]) -> List[Tuple[Position, MoveType]]:
     """
     Build chronological action sequence following Omaha position order.
     
     Args:
-        normalized_moves: Dict with position strings as keys and MoveType lists as values
+        player_moves: Dict with Position enum keys and MoveType lists as values
         
     Returns:
-        List of (position_string, MoveType) tuples in chronological order
+        List of (Position, MoveType) tuples in chronological order
     """
-    position_order = [pos.value for pos in Position.get_action_order()]
+    position_order = Position.get_action_order()
     all_actions = []
     
     # Get maximum number of actions any player has
-    max_actions = max(len(moves) for moves in normalized_moves.values()) if normalized_moves else 0
+    max_actions = max(len(moves) for moves in player_moves.values()) if player_moves else 0
     
     # Reconstruct chronological action order
     for action_idx in range(max_actions):
         for position in position_order:
-            if position in normalized_moves and action_idx < len(normalized_moves[position]):
-                move = normalized_moves[position][action_idx]
+            if position in player_moves and action_idx < len(player_moves[position]):
+                move = player_moves[position][action_idx]
                 all_actions.append((position, move))
     
     return all_actions
