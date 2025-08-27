@@ -1,4 +1,4 @@
-from typing import List, Union, Tuple, Dict, overload
+from typing import List, Tuple, Dict
 
 from apps.shared.domain.moves import MoveType
 from apps.shared.domain.omaha_game import OmahaGame
@@ -6,23 +6,7 @@ from apps.shared.domain.position import Position
 from apps.shared.domain.street import Street
 
 
-@overload
-def group_moves_by_street(
-        player_moves: Dict[str, List[str]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
-    ...
-
-@overload
-def group_moves_by_street(
-        player_moves: Dict[Position, List[MoveType]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
-    ...
-
-@overload
-def group_moves_by_street(
-        player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
-    ...
-
-def group_moves_by_street(
-        player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
+def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
     """
     Groups player moves by street according to proper Omaha poker rules using state machine.
 
@@ -30,10 +14,11 @@ def group_moves_by_street(
     the OmahaGame state machine, which handles all poker rule validation and
     street transition logic.
 
-    Function supports multiple input formats via overloads:
-    1. Dict[str, List[str]] - from detection pipeline (position names as strings)
-    2. Dict[Position, List[MoveType]] - from test code (enums directly)  
-    3. Dict[Union[str, Position], List[Union[MoveType, str]]] - mixed format
+    Function supports input format:
+    - Dict[Position, List[MoveType]] - Position enums with MoveType enums
+    
+    Note: The detection pipeline now converts strings to enums before calling this function,
+    providing stronger type safety throughout the system.
 
     Omaha Poker Rules:
     - A betting round ends when all active players have either called the last raise,
@@ -44,10 +29,9 @@ def group_moves_by_street(
     - After aggression (bet/raise), all other active players must respond
 
     Args:
-        player_moves: Dict with Position enum or position strings as keys and lists of MoveType actions
-                     Actions can be MoveType or string (normalized internally)
+        player_moves: Dict with Position enum keys and lists of MoveType enum values
                      Only voluntary actions, blinds excluded
-                     Note: Tuple format (MoveType, amount) is no longer supported
+                     All normalization is now done upstream in convert_to_position_actions()
 
     Returns:
         Dict with Street enum as keys and ordered lists of (Position, MoveType) tuples
@@ -101,24 +85,18 @@ def group_moves_by_street(
     return game.get_moves_by_street()
 
 
-def _normalize_player_moves(player_moves: Dict[Union[str, Position], List[Union[MoveType, str]]]) -> Dict[str, List[MoveType]]:
+def _normalize_player_moves(player_moves: Dict[Position, List[MoveType]]) -> Dict[str, List[MoveType]]:
     """
-    Normalize and validate input player moves for consistent processing.
-    
-    Converts mixed input formats to standardized format:
-    - Position keys: Position enum or string -> normalized position string
-    - Move values: MoveType, string, or (MoveType, amount) tuple -> MoveType enum
+    Convert Position enum keys to string keys for internal processing.
     
     Args:
-        player_moves: Dict with Position enum or position strings as keys and lists of MoveType actions
-                     Actions can be MoveType or string (normalized internally)
+        player_moves: Dict with Position enum keys and MoveType enum values
     
     Returns:
-        Dict with normalized position strings as keys and lists of MoveType enums as values
+        Dict with position strings as keys and lists of MoveType enums as values
         
     Raises:
-        ValueError: If position string cannot be normalized or move type is invalid
-        TypeError: If input types are completely invalid
+        TypeError: If input types are incorrect
     """
     if not isinstance(player_moves, dict):
         raise TypeError("player_moves must be a dictionary")
@@ -126,36 +104,20 @@ def _normalize_player_moves(player_moves: Dict[Union[str, Position], List[Union[
     normalized_moves = {}
     
     for pos_key, moves in player_moves.items():
-        # Normalize position key
-        if isinstance(pos_key, Position):
-            normalized_pos = pos_key.value
-        elif isinstance(pos_key, str):
-            normalized_position_enum = Position.normalize_position(pos_key)
-            normalized_pos = normalized_position_enum.value
-        else:
-            raise TypeError(f"Position key must be Position enum or string, got {type(pos_key)}")
+        # Convert Position enum to string
+        if not isinstance(pos_key, Position):
+            raise TypeError(f"Position key must be Position enum, got {type(pos_key)}")
         
-        # Validate and normalize moves list
+        # Validate moves list
         if not isinstance(moves, list):
             raise TypeError(f"Moves for position {pos_key} must be a list, got {type(moves)}")
         
-        normalized_move_list = []
+        # Validate all moves are MoveType enums
         for i, move in enumerate(moves):
-            try:
-                # Convert string to MoveType if needed
-                if isinstance(move, str):
-                    move_type = MoveType.normalize_action(move)
-                elif isinstance(move, MoveType):
-                    move_type = move
-                else:
-                    raise TypeError(f"Move must be MoveType or string at position {pos_key}, move {i}: {type(move)}")
-                
-                normalized_move_list.append(move_type)
-                
-            except (ValueError, TypeError) as e:
-                raise ValueError(f"Invalid move at position {pos_key}, index {i}: {e}")
+            if not isinstance(move, MoveType):
+                raise TypeError(f"Move must be MoveType enum at position {pos_key}, move {i}: got {type(move)}")
         
-        normalized_moves[normalized_pos] = normalized_move_list
+        normalized_moves[pos_key.value] = moves
     
     return normalized_moves
 

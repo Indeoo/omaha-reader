@@ -1,9 +1,12 @@
 import traceback
+from typing import List, Dict
 
 from loguru import logger
 
 from table_detector.domain.captured_window import CapturedWindow
 from shared.domain.game_snapshot import GameSnapshot
+from apps.shared.domain.position import Position
+from apps.shared.domain.moves import MoveType
 from table_detector.services.game_state_service import GameStateService
 from table_detector.services.omaha_action_processor import group_moves_by_street
 from table_detector.services.template_matcher_service import TemplateMatchService
@@ -83,7 +86,7 @@ class PokerGameProcessor:
             logger.error("Error while group_moves_by_street")
             traceback.print_exc()
 
-    def convert_to_position_actions(self, actions, positions):
+    def convert_to_position_actions(self, actions, positions) -> Dict[Position, List[MoveType]]:
         result = {}
 
         for player_id, detection_list in actions.items():
@@ -100,7 +103,26 @@ class PokerGameProcessor:
                 elif position_name.endswith('_now'):
                     position_name = position_name[:-4]  # Remove exactly "_now"
 
-                result[position_name] = [d.name for d in detection_list]
+                try:
+                    # Convert position string to Position enum
+                    position_enum = Position.normalize_position(position_name)
+                    
+                    # Convert detection names to MoveType enums
+                    move_types = []
+                    for d in detection_list:
+                        try:
+                            move_type = MoveType.normalize_action(d.name)
+                            move_types.append(move_type)
+                        except ValueError as e:
+                            logger.warning(f"Skipping invalid move '{d.name}' for position {position_name}: {e}")
+                            continue
+                    
+                    if move_types:  # Only add if we have valid moves
+                        result[position_enum] = move_types
+                        
+                except ValueError as e:
+                    logger.warning(f"Skipping invalid position '{position_name}': {e}")
+                    continue
 
         logger.info(result)
 
