@@ -113,7 +113,7 @@ class DetectionClient:
                 window_folder = create_window_folder(base_timestamp_folder, captured_image.window_name)
 
                 # Process and get formatted game data for transmission
-                game_data = self.poker_game_processor.process_and_get_changes(captured_image, window_folder)
+                game_data = self.poker_game_processor. process_and_get_changes(captured_image, window_folder)
                 
                 if game_data:
                     changed_games.append(game_data)
