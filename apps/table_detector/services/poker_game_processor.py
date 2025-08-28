@@ -1,6 +1,6 @@
 from table_detector.domain.captured_window import CapturedWindow
+from table_detector.services.game_snapshot_service import GameSnapshotService
 from table_detector.services.game_state_service import GameStateService
-from table_detector.services.gamesnapshot_service import GameSnapshotService
 from table_detector.utils.drawing_utils import save_detection_result
 
 
