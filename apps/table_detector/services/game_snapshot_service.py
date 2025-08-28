@@ -43,6 +43,31 @@ class GameSnapshotService:
     def _convert_to_position_actions(actions, positions) -> Dict[Position, List[MoveType]]:
         result = {}
 
+        # First, add all detected positions to the result (even without actions)
+        for player_id, position_data in positions.items():
+            position_name = position_data.position_name
+
+            if position_name == 'NO':
+                continue
+
+            # Clean up position name suffixes
+            if position_name.endswith('_fold'):
+                position_name = position_name[:-5]  # Remove exactly "_fold"
+            elif position_name.endswith('_low'):
+                position_name = position_name[:-4]  # Remove exactly "_low"
+            elif position_name.endswith('_now'):
+                position_name = position_name[:-4]  # Remove exactly "_now"
+
+            try:
+                # Convert position string to Position enum
+                position_enum = Position.normalize_position(position_name)
+                # Initialize with empty action list
+                result[position_enum] = []
+            except ValueError as e:
+                logger.warning(f"Skipping invalid position '{position_name}': {e}")
+                continue
+
+        # Then, process actual actions for players that have them
         for player_id, detection_list in actions.items():
             if player_id in positions:
                 position_name = positions[player_id].position_name
@@ -71,7 +96,10 @@ class GameSnapshotService:
                             logger.warning(f"Skipping invalid move '{d.name}' for position {position_name}: {e}")
                             continue
 
-                    if move_types:  # Only add if we have valid moves
+                    # Add moves to the existing position (which may already be initialized with empty list)
+                    if position_enum in result:
+                        result[position_enum].extend(move_types)
+                    else:
                         result[position_enum] = move_types
 
                 except ValueError as e:

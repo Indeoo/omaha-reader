@@ -1,7 +1,6 @@
 import unittest
 import cv2
 from pathlib import Path
-from unittest.mock import patch
 
 from shared.domain.street import Street
 from table_detector.services.game_snapshot_service import GameSnapshotService, GameSnapshotIncorrectException
@@ -51,6 +50,39 @@ class GameSnapshotServiceTest(unittest.TestCase):
         result = GameSnapshotService.create_game_snapshot(cv2_image).moves[Street.PREFLOP]
 
         self.assertEqual(expected, result)
+
+    def test_create_game_snapshot_basic_3(self):
+        """Test that create_game_snapshot returns a valid GameSnapshot object."""
+        # Execute the method under test
+        cv2_image = self.load_image(3, "01__2_50__5_Pot_Limit_Omaha.png")
+
+        GameSnapshotService.create_game_snapshot(cv2_image)
+
+        expected = [
+            (Position.EARLY_POSITION, MoveType.FOLD),
+            (Position.MIDDLE_POSITION, MoveType.FOLD),
+        ]
+
+        result = GameSnapshotService.create_game_snapshot(cv2_image).moves[Street.PREFLOP]
+
+        self.assertEqual(expected, result)
+
+    def test_create_game_snapshot_basic_4(self):
+        """Test that create_game_snapshot returns a valid GameSnapshot object."""
+        # Execute the method under test
+        cv2_image = self.load_image(4, "01__2_50__5_Pot_Limit_Omaha.png")
+
+        GameSnapshotService.create_game_snapshot(cv2_image)
+
+        expected = [
+            (Position.EARLY_POSITION, MoveType.FOLD),
+            (Position.MIDDLE_POSITION, MoveType.FOLD),
+        ]
+
+        result = GameSnapshotService.create_game_snapshot(cv2_image).moves[Street.PREFLOP]
+
+        self.assertEqual(expected, result)
+
 
 
     # @patch('table_detector.services.game_snapshot_service.logger')
