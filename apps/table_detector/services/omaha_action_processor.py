@@ -1,9 +1,9 @@
 from typing import List, Tuple, Dict
 
-from apps.shared.domain.moves import MoveType
-from apps.table_detector.domain.omaha_game import OmahaGame
-from apps.shared.domain.position import Position
-from apps.shared.domain.street import Street
+from shared.domain.moves import MoveType
+from table_detector.domain.omaha_game import OmahaGame
+from shared.domain.position import Position
+from shared.domain.street import Street
 
 
 def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
