@@ -9,6 +9,8 @@ from table_detector.services.omaha_action_processor import group_moves_by_street
 from table_detector.services.template_matcher_service import TemplateMatchService
 from table_detector.utils.detect_utils import DetectUtils
 
+class GameSnapshotIncorrectException(Exception):
+    pass
 
 class GameSnapshotService:
 
@@ -76,6 +78,48 @@ class GameSnapshotService:
                     logger.warning(f"Skipping invalid position '{position_name}': {e}")
                     continue
 
+        # Validate position continuity
+        GameSnapshotService._validate_position_continuity(result)
+
         logger.info(result)
 
         return result
+
+    @staticmethod
+    def _validate_position_continuity(position_actions: Dict[Position, List[MoveType]]) -> None:
+        """
+        Validate position continuity in the action sequence to detect potential gaps.
+        
+        Checks for scenarios where later positions have actions but earlier positions
+        in the action order are missing, which could indicate incomplete detection.
+        
+        Args:
+            position_actions: Dict mapping Position enums to MoveType lists
+        """
+        if not position_actions:
+            return
+
+        detected_positions = set(position_actions.keys())
+        action_order = Position.get_action_order()
+
+        # Find the range of positions that should be active
+        detected_indices = [action_order.index(pos) for pos in detected_positions]
+        if not detected_indices:
+            return
+
+        min_idx = min(detected_indices)
+        max_idx = max(detected_indices)
+
+        # Check for gaps in the position sequence
+        expected_positions = set(action_order[min_idx:max_idx + 1])
+        missing_positions = expected_positions - detected_positions
+
+        if missing_positions:
+            missing_names = [pos.value for pos in missing_positions]
+            detected_names = [pos.value for pos in detected_positions]
+
+            raise GameSnapshotIncorrectException(
+                f"Position continuity issue detected: "
+                f"Missing positions {missing_names} between detected positions {detected_names}. "
+                f"This may indicate incomplete action detection and could affect game reconstruction."
+            )
