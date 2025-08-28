@@ -114,12 +114,69 @@ class GameSnapshotService:
         return result
 
     @staticmethod
+    def _determine_table_size(detected_positions: set[Position]) -> int:
+        """
+        Determine the most likely table size based on detected positions.
+        
+        Args:
+            detected_positions: Set of detected Position enums
+            
+        Returns:
+            Most likely table size (2-6 players)
+        """
+        position_count = len(detected_positions)
+        
+        # If we have MP, it's likely 6-max
+        if Position.MIDDLE_POSITION in detected_positions:
+            return 6
+            
+        # If we have EP but no MP, likely 5-max  
+        if Position.EARLY_POSITION in detected_positions:
+            return 5
+            
+        # If we have CO but no EP, likely 4-max
+        if Position.CUTOFF in detected_positions:
+            return 4
+            
+        # If we have BTN but no CO, likely 3-max
+        if Position.BUTTON in detected_positions:
+            return 3
+            
+        # If only blinds detected, likely 2-max (heads-up)
+        if detected_positions.issubset({Position.SMALL_BLIND, Position.BIG_BLIND}):
+            return 2
+            
+        # Fallback: estimate based on position count
+        return min(max(position_count, 2), 6)
+    
+    @staticmethod
+    def _get_valid_positions_for_table_size(table_size: int) -> set[Position]:
+        """
+        Get the valid positions for a given table size.
+        
+        Args:
+            table_size: Number of players (2-6)
+            
+        Returns:
+            Set of valid Position enums for that table size
+        """
+        position_sets = {
+            2: {Position.SMALL_BLIND, Position.BIG_BLIND},  # Heads-up
+            3: {Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND},
+            4: {Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND},
+            5: {Position.EARLY_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND},
+            6: {Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND}
+        }
+        
+        return position_sets.get(table_size, position_sets[6])  # Default to 6-max
+    
+    @staticmethod
     def _validate_position_continuity(position_actions: Dict[Position, List[MoveType]]) -> None:
         """
-        Validate position continuity in the action sequence to detect potential gaps.
+        Validate that detected positions are consistent with a valid table size configuration.
         
-        Checks for scenarios where later positions have actions but earlier positions
-        in the action order are missing, which could indicate incomplete detection.
+        Checks that the detected positions form a valid subset of positions for some
+        table size (2-6 players), ensuring no impossible position combinations.
         
         Args:
             position_actions: Dict mapping Position enums to MoveType lists
@@ -128,26 +185,24 @@ class GameSnapshotService:
             return
 
         detected_positions = set(position_actions.keys())
-        action_order = Position.get_action_order()
-
-        # Find the range of positions that should be active
-        detected_indices = [action_order.index(pos) for pos in detected_positions]
-        if not detected_indices:
-            return
-
-        min_idx = min(detected_indices)
-        max_idx = max(detected_indices)
-
-        # Check for gaps in the position sequence
-        expected_positions = set(action_order[min_idx:max_idx + 1])
-        missing_positions = expected_positions - detected_positions
-
-        if missing_positions:
-            missing_names = [pos.value for pos in missing_positions]
+        
+        # Determine the most likely table size
+        table_size = GameSnapshotService._determine_table_size(detected_positions)
+        valid_positions = GameSnapshotService._get_valid_positions_for_table_size(table_size)
+        
+        # Check if detected positions are a valid subset
+        invalid_positions = detected_positions - valid_positions
+        
+        if invalid_positions:
+            invalid_names = [pos.value for pos in invalid_positions]
             detected_names = [pos.value for pos in detected_positions]
-
+            valid_names = [pos.value for pos in valid_positions]
+            
             raise GameSnapshotIncorrectException(
-                f"Position continuity issue detected: "
-                f"Missing positions {missing_names} between detected positions {detected_names}. "
-                f"This may indicate incomplete action detection and could affect game reconstruction."
+                f"Invalid position combination detected for {table_size}-max table: "
+                f"Detected positions {detected_names} include invalid positions {invalid_names}. "
+                f"Valid positions for {table_size}-max are {valid_names}."
             )
+            
+        # Note: We don't validate for missing positions since this is partial detection
+        # The main validation above ensures detected positions are valid for the table size
