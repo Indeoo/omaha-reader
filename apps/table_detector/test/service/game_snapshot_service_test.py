@@ -70,7 +70,7 @@ class GameSnapshotServiceTest(unittest.TestCase):
     def test_create_game_snapshot_basic_4(self):
         """Test that create_game_snapshot returns a valid GameSnapshot object."""
         # Execute the method under test
-        cv2_image = self.load_image(4, "01__2_50__5_Pot_Limit_Omaha.png")
+        cv2_image = self.load_image(4, "debug_2.png")
 
         GameSnapshotService.create_game_snapshot(cv2_image)
 
