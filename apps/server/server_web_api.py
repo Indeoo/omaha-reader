@@ -104,8 +104,11 @@ class ServerWebApi:
 
         @app.route('/api/config')
         def get_config():
+            # Get actual detection interval from connected clients
+            backend_capture_interval = self.game_data_receiver.get_average_detection_interval()
+            
             return jsonify({
-                'backend_capture_interval': int(os.getenv('DETECTION_INTERVAL', '10')),
+                'backend_capture_interval': backend_capture_interval,
                 'show_table_cards': self.show_table_cards,
                 'show_positions': self.show_positions,
                 'show_moves': self.show_moves,
@@ -120,9 +123,13 @@ class ServerWebApi:
             if client_id not in connected_clients:
                 return jsonify({'error': 'Client not found'}), 404
             
+            # Get the specific client's detection interval, fall back to average if not found
+            client_intervals = self.game_data_receiver.get_client_detection_intervals()
+            client_interval = client_intervals.get(client_id, self.game_data_receiver.get_average_detection_interval())
+            
             return jsonify({
                 'client_id': client_id,
-                'backend_capture_interval': int(os.getenv('DETECTION_INTERVAL', '10')),
+                'backend_capture_interval': client_interval,
                 'show_table_cards': self.show_table_cards,
                 'show_positions': self.show_positions,
                 'show_moves': self.show_moves,

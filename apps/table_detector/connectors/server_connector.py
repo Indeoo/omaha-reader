@@ -52,6 +52,9 @@ class SimpleHttpConnector:
         # Track registration status per server URL
         self.registration_status = {config.url: False for config in self.server_configs}
         
+        # Store detection interval when first used (set during first registration)
+        self._detection_interval = None
+        
         # Thread pool for async HTTP requests
         self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="http-sender")
         
@@ -64,11 +67,13 @@ class SimpleHttpConnector:
         if self.registration_status.get(config.url, False):
             return True  # Already registered
         
-        # Attempt registration
+        # Attempt registration using stored detection interval (defaults to 10 if not set)
+        detection_interval = self._detection_interval or 10
         message = ClientRegistrationMessage(
             type='client_register',
             client_id=client_id,
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            detection_interval=detection_interval
         )
         
         try:
@@ -85,11 +90,14 @@ class SimpleHttpConnector:
             logger.debug(f"Registration error for {config.url}: {str(e)}")
             return False
 
-    def register_client(self, client_id: str) -> bool:
-        """Register client with all servers via HTTP POST (legacy method)."""
+    def register_client(self, client_id: str, detection_interval: int = 10) -> bool:
+        """Register client with all servers via HTTP POST."""
         if not self.server_configs:
             logger.warning("No servers configured - skipping registration")
             return False
+        
+        # Store detection interval for future use (re-registrations, etc.)
+        self._detection_interval = detection_interval
         
         successful_registrations = 0
         

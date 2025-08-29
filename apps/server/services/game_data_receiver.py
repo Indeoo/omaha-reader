@@ -13,6 +13,7 @@ class GameDataReceiver:
         self.game_state_service = game_state_service
         self.global_update_callbacks: list[Callable] = []
         self.client_update_callbacks: list[Callable] = []
+        self.client_detection_intervals: dict[str, int] = {}  # Track detection intervals per client
 
     def add_update_callback(self, callback: Callable[[dict], None]) -> None:
         """Add callback to be called when game state updates occur (legacy - global updates)."""
@@ -56,7 +57,9 @@ class GameDataReceiver:
         """Handle client registration."""
         try:
             self.game_state_service.register_client(message.client_id)
-            logger.info(f"✅ Client registered: {message.client_id}")
+            # Store the client's detection interval
+            self.client_detection_intervals[message.client_id] = message.detection_interval
+            logger.info(f"✅ Client registered: {message.client_id} (interval: {message.detection_interval}s)")
             
             return MessageParser.create_response("success", f"Client {message.client_id} registered successfully")
         
@@ -67,10 +70,26 @@ class GameDataReceiver:
     def _handle_game_update(self, message: GameUpdateMessage) -> ServerResponseMessage:
         """Handle game state update from client."""
         try:
-            # Update game state
-            self.game_state_service.update_game_state(message)
+            # Enhance game data with client detection interval before storing
+            client_interval = self.client_detection_intervals.get(message.client_id, 3)
+            enhanced_game_data = {
+                **message.game_data,
+                'detection_interval': client_interval
+            }
             
-            logger.info(f"🎯 Game state updated - Client: {message.client_id}, Window: {message.window_name}")
+            # Create enhanced message with detection interval
+            enhanced_message = GameUpdateMessage(
+                type=message.type,
+                client_id=message.client_id,
+                window_name=message.window_name,
+                timestamp=message.timestamp,
+                game_data=enhanced_game_data
+            )
+            
+            # Update game state with enhanced data
+            self.game_state_service.update_game_state(enhanced_message)
+            
+            logger.info(f"🎯 Game state updated - Client: {message.client_id}, Window: {message.window_name}, Interval: {client_interval}s")
             
             # Notify client-specific callbacks first (more efficient)
             self._notify_client_update_callbacks(message.client_id, message.window_name)
@@ -141,6 +160,11 @@ class GameDataReceiver:
                 logger.warning(f"No data found for client {client_id}")
                 return
             
+            # Enhance each detection with client detection interval
+            client_detection_interval = self.client_detection_intervals.get(client_id, 3)
+            for game in client_games:
+                game['detection_interval'] = client_detection_interval
+            
             # Find the latest update time for this client
             latest_update_str = None
             for game in client_games:
@@ -155,7 +179,8 @@ class GameDataReceiver:
                 'window_name': window_name,
                 'detections': client_games,
                 'last_update': latest_update_str if latest_update_str else datetime.now().isoformat(),
-                'total_tables': len(client_games)
+                'total_tables': len(client_games),
+                'detection_interval': client_detection_interval  # Include interval in client data
             }
             
             # Call all registered client-specific callbacks
@@ -172,6 +197,8 @@ class GameDataReceiver:
         """Handle client disconnection."""
         try:
             self.game_state_service.disconnect_client(client_id)
+            # Remove the client's detection interval from tracking
+            self.client_detection_intervals.pop(client_id, None)
             logger.info(f"🔌 Client disconnected: {client_id}")
             
             # Notify global callbacks of state change (main view needs to update)
@@ -182,8 +209,30 @@ class GameDataReceiver:
 
     def get_current_state(self) -> dict:
         """Get current aggregated game state for immediate response to new web clients."""
-        return self.game_state_service.get_all_game_states()
+        state = self.game_state_service.get_all_game_states()
+        
+        # Enhance each detection with client detection interval
+        if 'detections' in state:
+            for detection in state['detections']:
+                client_id = detection.get('client_id')
+                if client_id and client_id in self.client_detection_intervals:
+                    detection['detection_interval'] = self.client_detection_intervals[client_id]
+                else:
+                    # Fallback to default if client interval not found
+                    detection['detection_interval'] = 3
+        
+        return state
 
     def get_connected_clients(self) -> list[str]:
         """Get list of currently connected client IDs."""
         return self.game_state_service.get_connected_clients()
+    
+    def get_client_detection_intervals(self) -> dict[str, int]:
+        """Get detection intervals for all connected clients."""
+        return self.client_detection_intervals.copy()
+    
+    def get_average_detection_interval(self) -> int:
+        """Get average detection interval across all connected clients."""
+        if not self.client_detection_intervals:
+            return 3  # Default fallback matching client default (.env.default)
+        return int(sum(self.client_detection_intervals.values()) / len(self.client_detection_intervals))

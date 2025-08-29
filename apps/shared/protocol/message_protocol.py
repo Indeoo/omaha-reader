@@ -42,20 +42,23 @@ class ClientRegistrationMessage:
     type: str  # "client_register"
     client_id: str
     timestamp: str
+    detection_interval: int = 3  # Default to 3 seconds matching client default
 
     @classmethod
     def from_dict(cls, data: dict) -> 'ClientRegistrationMessage':
         return cls(
             type=data['type'],
             client_id=data['client_id'],
-            timestamp=data['timestamp']
+            timestamp=data['timestamp'],
+            detection_interval=data.get('detection_interval', 3)  # Default matching client default
         )
 
     def to_dict(self) -> dict:
         return {
             'type': self.type,
             'client_id': self.client_id,
-            'timestamp': self.timestamp
+            'timestamp': self.timestamp,
+            'detection_interval': self.detection_interval
         }
 
     def to_json(self) -> str:

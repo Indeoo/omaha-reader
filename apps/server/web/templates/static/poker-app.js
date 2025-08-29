@@ -1,5 +1,5 @@
 let config = {
-    backend_capture_interval: 5,
+    backend_capture_interval: 3,  // Updated to match client default
     show_table_cards: true,
     show_positions: true,
     show_moves: true,
@@ -215,6 +215,7 @@ function createTableContainer(detection, isUpdate, tableId) {
 
     const clientId = detection.client_id || 'Unknown';
     const clientLink = detection.client_id ? `/client/${detection.client_id}` : '#';
+    const detectionInterval = detection.detection_interval || 3;  // Fallback to 3s
 
     return `
         <div class="${tableClass}">
@@ -222,6 +223,7 @@ function createTableContainer(detection, isUpdate, tableId) {
                 <div class="client-info">
                     <a href="${clientLink}" class="client-link">
                         <span class="client-id">Client: ${clientId}</span>
+                        <span class="client-interval">Backend: every ${detectionInterval}s</span>
                     </a>
                     <div class="table-info">
                         <span class="table-id">Table ${tableId}</span>
@@ -328,9 +330,7 @@ function updateStatus(lastUpdate) {
     }
 }
 
-function updateTimerDisplay() {
-    document.getElementById('backendInfo').textContent = `every ${config.backend_capture_interval}`;
-}
+// Global timer display removed - now showing per-client intervals in individual detection blocks
 
 // HTTP Polling system to replace WebSocket
 let pollingInterval = null;
@@ -426,13 +426,23 @@ async function pollForUpdates() {
 
 async function loadConfig() {
     try {
+        console.log('Loading config from /api/config...');
         const response = await fetch('/api/config');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
+        console.log('Server config received:', data);
+        
+        const oldInterval = config.backend_capture_interval;
         config = data;
-        updateTimerDisplay();
-        console.log('Loaded config:', config);
+        
+        console.log(`Config loaded - interval changed from ${oldInterval}s to ${config.backend_capture_interval}s`);
     } catch (error) {
         console.error('Error loading config:', error);
+        console.log(`Using fallback config - interval: ${config.backend_capture_interval}s`);
     }
 }
 
