@@ -322,13 +322,7 @@ function renderCards(detections, isUpdate = false) {
     console.log(`Rendered ${detections.length} active tables in dynamic grid`);
 }
 
-function updateStatus(lastUpdate) {
-    const status = document.getElementById('status');
-    if (lastUpdate) {
-        const date = new Date(lastUpdate);
-        status.textContent = `Last update: ${date.toLocaleTimeString()} (Real-time)`;
-    }
-}
+// updateStatus function removed - status element no longer exists
 
 // Global timer display removed - now showing per-client intervals in individual detection blocks
 
@@ -404,7 +398,6 @@ async function pollForUpdates() {
         }
         
         // Update UI
-        updateStatus(data.last_update);
         renderCards(data.detections, hasChanges);
         updateClientsNavigation(data.detections);
         previousDetections = data.detections;
