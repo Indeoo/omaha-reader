@@ -223,7 +223,6 @@ function createTableContainer(detection, isUpdate, tableId) {
                 <div class="client-info">
                     <a href="${clientLink}" class="client-link">
                         <span class="client-id">Client: ${clientId}</span>
-                        <span class="client-interval">Backend: every ${detectionInterval}s</span>
                     </a>
                     <div class="table-info">
                         <span class="table-id">Table ${tableId}</span>
