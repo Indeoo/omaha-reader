@@ -202,7 +202,8 @@ class DetectionClient:
                     'moves': game_data.get('moves', []),
                     'street': game_data.get('street', 'unknown'),
                     'solver_link': game_data.get('solver_link')
-                }
+                },
+                detection_interval=self.detection_interval
             )
 
             # Simple HTTP request - fire and forget

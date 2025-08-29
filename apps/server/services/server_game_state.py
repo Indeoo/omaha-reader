@@ -34,6 +34,7 @@ class ServerGameStateService:
             'client_id': client_id,
             'window_name': window_name,
             'last_update': datetime.now().isoformat(),
+            'detection_interval': message.detection_interval,  # Include detection interval from message
             **message.game_data  # Include all game data fields
         }
 

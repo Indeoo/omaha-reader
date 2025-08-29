@@ -70,26 +70,10 @@ class GameDataReceiver:
     def _handle_game_update(self, message: GameUpdateMessage) -> ServerResponseMessage:
         """Handle game state update from client."""
         try:
-            # Enhance game data with client detection interval before storing
-            client_interval = self.client_detection_intervals.get(message.client_id, 3)
-            enhanced_game_data = {
-                **message.game_data,
-                'detection_interval': client_interval
-            }
+            # Update game state directly - no enhancement needed as client sends detection_interval
+            self.game_state_service.update_game_state(message)
             
-            # Create enhanced message with detection interval
-            enhanced_message = GameUpdateMessage(
-                type=message.type,
-                client_id=message.client_id,
-                window_name=message.window_name,
-                timestamp=message.timestamp,
-                game_data=enhanced_game_data
-            )
-            
-            # Update game state with enhanced data
-            self.game_state_service.update_game_state(enhanced_message)
-            
-            logger.info(f"🎯 Game state updated - Client: {message.client_id}, Window: {message.window_name}, Interval: {client_interval}s")
+            logger.info(f"🎯 Game state updated - Client: {message.client_id}, Window: {message.window_name}, Interval: {message.detection_interval}s")
             
             # Notify client-specific callbacks first (more efficient)
             self._notify_client_update_callbacks(message.client_id, message.window_name)
@@ -160,10 +144,7 @@ class GameDataReceiver:
                 logger.warning(f"No data found for client {client_id}")
                 return
             
-            # Enhance each detection with client detection interval
-            client_detection_interval = self.client_detection_intervals.get(client_id, 3)
-            for game in client_games:
-                game['detection_interval'] = client_detection_interval
+            # Detection interval now comes directly from client messages - no enhancement needed
             
             # Find the latest update time for this client
             latest_update_str = None
@@ -171,6 +152,9 @@ class GameDataReceiver:
                 game_update = game.get('last_update')
                 if game_update and (latest_update_str is None or game_update > latest_update_str):
                     latest_update_str = game_update
+            
+            # Get detection interval from first game (all games from same client have same interval)
+            client_detection_interval = client_games[0].get('detection_interval', 3) if client_games else 3
             
             # Prepare client-specific notification data
             client_data = {
@@ -209,19 +193,8 @@ class GameDataReceiver:
 
     def get_current_state(self) -> dict:
         """Get current aggregated game state for immediate response to new web clients."""
-        state = self.game_state_service.get_all_game_states()
-        
-        # Enhance each detection with client detection interval
-        if 'detections' in state:
-            for detection in state['detections']:
-                client_id = detection.get('client_id')
-                if client_id and client_id in self.client_detection_intervals:
-                    detection['detection_interval'] = self.client_detection_intervals[client_id]
-                else:
-                    # Fallback to default if client interval not found
-                    detection['detection_interval'] = 3
-        
-        return state
+        # Detection intervals are now included directly from client messages
+        return self.game_state_service.get_all_game_states()
 
     def get_connected_clients(self) -> list[str]:
         """Get list of currently connected client IDs."""
