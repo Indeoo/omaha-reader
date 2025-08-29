@@ -1,5 +1,5 @@
 let config = {
-    backend_capture_interval: 5,
+    backend_capture_interval: 3,  // Updated to match client default  
     show_table_cards: true,
     show_positions: true,
     show_moves: true,
@@ -392,18 +392,27 @@ async function pollForClientUpdates() {
 
 async function loadConfig() {
     try {
+        console.log(`Loading config from /api/client/${clientId}/config...`);
         const response = await fetch(`/api/client/${clientId}/config`);
+        
         if (!response.ok) {
-            throw new Error(`Client ${clientId} not found`);
+            throw new Error(`Client ${clientId} not found (HTTP ${response.status})`);
         }
+        
         const data = await response.json();
+        console.log('Server client config received:', data);
+        
+        const oldInterval = config.backend_capture_interval;
         config = data;
         updateTimerDisplay();
-        console.log('Loaded client config:', config);
+        
+        console.log(`Client config loaded - interval changed from ${oldInterval}s to ${config.backend_capture_interval}s`);
     } catch (error) {
         console.error('Error loading client config:', error);
+        console.log(`Using fallback config - interval: ${config.backend_capture_interval}s`);
         document.getElementById('content').innerHTML = `<div class="error">Error: ${error.message}</div>`;
         updateConnectionStatus('disconnected', '🔴 Client Not Found');
+        updateTimerDisplay();  // Still show timer with fallback
     }
 }
 

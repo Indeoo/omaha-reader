@@ -13,6 +13,7 @@ class GameUpdateMessage:
     window_name: str
     timestamp: str
     game_data: Dict[str, Any]
+    detection_interval: int = 3  # Default to 3 seconds matching client default
 
     @classmethod
     def from_dict(cls, data: dict) -> 'GameUpdateMessage':
@@ -21,7 +22,8 @@ class GameUpdateMessage:
             client_id=data['client_id'],
             window_name=data['window_name'],
             timestamp=data['timestamp'],
-            game_data=data['game_data']
+            game_data=data['game_data'],
+            detection_interval=data.get('detection_interval', 3)  # Default matching client default
         )
 
     def to_dict(self) -> dict:
@@ -30,7 +32,8 @@ class GameUpdateMessage:
             'client_id': self.client_id,
             'window_name': self.window_name,
             'timestamp': self.timestamp,
-            'game_data': self.game_data
+            'game_data': self.game_data,
+            'detection_interval': self.detection_interval
         }
 
     def to_json(self) -> str:
@@ -42,20 +45,23 @@ class ClientRegistrationMessage:
     type: str  # "client_register"
     client_id: str
     timestamp: str
+    detection_interval: int = 3  # Default to 3 seconds matching client default
 
     @classmethod
     def from_dict(cls, data: dict) -> 'ClientRegistrationMessage':
         return cls(
             type=data['type'],
             client_id=data['client_id'],
-            timestamp=data['timestamp']
+            timestamp=data['timestamp'],
+            detection_interval=data.get('detection_interval', 3)  # Default matching client default
         )
 
     def to_dict(self) -> dict:
         return {
             'type': self.type,
             'client_id': self.client_id,
-            'timestamp': self.timestamp
+            'timestamp': self.timestamp,
+            'detection_interval': self.detection_interval
         }
 
     def to_json(self) -> str:

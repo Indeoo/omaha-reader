@@ -59,6 +59,10 @@ class DetectionClient:
     def start_detection(self):
         """Start the detection scheduler."""
         if not self.scheduler.running:
+            # Ensure client is registered with server before starting detection
+            if self.http_connector:
+                self.http_connector.register_client(self.client_id, self.detection_interval)
+            
             self.scheduler.start()
             logger.info(f"✅ Detection started (interval: {self.detection_interval}s)")
         else:
@@ -198,7 +202,8 @@ class DetectionClient:
                     'moves': game_data.get('moves', []),
                     'street': game_data.get('street', 'unknown'),
                     'solver_link': game_data.get('solver_link')
-                }
+                },
+                detection_interval=self.detection_interval
             )
 
             # Simple HTTP request - fire and forget

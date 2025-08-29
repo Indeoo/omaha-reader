@@ -18,19 +18,12 @@
                 <!-- Client links will be populated by JavaScript -->
             </div>
         </div>
-        <div class="status" id="status">Connecting to server...</div>
         <div id="content">
-            <div class="loading">Connecting...</div>
         </div>
     </div>
 
     <div class="connection-status connecting" id="connectionStatus">
         🔗 Connecting...
-    </div>
-
-    <div class="timer-info" id="timerInfo">
-        <div>Mode: <span class="countdown">Real-time HTTP Polling</span></div>
-        <div>Backend: <span id="backendInfo">-</span>s</div>
     </div>
 
     <div class="update-indicator" id="updateIndicator">
@@ -39,7 +32,6 @@
 
     <div class="toast" id="toast">Copied to clipboard!</div>
 
-    <!-- Using HTTP polling -->
     <script src="{{ url_for('static', filename='poker-app.js') }}"></script>
 </body>
 </html>

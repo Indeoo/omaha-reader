@@ -105,7 +105,6 @@ class ServerWebApi:
         @app.route('/api/config')
         def get_config():
             return jsonify({
-                'backend_capture_interval': int(os.getenv('DETECTION_INTERVAL', '10')),
                 'show_table_cards': self.show_table_cards,
                 'show_positions': self.show_positions,
                 'show_moves': self.show_moves,
@@ -119,10 +118,9 @@ class ServerWebApi:
             connected_clients = self.game_data_receiver.get_connected_clients()
             if client_id not in connected_clients:
                 return jsonify({'error': 'Client not found'}), 404
-            
+
             return jsonify({
                 'client_id': client_id,
-                'backend_capture_interval': int(os.getenv('DETECTION_INTERVAL', '10')),
                 'show_table_cards': self.show_table_cards,
                 'show_positions': self.show_positions,
                 'show_moves': self.show_moves,
