@@ -6,6 +6,7 @@ from shared.domain.street import Street
 from table_detector.services.game_snapshot_service import GameSnapshotService, GameSnapshotIncorrectException
 from shared.domain.position import Position
 from shared.domain.moves import MoveType
+from shared.domain.detection import Detection
 
 
 class GameSnapshotServiceTest(unittest.TestCase):
@@ -81,7 +82,49 @@ class GameSnapshotServiceTest(unittest.TestCase):
 
         self.assertEqual(expected, result)
 
+    def test_create_game_snapshot_basic_5(self):
+        """Test that create_game_snapshot returns a valid GameSnapshot object."""
+        # Execute the method under test
+        cv2_image = self.load_image(5, "debug_3.png")
 
+        GameSnapshotService.create_game_snapshot(cv2_image)
+
+        expected = [
+            (Position.EARLY_POSITION, MoveType.RAISE)
+        ]
+
+        result = GameSnapshotService.create_game_snapshot(cv2_image).moves[Street.PREFLOP]
+
+        self.assertEqual(expected, result)
+
+    def test_create_game_snapshot_basic_6(self):
+        """Test that create_game_snapshot returns a valid GameSnapshot object."""
+        # Execute the method under test
+        cv2_image = self.load_image(6, "debug_1.png")
+
+        GameSnapshotService.create_game_snapshot(cv2_image)
+
+        expected = {
+            Street.PREFLOP: [
+                (Position.EARLY_POSITION, MoveType.RAISE),
+                (Position.MIDDLE_POSITION, MoveType.CALL),
+                (Position.CUTOFF, MoveType.FOLD),
+                (Position.BUTTON, MoveType.CALL),
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL),
+            ],
+            Street.FLOP: [
+                (Position.EARLY_POSITION, MoveType.CHECK),
+                (Position.SMALL_BLIND, MoveType.CHECK),
+                (Position.BIG_BLIND, MoveType.CHECK),
+            ],
+            Street.TURN: [],
+            Street.RIVER: []
+        }
+
+        result = GameSnapshotService.create_game_snapshot(cv2_image).moves
+
+        self.assertEqual(expected, result)
 
     # @patch('table_detector.services.game_snapshot_service.logger')
     # def test_validate_position_continuity_no_gaps(self, mock_logger):
@@ -187,7 +230,7 @@ class GameSnapshotServiceTest(unittest.TestCase):
         """Test 5-max validation with the specific scenario from the error."""
         position_actions = {
             Position.SMALL_BLIND: [MoveType.FOLD],
-            Position.EARLY_POSITION: [MoveType.CALL], 
+            Position.EARLY_POSITION: [MoveType.CALL],
             Position.BUTTON: [MoveType.RAISE],
             Position.CUTOFF: [MoveType.FOLD],
             Position.BIG_BLIND: [MoveType.CALL]
@@ -210,8 +253,8 @@ class GameSnapshotServiceTest(unittest.TestCase):
         """Test validation detects invalid position combinations."""
         position_actions = {
             Position.MIDDLE_POSITION: [MoveType.FOLD],  # MP suggests 6-max
-            Position.EARLY_POSITION: [MoveType.CALL],   # But also have EP (valid)
-            Position.CUTOFF: [MoveType.RAISE]           # And CO (valid)
+            Position.EARLY_POSITION: [MoveType.CALL],  # But also have EP (valid)
+            Position.CUTOFF: [MoveType.RAISE]  # And CO (valid)
         }
         # Should not raise exception - this is a valid 6-max subset
         GameSnapshotService._validate_position_continuity(position_actions)
@@ -279,10 +322,76 @@ class GameSnapshotServiceTest(unittest.TestCase):
 
         # 5-max (no MP)
         positions_5max = GameSnapshotService._get_valid_positions_for_table_size(5)
-        expected_5max = {Position.EARLY_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND}
+        expected_5max = {Position.EARLY_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND,
+                         Position.BIG_BLIND}
         self.assertEqual(positions_5max, expected_5max)
 
         # 6-max (with MP)
         positions_6max = GameSnapshotService._get_valid_positions_for_table_size(6)
-        expected_6max = {Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND}
+        expected_6max = {Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BUTTON,
+                         Position.SMALL_BLIND, Position.BIG_BLIND}
         self.assertEqual(positions_6max, expected_6max)
+
+    def test_recover_positions_from_actions(self):
+        """Test that position recovery works when positions are hidden by action text."""
+
+        # Create mock detected positions (missing player 1 who has BTN)
+        detected_positions = {
+            2: Detection(name="SB", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
+            3: Detection(name="BB", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
+            4: Detection(name="EP", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
+            5: Detection(name="MP", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
+            6: Detection(name="CO", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9)
+        }
+
+        # Create mock detected actions (player 1 has poker action instead of position)
+        detected_actions = {
+            1: [Detection(name="raises", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.8)],
+            2: [],
+            3: [],
+            4: [],
+            5: [],
+            6: []
+        }
+
+        # Test position recovery
+        recovered_positions = GameSnapshotService._recover_positions_from_actions(
+            detected_actions, detected_positions, None  # cv2_image not used
+        )
+
+        # Verify that player 1's position was recovered
+        self.assertIn(1, recovered_positions)
+        self.assertEqual(recovered_positions[1].name, "BTN")  # Only missing position from 6-max
+
+        # Verify all original positions are preserved
+        self.assertEqual(len(recovered_positions), 6)
+        self.assertEqual(recovered_positions[2].name, "SB")
+        self.assertEqual(recovered_positions[3].name, "BB")
+        self.assertEqual(recovered_positions[4].name, "EP")
+        self.assertEqual(recovered_positions[5].name, "MP")
+        self.assertEqual(recovered_positions[6].name, "CO")
+
+    def test_infer_missing_position_simple_case(self):
+        """Test position inference when only one position is missing."""
+
+        # Create scenario where BTN is missing from 6-max game
+        detected_positions = {
+            2: Detection(name="SB", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
+            3: Detection(name="BB", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
+            4: Detection(name="EP", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
+            5: Detection(name="MP", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
+            6: Detection(name="CO", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9)
+        }
+
+        # Test inference
+        inferred = GameSnapshotService._infer_missing_position(1, detected_positions)
+        self.assertEqual(inferred, "BTN")
+
+    def test_infer_missing_position_no_positions_detected(self):
+        """Test position inference when no positions are detected."""
+
+        detected_positions = {}
+
+        # Test inference returns None when no context available
+        inferred = GameSnapshotService._infer_missing_position(1, detected_positions)
+        self.assertIsNone(inferred)

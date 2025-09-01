@@ -1,7 +1,9 @@
 from typing import Dict, List
+import re
 
 from loguru import logger
 
+from shared.domain.detection import Detection
 from shared.domain.game_snapshot import GameSnapshot
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
@@ -9,8 +11,10 @@ from table_detector.services.omaha_action_processor import group_moves_by_street
 from table_detector.services.template_matcher_service import TemplateMatchService
 from table_detector.utils.detect_utils import DetectUtils
 
+
 class GameSnapshotIncorrectException(Exception):
     pass
+
 
 class GameSnapshotService:
 
@@ -20,7 +24,15 @@ class GameSnapshotService:
         detected_table_cards = TemplateMatchService.find_table_cards(cv2_image)
         detected_positions = DetectUtils.detect_positions(cv2_image)
         detected_actions = DetectUtils.get_player_actions_detection(cv2_image)
-        position_actions = GameSnapshotService._convert_to_position_actions(detected_actions, detected_positions)
+
+        # Recover missing positions that may be hidden by action text
+        recovered_positions = (GameSnapshotService
+        ._recover_positions_from_actions(
+            detected_actions,
+            detected_positions
+        ))
+
+        position_actions = GameSnapshotService._convert_to_position_actions(detected_actions, recovered_positions)
 
         moves = group_moves_by_street(position_actions)
         logger.info(moves)
@@ -31,13 +43,134 @@ class GameSnapshotService:
             .with_player_cards(detected_player_cards)
             .with_table_cards(detected_table_cards)
             .with_bids(None)
-            .with_positions(detected_positions)
+            .with_positions(recovered_positions)
             .with_actions(detected_actions)
             .with_moves(moves)
             .build()
         )
 
         return game_snapshot
+
+    @staticmethod
+    def _recover_positions_from_actions(
+            detected_actions: Dict[int, List[Detection]],
+            detected_positions: Dict[int, Detection]
+    ) -> Dict[int, Detection]:
+        """
+        Recover missing positions by analyzing action detection results.
+        When a player makes a move, their position marker may be replaced with action text.
+        This method attempts to identify such cases and infer the missing positions.
+        
+        Args:
+            detected_actions: Dict mapping player_id to list of action detections
+            detected_positions: Dict mapping player_id to position detection
+
+        Returns:
+            Updated positions dict with recovered positions added
+        """
+        recovered_positions = detected_positions.copy()
+
+        # Poker action keywords that might replace position markers
+        poker_action_keywords = [
+            'limps', 'limp', 'calls', 'call', 'raises', 'raise', 'bets', 'bet',
+            'folds', 'fold', 'checks', 'check', 'allin', 'all-in'
+        ]
+
+        # Find players with actions but no detected position
+        for player_id, action_list in detected_actions.items():
+            if player_id in detected_positions:
+                continue  # Position already detected
+
+            if not action_list:
+                continue  # No actions detected for this player
+
+            # Check if any action detection contains poker keywords
+            has_poker_action = False
+            for action in action_list:
+                action_name_lower = action.name.lower()
+                if any(keyword in action_name_lower for keyword in poker_action_keywords):
+                    has_poker_action = True
+                    break
+
+            if has_poker_action:
+                # This player likely has a position but it's hidden by action text
+                inferred_position = GameSnapshotService._infer_missing_position(
+                    player_id, detected_positions
+                )
+
+                if inferred_position:
+                    logger.info(f"Recovered position for player {player_id}: {inferred_position}")
+                    # Create a synthetic Detection object for the inferred position
+                    recovered_positions[player_id] = Detection(
+                        name=inferred_position,
+                        center=(0, 0),  # Coordinates not critical for position logic
+                        bounding_rect=(0, 0, 0, 0),
+                        match_score=0.5  # Lower confidence since it's inferred
+                    )
+
+        return recovered_positions
+
+    @staticmethod
+    def _infer_missing_position(player_id: int, detected_positions: Dict[int, Detection]) -> str:
+        """
+        Infer the most likely position for a player based on detected positions of other players.
+        Uses poker table position logic and seating order.
+        
+        Args:
+            player_id: The player whose position needs to be inferred
+            detected_positions: Currently detected positions from other players
+            
+        Returns:
+            Inferred position name or None if cannot be determined
+        """
+        if not detected_positions:
+            return None
+
+        # Extract detected position names
+        detected_position_names = set()
+        for detection in detected_positions.values():
+            position_name = detection.name
+            # Clean up position name suffixes (same logic as _convert_to_position_actions)
+            if position_name.endswith('_fold'):
+                position_name = position_name[:-5]
+            elif position_name.endswith('_low'):
+                position_name = position_name[:-4]
+            elif position_name.endswith('_now'):
+                position_name = position_name[:-4]
+            detected_position_names.add(position_name)
+
+        # Define common position sets for different table sizes
+        position_sets = {
+            6: ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB'],
+            5: ['EP', 'CO', 'BTN', 'SB', 'BB'],
+            4: ['CO', 'BTN', 'SB', 'BB'],
+            3: ['BTN', 'SB', 'BB'],
+            2: ['SB', 'BB']
+        }
+
+        # Determine likely table size based on detected positions
+        table_size = 6  # Default
+        for size, positions in position_sets.items():
+            if detected_position_names.issubset(set(positions)):
+                table_size = size
+                break
+
+        # Find missing positions for this table size
+        expected_positions = set(position_sets[table_size])
+        missing_positions = expected_positions - detected_position_names
+
+        # Simple heuristic: if only one position is missing, assign it
+        if len(missing_positions) == 1:
+            return list(missing_positions)[0]
+
+        # More complex logic could be added here based on player_id and seating patterns
+        # For now, return the most common missing position based on typical poker games
+        priority_order = ['BTN', 'SB', 'BB', 'CO', 'EP', 'MP']
+        for position in priority_order:
+            if position in missing_positions:
+                return position
+
+        return None
 
     @staticmethod
     def _convert_to_position_actions(actions, positions) -> Dict[Position, List[MoveType]]:
@@ -125,30 +258,30 @@ class GameSnapshotService:
             Most likely table size (2-6 players)
         """
         position_count = len(detected_positions)
-        
+
         # If we have MP, it's likely 6-max
         if Position.MIDDLE_POSITION in detected_positions:
             return 6
-            
+
         # If we have EP but no MP, likely 5-max  
         if Position.EARLY_POSITION in detected_positions:
             return 5
-            
+
         # If we have CO but no EP, likely 4-max
         if Position.CUTOFF in detected_positions:
             return 4
-            
+
         # If we have BTN but no CO, likely 3-max
         if Position.BUTTON in detected_positions:
             return 3
-            
+
         # If only blinds detected, likely 2-max (heads-up)
         if detected_positions.issubset({Position.SMALL_BLIND, Position.BIG_BLIND}):
             return 2
-            
+
         # Fallback: estimate based on position count
         return min(max(position_count, 2), 6)
-    
+
     @staticmethod
     def _get_valid_positions_for_table_size(table_size: int) -> set[Position]:
         """
@@ -165,11 +298,12 @@ class GameSnapshotService:
             3: {Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND},
             4: {Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND},
             5: {Position.EARLY_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND},
-            6: {Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND}
+            6: {Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BUTTON,
+                Position.SMALL_BLIND, Position.BIG_BLIND}
         }
-        
+
         return position_sets.get(table_size, position_sets[6])  # Default to 6-max
-    
+
     @staticmethod
     def _validate_position_continuity(position_actions: Dict[Position, List[MoveType]]) -> None:
         """
@@ -185,24 +319,24 @@ class GameSnapshotService:
             return
 
         detected_positions = set(position_actions.keys())
-        
+
         # Determine the most likely table size
         table_size = GameSnapshotService._determine_table_size(detected_positions)
         valid_positions = GameSnapshotService._get_valid_positions_for_table_size(table_size)
-        
+
         # Check if detected positions are a valid subset
         invalid_positions = detected_positions - valid_positions
-        
+
         if invalid_positions:
             invalid_names = [pos.value for pos in invalid_positions]
             detected_names = [pos.value for pos in detected_positions]
             valid_names = [pos.value for pos in valid_positions]
-            
+
             raise GameSnapshotIncorrectException(
                 f"Invalid position combination detected for {table_size}-max table: "
                 f"Detected positions {detected_names} include invalid positions {invalid_names}. "
                 f"Valid positions for {table_size}-max are {valid_names}."
             )
-            
+
         # Note: We don't validate for missing positions since this is partial detection
         # The main validation above ensures detected positions are valid for the table size
