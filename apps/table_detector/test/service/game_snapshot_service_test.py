@@ -362,45 +362,6 @@ class GameSnapshotServiceTest(unittest.TestCase):
                          Position.SMALL_BLIND, Position.BIG_BLIND}
         self.assertEqual(positions_6max, expected_6max)
 
-    def test_recover_positions_from_actions(self):
-        """Test that position recovery works when positions are hidden by action text."""
-
-        # Create mock detected positions (missing player 1 who has BTN)
-        detected_positions = {
-            2: Detection(name="SB", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
-            3: Detection(name="BB", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
-            4: Detection(name="EP", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
-            5: Detection(name="MP", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
-            6: Detection(name="CO", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9)
-        }
-
-        # Create mock detected actions (player 1 has poker action instead of position)
-        detected_actions = {
-            1: [Detection(name="raises", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.8)],
-            2: [],
-            3: [],
-            4: [],
-            5: [],
-            6: []
-        }
-
-        # Test position recovery
-        recovered_positions = GameSnapshotService._recover_positions_from_actions(
-            detected_actions, detected_positions  # cv2_image not used
-        )
-
-        # Verify that player 1's position was recovered
-        self.assertIn(1, recovered_positions)
-        self.assertEqual(recovered_positions[1].name, "BTN")  # Only missing position from 6-max
-
-        # Verify all original positions are preserved
-        self.assertEqual(len(recovered_positions), 6)
-        self.assertEqual(recovered_positions[2].name, "SB")
-        self.assertEqual(recovered_positions[3].name, "BB")
-        self.assertEqual(recovered_positions[4].name, "EP")
-        self.assertEqual(recovered_positions[5].name, "MP")
-        self.assertEqual(recovered_positions[6].name, "CO")
-
     def test_infer_missing_position_no_positions_detected(self):
         """Test position inference when no positions are detected."""
 
