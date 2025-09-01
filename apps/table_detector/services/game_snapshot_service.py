@@ -3,6 +3,7 @@ from typing import Dict, List, Optional
 from loguru import logger
 
 from shared.domain.detection import Detection
+from shared.domain.detected_position import DetectedPosition
 from shared.domain.game_snapshot import GameSnapshot
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
@@ -23,13 +24,17 @@ class GameSnapshotService:
         position_detections = DetectUtils.detect_positions(cv2_image)
         action_detections = DetectUtils.get_player_actions_detection(cv2_image)
 
-        # Convert position detections to Position enums first
-        positions = GameSnapshotService._convert_detections_to_positions(position_detections)
+        # Convert position detections to DetectedPosition enums first  
+        detected_positions = GameSnapshotService._convert_detections_to_detected_positions(position_detections)
         
-        # Recover missing positions that may be hidden by action text
+        # Filter out only valid positions and convert to Position enums
+        valid_positions = GameSnapshotService._filter_valid_positions(detected_positions)
+        
+        # Recover missing positions using both valid positions and action evidence
         recovered_positions = GameSnapshotService._recover_positions_from_actions(
             action_detections,
-            positions
+            detected_positions,
+            valid_positions
         )
         
         position_actions = GameSnapshotService._convert_to_position_actions(action_detections, recovered_positions)
@@ -54,7 +59,8 @@ class GameSnapshotService:
     @staticmethod
     def _recover_positions_from_actions(
             detected_actions: Dict[int, List[Detection]],
-            detected_positions: Dict[int, Position]
+            detected_positions: Dict[int, DetectedPosition], 
+            valid_positions: Dict[int, Position]
     ) -> Dict[int, Position]:
         """
         Recover missing positions by analyzing action detection results.
@@ -63,39 +69,40 @@ class GameSnapshotService:
         
         Args:
             detected_actions: Dict mapping player_id to list of action detections
-            detected_positions: Dict mapping player_id to Position enums
+            detected_positions: Dict mapping player_id to DetectedPosition enums (all detections)
+            valid_positions: Dict mapping player_id to Position enums (only valid positions)
 
         Returns:
             Updated positions dict with recovered positions added
         """
-        recovered_positions = detected_positions.copy()
+        recovered_positions = valid_positions.copy()
 
-        # Poker action keywords that might replace position markers
-        poker_action_keywords = [
-            'limps', 'limp', 'calls', 'call', 'raises', 'raise', 'bets', 'bet',
-            'folds', 'fold', 'checks', 'check', 'allin', 'all-in'
-        ]
+        # Find players with missing positions that need recovery
+        for player_id, detected_pos in detected_positions.items():
+            if player_id in valid_positions:
+                continue  # Position already valid
+                
+            # Check if this player has action text that replaced a position marker
+            has_action_replacement = detected_pos.is_action()
+            
+            # Also check regular action detections for poker keywords
+            has_regular_action = False
+            if player_id in detected_actions:
+                poker_action_keywords = [
+                    'limps', 'limp', 'calls', 'call', 'raises', 'raise', 'bets', 'bet',
+                    'folds', 'fold', 'checks', 'check', 'allin', 'all-in'
+                ]
+                
+                for action in detected_actions[player_id]:
+                    action_name_lower = action.name.lower()
+                    if any(keyword in action_name_lower for keyword in poker_action_keywords):
+                        has_regular_action = True
+                        break
 
-        # Find players with actions but no detected position
-        for player_id, action_list in detected_actions.items():
-            if player_id in detected_positions:
-                continue  # Position already detected
-
-            if not action_list:
-                continue  # No actions detected for this player
-
-            # Check if any action detection contains poker keywords
-            has_poker_action = False
-            for action in action_list:
-                action_name_lower = action.name.lower()
-                if any(keyword in action_name_lower for keyword in poker_action_keywords):
-                    has_poker_action = True
-                    break
-
-            if has_poker_action:
+            if has_action_replacement or has_regular_action:
                 # This player likely has a position but it's hidden by action text
                 inferred_position_string = GameSnapshotService._infer_missing_position(
-                    player_id, detected_positions
+                    player_id, valid_positions
                 )
 
                 if inferred_position_string:
@@ -103,7 +110,7 @@ class GameSnapshotService:
                         # Directly convert inferred position string to Position enum
                         inferred_position_enum = Position.normalize_position(inferred_position_string)
                         recovered_positions[player_id] = inferred_position_enum
-                        logger.info(f"Recovered position for player {player_id}: {inferred_position_enum}")
+                        logger.info(f"Recovered position for player {player_id}: {inferred_position_enum} (detected: {detected_pos.value})")
                     except ValueError as e:
                         logger.warning(f"Failed to convert inferred position '{inferred_position_string}' for player {player_id}: {e}")
 
@@ -194,27 +201,48 @@ class GameSnapshotService:
         return Position.normalize_position(position_name)
 
     @staticmethod 
-    def _convert_detections_to_positions(positions: Dict[int, Detection]) -> Dict[int, Position]:
+    def _convert_detections_to_detected_positions(positions: Dict[int, Detection]) -> Dict[int, DetectedPosition]:
         """
-        Convert a dictionary of Detection objects to Position enums.
+        Convert a dictionary of Detection objects to DetectedPosition enums.
         
         Args:
             positions: Dict mapping player_id to Detection objects
             
         Returns:
-            Dict mapping player_id to Position enums
+            Dict mapping player_id to DetectedPosition enums
         """
         converted_positions = {}
         
         for player_id, position_detection in positions.items():
             try:
-                position_enum = GameSnapshotService._convert_detection_to_position(position_detection)
-                converted_positions[player_id] = position_enum
+                detected_position = DetectedPosition.from_detection_name(position_detection.name)
+                converted_positions[player_id] = detected_position
             except ValueError as e:
-                logger.warning(f"Skipping invalid position for player {player_id}: {e}")
+                logger.warning(f"Skipping unknown detection '{position_detection.name}' for player {player_id}: {e}")
                 continue
                 
         return converted_positions
+
+    @staticmethod
+    def _filter_valid_positions(detected_positions: Dict[int, DetectedPosition]) -> Dict[int, Position]:
+        """
+        Filter DetectedPosition enums to only valid positions and convert to Position enums.
+        
+        Args:
+            detected_positions: Dict mapping player_id to DetectedPosition enums
+            
+        Returns:
+            Dict mapping player_id to Position enums (only valid positions)
+        """
+        valid_positions = {}
+        
+        for player_id, detected_pos in detected_positions.items():
+            if detected_pos.is_position():
+                position_enum = detected_pos.to_position()
+                if position_enum:
+                    valid_positions[player_id] = position_enum
+                    
+        return valid_positions
 
     @staticmethod
     def _convert_to_position_actions(actions, positions: Dict[int, Position]) -> Dict[Position, List[MoveType]]:
