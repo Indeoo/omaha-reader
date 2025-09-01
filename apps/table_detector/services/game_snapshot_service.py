@@ -94,7 +94,7 @@ class GameSnapshotService:
                     logger.debug(f"Direct position for player {player_id}: {position_enum}")
 
             elif detected_pos.is_action():
-                # Immediate recovery attempt for action text
+                # Recover position for action text detected in position templates
                 inferred_position_string = GameSnapshotService._infer_missing_position(result_positions)
 
                 if inferred_position_string:
@@ -108,40 +108,6 @@ class GameSnapshotService:
                             f"Failed to convert inferred position '{inferred_position_string}' for player {player_id}: {e}")
 
             # NO_POSITION is automatically ignored (neither is_position() nor is_action())
-
-        # Second pass: check for additional recovery opportunities from regular action detections
-        for player_id, action_list in detected_actions.items():
-            if player_id in result_positions:
-                continue  # Position already resolved
-
-            if not action_list:
-                continue  # No actions detected for this player
-
-            # Check if any regular action detection contains poker keywords
-            poker_action_keywords = [
-                'limps', 'limp', 'calls', 'call', 'raises', 'raise', 'bets', 'bet',
-                'folds', 'fold', 'checks', 'check', 'allin', 'all-in'
-            ]
-
-            has_poker_action = False
-            for action in action_list:
-                action_name_lower = action.name.lower()
-                if any(keyword in action_name_lower for keyword in poker_action_keywords):
-                    has_poker_action = True
-                    break
-
-            if has_poker_action:
-                inferred_position_string = GameSnapshotService._infer_missing_position(result_positions)
-
-                if inferred_position_string:
-                    try:
-                        inferred_position_enum = Position.normalize_position(inferred_position_string)
-                        result_positions[player_id] = inferred_position_enum
-                        logger.info(
-                            f"Recovered position for player {player_id}: {inferred_position_enum} (from regular actions)")
-                    except ValueError as e:
-                        logger.warning(
-                            f"Failed to convert inferred position '{inferred_position_string}' for player {player_id}: {e}")
 
         return result_positions
 
