@@ -1,5 +1,4 @@
-from typing import Dict, List
-import re
+from typing import Dict, List, Optional
 
 from loguru import logger
 
@@ -113,7 +112,7 @@ class GameSnapshotService:
         return recovered_positions
 
     @staticmethod
-    def _infer_missing_position(player_id: int, detected_positions: Dict[int, Detection]) -> str:
+    def _infer_missing_position(player_id: int, detected_positions: Dict[int, Detection]) -> Optional[str]:
         """
         Infer the most likely position for a player based on detected positions of other players.
         Uses poker table position logic and seating order.
