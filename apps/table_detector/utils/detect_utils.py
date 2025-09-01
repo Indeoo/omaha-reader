@@ -62,6 +62,14 @@ class DetectUtils:
             return {}
 
     @staticmethod
+    def detect_player_cards(cv2_image) -> List[Detection]:
+        return TemplateMatchService.find_player_cards(cv2_image)
+
+    @staticmethod
+    def detect_table_cards(cv2_image) -> List[Detection]:
+        return TemplateMatchService.find_table_cards(cv2_image)
+
+    @staticmethod
     def get_player_actions_detection(image: np.ndarray) -> Dict[int, List[Detection]]:
         player_actions = {}
 

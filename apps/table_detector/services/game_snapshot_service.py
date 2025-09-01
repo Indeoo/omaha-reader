@@ -8,7 +8,6 @@ from shared.domain.game_snapshot import GameSnapshot
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
 from table_detector.services.omaha_action_processor import group_moves_by_street
-from table_detector.services.template_matcher_service import TemplateMatchService
 from table_detector.utils.detect_utils import DetectUtils
 
 
@@ -20,8 +19,8 @@ class GameSnapshotService:
 
     @staticmethod
     def create_game_snapshot(cv2_image):
-        detected_player_cards = TemplateMatchService.find_player_cards(cv2_image)
-        detected_table_cards = TemplateMatchService.find_table_cards(cv2_image)
+        detected_player_cards = DetectUtils.detect_player_cards(cv2_image)
+        detected_table_cards = DetectUtils.detect_table_cards(cv2_image)
         detected_positions = DetectUtils.detect_positions(cv2_image)
         detected_actions = DetectUtils.get_player_actions_detection(cv2_image)
 
@@ -32,7 +31,10 @@ class GameSnapshotService:
             detected_positions
         ))
 
-        position_actions = GameSnapshotService._convert_to_position_actions(detected_actions, recovered_positions)
+        # Convert position detections to Position enums
+        converted_positions = GameSnapshotService._convert_detections_to_positions(recovered_positions)
+        
+        position_actions = GameSnapshotService._convert_to_position_actions(detected_actions, converted_positions)
 
         moves = group_moves_by_street(position_actions)
         logger.info(moves)
@@ -173,71 +175,87 @@ class GameSnapshotService:
         return None
 
     @staticmethod
-    def _convert_to_position_actions(actions, positions) -> Dict[Position, List[MoveType]]:
+    def _convert_detection_to_position(position_detection: Detection) -> Position:
+        """
+        Convert a Detection object to a Position enum.
+        
+        Args:
+            position_detection: Detection object containing position information
+            
+        Returns:
+            Position enum corresponding to the detection
+            
+        Raises:
+            ValueError: If position cannot be normalized to a valid Position
+        """
+        position_name = position_detection.position_name
+        
+        if position_name == 'NO':
+            raise ValueError("Invalid position 'NO'")
+        
+        # Clean up position name suffixes
+        if position_name.endswith('_fold'):
+            position_name = position_name[:-5]  # Remove exactly "_fold"
+        elif position_name.endswith('_low'):
+            position_name = position_name[:-4]  # Remove exactly "_low"
+        elif position_name.endswith('_now'):
+            position_name = position_name[:-4]  # Remove exactly "_now"
+        
+        # Convert position string to Position enum
+        return Position.normalize_position(position_name)
+
+    @staticmethod 
+    def _convert_detections_to_positions(positions: Dict[int, Detection]) -> Dict[int, Position]:
+        """
+        Convert a dictionary of Detection objects to Position enums.
+        
+        Args:
+            positions: Dict mapping player_id to Detection objects
+            
+        Returns:
+            Dict mapping player_id to Position enums
+        """
+        converted_positions = {}
+        
+        for player_id, position_detection in positions.items():
+            try:
+                position_enum = GameSnapshotService._convert_detection_to_position(position_detection)
+                converted_positions[player_id] = position_enum
+            except ValueError as e:
+                logger.warning(f"Skipping invalid position for player {player_id}: {e}")
+                continue
+                
+        return converted_positions
+
+    @staticmethod
+    def _convert_to_position_actions(actions, positions: Dict[int, Position]) -> Dict[Position, List[MoveType]]:
         result = {}
 
-        # First, add all detected positions to the result (even without actions)
-        for player_id, position_data in positions.items():
-            position_name = position_data.position_name
-
-            if position_name == 'NO':
-                continue
-
-            # Clean up position name suffixes
-            if position_name.endswith('_fold'):
-                position_name = position_name[:-5]  # Remove exactly "_fold"
-            elif position_name.endswith('_low'):
-                position_name = position_name[:-4]  # Remove exactly "_low"
-            elif position_name.endswith('_now'):
-                position_name = position_name[:-4]  # Remove exactly "_now"
-
-            try:
-                # Convert position string to Position enum
-                position_enum = Position.normalize_position(position_name)
-                # Initialize with empty action list
-                result[position_enum] = []
-            except ValueError as e:
-                logger.warning(f"Skipping invalid position '{position_name}': {e}")
-                continue
+        # First, add all positions to the result (even without actions)
+        for player_id, position_enum in positions.items():
+            # Initialize with empty action list
+            result[position_enum] = []
 
         # Then, process actual actions for players that have them
         for player_id, detection_list in actions.items():
             if player_id in positions:
-                position_name = positions[player_id].position_name
+                position_enum = positions[player_id]
 
-                if position_name == 'NO':
-                    continue
+                # Convert detection names to MoveType enums
+                move_types = []
+                for d in detection_list:
+                    try:
+                        move_type = MoveType.normalize_action(d.name)
+                        move_types.append(move_type)
+                    except ValueError as e:
+                        logger.warning(f"Skipping invalid move '{d.name}' for position {position_enum}: {e}")
+                        continue
 
-                if position_name.endswith('_fold'):
-                    position_name = position_name[:-5]  # Remove exactly "_fold"
-                elif position_name.endswith('_low'):
-                    position_name = position_name[:-4]  # Remove exactly "_low"
-                elif position_name.endswith('_now'):
-                    position_name = position_name[:-4]  # Remove exactly "_now"
-
-                try:
-                    # Convert position string to Position enum
-                    position_enum = Position.normalize_position(position_name)
-
-                    # Convert detection names to MoveType enums
-                    move_types = []
-                    for d in detection_list:
-                        try:
-                            move_type = MoveType.normalize_action(d.name)
-                            move_types.append(move_type)
-                        except ValueError as e:
-                            logger.warning(f"Skipping invalid move '{d.name}' for position {position_name}: {e}")
-                            continue
-
-                    # Add moves to the existing position (which may already be initialized with empty list)
-                    if position_enum in result:
-                        result[position_enum].extend(move_types)
-                    else:
-                        result[position_enum] = move_types
-
-                except ValueError as e:
-                    logger.warning(f"Skipping invalid position '{position_name}': {e}")
-                    continue
+                # Add moves to the existing position (which may already be initialized with empty list)
+                if position_enum in result:
+                    result[position_enum].extend(move_types)
+                else:
+                    result[position_enum] = move_types
 
         # Validate position continuity
         GameSnapshotService._validate_position_continuity(result)
