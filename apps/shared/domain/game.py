@@ -48,7 +48,7 @@ class Game:
 
     def get_active_position(self):
         return {player_num: position for player_num, position in self.positions.items()
-                if position.position_name != "NO"}
+                if position.name != "NO"}
 
     def get_moves_by_streets(self) -> List[Tuple[Street, List[Tuple[Position, MoveType]]]]:
         """Returns moves organized by street in chronological order.
