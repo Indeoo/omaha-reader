@@ -33,6 +33,7 @@ class DetectedPosition(Enum):
     # ===== ACTION TEXT (replaces position markers) =====
     FOLDS = "folds"
     CALLS = "calls"
+    CALLS_1 = "calls_1"
     OPEN_RAISES = "open_raises"
     BETS = "bets"
     CHECKS = "checks"
