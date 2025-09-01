@@ -18,22 +18,21 @@ class GameSnapshotService:
 
     @staticmethod
     def create_game_snapshot(cv2_image):
-        detected_player_cards = DetectUtils.detect_player_cards(cv2_image)
-        detected_table_cards = DetectUtils.detect_table_cards(cv2_image)
-        detected_positions = DetectUtils.detect_positions(cv2_image)
-        detected_actions = DetectUtils.get_player_actions_detection(cv2_image)
+        player_cards_detections = DetectUtils.detect_player_cards(cv2_image)
+        table_cards_detections = DetectUtils.detect_table_cards(cv2_image)
+        position_detections = DetectUtils.detect_positions(cv2_image)
+        action_detections = DetectUtils.get_player_actions_detection(cv2_image)
 
-        # Recover missing positions that may be hidden by action text
-        recovered_positions = (GameSnapshotService
-        ._recover_positions_from_actions(
-            detected_actions,
-            detected_positions
-        ))
-
-        # Convert position detections to Position enums
-        converted_positions = GameSnapshotService._convert_detections_to_positions(recovered_positions)
+        # Convert position detections to Position enums first
+        positions = GameSnapshotService._convert_detections_to_positions(position_detections)
         
-        position_actions = GameSnapshotService._convert_to_position_actions(detected_actions, converted_positions)
+        # Recover missing positions that may be hidden by action text
+        recovered_positions = GameSnapshotService._recover_positions_from_actions(
+            action_detections,
+            positions
+        )
+        
+        position_actions = GameSnapshotService._convert_to_position_actions(action_detections, recovered_positions)
 
         moves = group_moves_by_street(position_actions)
         logger.info(moves)
@@ -41,11 +40,11 @@ class GameSnapshotService:
         game_snapshot = (
             GameSnapshot
             .builder()
-            .with_player_cards(detected_player_cards)
-            .with_table_cards(detected_table_cards)
+            .with_player_cards(player_cards_detections)
+            .with_table_cards(table_cards_detections)
             .with_bids(None)
             .with_positions(recovered_positions)
-            .with_actions(detected_actions)
+            .with_actions(action_detections)
             .with_moves(moves)
             .build()
         )
@@ -55,8 +54,8 @@ class GameSnapshotService:
     @staticmethod
     def _recover_positions_from_actions(
             detected_actions: Dict[int, List[Detection]],
-            detected_positions: Dict[int, Detection]
-    ) -> Dict[int, Detection]:
+            detected_positions: Dict[int, Position]
+    ) -> Dict[int, Position]:
         """
         Recover missing positions by analyzing action detection results.
         When a player makes a move, their position marker may be replaced with action text.
@@ -64,7 +63,7 @@ class GameSnapshotService:
         
         Args:
             detected_actions: Dict mapping player_id to list of action detections
-            detected_positions: Dict mapping player_id to position detection
+            detected_positions: Dict mapping player_id to Position enums
 
         Returns:
             Updated positions dict with recovered positions added
@@ -95,31 +94,30 @@ class GameSnapshotService:
 
             if has_poker_action:
                 # This player likely has a position but it's hidden by action text
-                inferred_position = GameSnapshotService._infer_missing_position(
+                inferred_position_string = GameSnapshotService._infer_missing_position(
                     player_id, detected_positions
                 )
 
-                if inferred_position:
-                    logger.info(f"Recovered position for player {player_id}: {inferred_position}")
-                    # Create a synthetic Detection object for the inferred position
-                    recovered_positions[player_id] = Detection(
-                        name=inferred_position,
-                        center=(0, 0),  # Coordinates not critical for position logic
-                        bounding_rect=(0, 0, 0, 0),
-                        match_score=0.5  # Lower confidence since it's inferred
-                    )
+                if inferred_position_string:
+                    try:
+                        # Directly convert inferred position string to Position enum
+                        inferred_position_enum = Position.normalize_position(inferred_position_string)
+                        recovered_positions[player_id] = inferred_position_enum
+                        logger.info(f"Recovered position for player {player_id}: {inferred_position_enum}")
+                    except ValueError as e:
+                        logger.warning(f"Failed to convert inferred position '{inferred_position_string}' for player {player_id}: {e}")
 
         return recovered_positions
 
     @staticmethod
-    def _infer_missing_position(player_id: int, detected_positions: Dict[int, Detection]) -> Optional[str]:
+    def _infer_missing_position(player_id: int, detected_positions: Dict[int, Position]) -> Optional[str]:
         """
         Infer the most likely position for a player based on detected positions of other players.
         Uses poker table position logic and seating order.
         
         Args:
             player_id: The player whose position needs to be inferred
-            detected_positions: Currently detected positions from other players
+            detected_positions: Currently detected Position enums from other players
             
         Returns:
             Inferred position name or None if cannot be determined
@@ -129,16 +127,8 @@ class GameSnapshotService:
 
         # Extract detected position names
         detected_position_names = set()
-        for detection in detected_positions.values():
-            position_name = detection.name
-            # Clean up position name suffixes (same logic as _convert_to_position_actions)
-            if position_name.endswith('_fold'):
-                position_name = position_name[:-5]
-            elif position_name.endswith('_low'):
-                position_name = position_name[:-4]
-            elif position_name.endswith('_now'):
-                position_name = position_name[:-4]
-            detected_position_names.add(position_name)
+        for position_enum in detected_positions.values():
+            detected_position_names.add(position_enum.value)
 
         # Define common position sets for different table sizes
         position_sets = {

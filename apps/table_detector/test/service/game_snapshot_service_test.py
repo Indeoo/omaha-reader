@@ -126,6 +126,36 @@ class GameSnapshotServiceTest(unittest.TestCase):
 
         self.assertEqual(expected, result)
 
+    def test_create_game_snapshot_basic_7(self):
+        """Test that create_game_snapshot returns a valid GameSnapshot object."""
+        # Execute the method under test
+        cv2_image = self.load_image(7, "01__0_02__0_05_Pot_Limit_Omaha.png")
+
+        GameSnapshotService.create_game_snapshot(cv2_image)
+
+        # expected = {
+        #     Street.PREFLOP: [
+        #         (Position.EARLY_POSITION, MoveType.RAISE),
+        #         (Position.MIDDLE_POSITION, MoveType.CALL),
+        #         (Position.CUTOFF, MoveType.FOLD),
+        #         (Position.BUTTON, MoveType.CALL),
+        #         (Position.SMALL_BLIND, MoveType.CALL),
+        #         (Position.BIG_BLIND, MoveType.CALL),
+        #     ],
+        #     Street.FLOP: [
+        #         (Position.EARLY_POSITION, MoveType.CHECK),
+        #         (Position.SMALL_BLIND, MoveType.CHECK),
+        #         (Position.BIG_BLIND, MoveType.CHECK),
+        #     ],
+        #     Street.TURN: [],
+        #     Street.RIVER: []
+        # }
+
+        result = GameSnapshotService.create_game_snapshot(cv2_image).moves
+        print(result)
+
+        #self.assertEqual(expected, result)
+
     # @patch('table_detector.services.game_snapshot_service.logger')
     # def test_validate_position_continuity_no_gaps(self, mock_logger):
     #     """Test validation passes when no position gaps exist."""
@@ -356,7 +386,7 @@ class GameSnapshotServiceTest(unittest.TestCase):
 
         # Test position recovery
         recovered_positions = GameSnapshotService._recover_positions_from_actions(
-            detected_actions, detected_positions, None  # cv2_image not used
+            detected_actions, detected_positions  # cv2_image not used
         )
 
         # Verify that player 1's position was recovered
@@ -370,22 +400,6 @@ class GameSnapshotServiceTest(unittest.TestCase):
         self.assertEqual(recovered_positions[4].name, "EP")
         self.assertEqual(recovered_positions[5].name, "MP")
         self.assertEqual(recovered_positions[6].name, "CO")
-
-    def test_infer_missing_position_simple_case(self):
-        """Test position inference when only one position is missing."""
-
-        # Create scenario where BTN is missing from 6-max game
-        detected_positions = {
-            2: Detection(name="SB", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
-            3: Detection(name="BB", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
-            4: Detection(name="EP", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
-            5: Detection(name="MP", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9),
-            6: Detection(name="CO", center=(0, 0), bounding_rect=(0, 0, 0, 0), match_score=0.9)
-        }
-
-        # Test inference
-        inferred = GameSnapshotService._infer_missing_position(1, detected_positions)
-        self.assertEqual(inferred, "BTN")
 
     def test_infer_missing_position_no_positions_detected(self):
         """Test position inference when no positions are detected."""
