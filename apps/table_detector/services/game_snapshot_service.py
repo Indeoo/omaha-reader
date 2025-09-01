@@ -22,9 +22,8 @@ class GameSnapshotService:
 
         # Convert position detections to DetectedPosition enums first  
         detected_positions = GameSnapshotService._convert_detections_to_detected_positions(position_detections)
-
         # Filter valid positions and recover missing positions in a single pass
-        recovered_positions = GameSnapshotService._filter_and_recover_positions(detected_positions, action_detections)
+        recovered_positions = GameSnapshotService._filter_and_recover_positions(detected_positions)
         position_actions = GameSnapshotService._convert_to_position_actions(action_detections, recovered_positions)
         moves = group_moves_by_street(position_actions)
         logger.info(moves)
@@ -67,18 +66,13 @@ class GameSnapshotService:
         return converted_positions
 
     @staticmethod
-    def _filter_and_recover_positions(
-            detected_positions: Dict[int, DetectedPosition],
-            detected_actions: Dict[int, List[Detection]]
-    ) -> Dict[int, Position]:
+    def _filter_and_recover_positions(detected_positions: Dict[int, DetectedPosition]) -> Dict[int, Position]:
         """
         Filter DetectedPosition enums to valid positions and recover missing positions
         from action evidence in a single pass.
         
         Args:
             detected_positions: Dict mapping player_id to DetectedPosition enums
-            detected_actions: Dict mapping player_id to list of action detections
-            
         Returns:
             Dict mapping player_id to Position enums (direct positions + recovered positions)
         """
