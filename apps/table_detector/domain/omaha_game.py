@@ -30,20 +30,6 @@ class OmahaGame:
     """
     
     def __init__(self, player_positions: List[Position]):
-        """Initialize a new Omaha game wrapper"""
-        # Core game state for compatibility
-        self.current_street = Street.PREFLOP
-
-        # Player tracking for compatibility
-        self.all_players: Set[Position] = set()
-        self.active_players: Set[Position] = set()
-        self.folded_players: Set[Position] = set()
-        
-        # Betting round state for compatibility  
-        self.last_aggressor: Optional[Position] = None
-        self.players_yet_to_act: Set[Position] = set()
-        self.players_acted_this_round: Set[Position] = set()
-        
         # Move history - main output format
         self.moves_by_street: Dict[Street, List[Tuple[Position, MoveType]]] = {
             Street.PREFLOP: [],
@@ -59,12 +45,12 @@ class OmahaGame:
         for position in player_positions:
             self._add_player(position)
 
+        player_count = len(player_positions)
+
         """Start the game - create pokerkit instance and transition to active betting"""
-        if len(self.all_players) < 2:
+        if player_count < 2:
             raise ValueError("Need at least 2 players to start game")
 
-        # Create pokerkit game state
-        player_count = len(self.all_players)
         starting_stacks = [1000] * player_count  # Default stack size
         blinds = (5, 10)  # Default blinds (SB, BB)
 
@@ -86,24 +72,16 @@ class OmahaGame:
             player_count,  # Number of players
         )
 
-        self.players_yet_to_act = self.active_players.copy()
-    
     def _add_player(self, position: Position) -> None:
         """Add a player to the game"""
         if not isinstance(position, Position):
             raise TypeError(f"Position must be Position enum, got {type(position)}")
-        
-        # Add to tracking sets
-        self.all_players.add(position)
-        self.active_players.add(position)
-        
+
         # Create position mapping 
         player_index = len(self.position_to_index)
         self.position_to_index[position] = player_index
         self.index_to_position[player_index] = position
 
-        self.players_yet_to_act.add(position)
-    
     def can_accept_action(self, position: Position, action: MoveType) -> bool:
         """
         Validate if the given action is legal in the current game state.
@@ -115,25 +93,10 @@ class OmahaGame:
         Returns:
             True if action is valid, False otherwise
         """
-        
-        if position not in self.all_players:
-            return False
-        
-        if position in self.folded_players:
-            return False
-        
-        if position not in self.active_players:
-            return False
-        
         # Validate action type
         if not isinstance(action, MoveType):
             return False
-        
-        # Check if player needs to act
-        if self.last_aggressor is not None and position not in self.players_yet_to_act:
-            # Player has already acted to current bet level
-            return False
-        
+
         # Use pokerkit's validation by checking available actions
         player_index = self.position_to_index.get(position)
         if player_index is None:
@@ -228,21 +191,23 @@ class OmahaGame:
         
         return False
 
-    def get_current_street(self):
-        board_card_count = len([card for card in self.poker_state.board_cards if card is not None])
+    def get_current_street(self) -> Street:
+        street_index = self.poker_state.street_index
 
-        if board_card_count == 0:
+        if street_index == 0:
             return Street.PREFLOP
-        elif board_card_count == 3:
+        elif street_index == 1:
             return Street.FLOP
-        elif board_card_count == 4:
+        elif street_index == 2:
             return Street.TURN
-        elif board_card_count == 5:
+        elif street_index == 3:
             return Street.RIVER
+        else:
+            raise Exception(f"Invalid street index: {street_index}")
 
     def _record_action(self, position: Position, action: MoveType) -> None:
         """Record the action in move history"""
-        self.moves_by_street[self.current_street].append((position, action))
+        self.moves_by_street[self.get_current_street()].append((position, action))
 
     def get_moves_by_street(self) -> Dict[Street, List[Tuple[Position, MoveType]]]:
         """Get the complete move history organized by street"""
