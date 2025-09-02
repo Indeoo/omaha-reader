@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Set, Optional
+from typing import Dict, List, Tuple
 
 from pokerkit import Automation, PotLimitOmahaHoldem
 from shared.domain.moves import MoveType
@@ -51,8 +51,8 @@ class OmahaGame:
         if player_count < 2:
             raise ValueError("Need at least 2 players to start game")
 
-        starting_stacks = [1000] * player_count  # Default stack size
-        blinds = (5, 10)  # Default blinds (SB, BB)
+        starting_stacks = [100] * player_count  # Default stack size
+        blinds = (0.5, 1)  # Default blinds (SB, BB)
 
         self.poker_state = PotLimitOmahaHoldem.create_state(
             (
@@ -67,7 +67,7 @@ class OmahaGame:
             True,  # Uniform antes?
             0,  # Antes
             blinds,  # Blinds (SB, BB)
-            10,  # Min-bet
+            1,  # Min-bet
             starting_stacks,  # Starting stacks
             player_count,  # Number of players
         )
