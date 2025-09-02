@@ -335,5 +335,34 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
         result = group_moves_by_street(input_data)
         self.assertEqual(result, expected_result)
 
+    def test_button_raise_call_scenario(self):
+        """Test scenario with BTN raise preflop, then BTN call on flop without prior aggression"""
+        input_data = {
+            Position.BUTTON: [MoveType.RAISE, MoveType.CALL],
+            Position.SMALL_BLIND: [MoveType.CALL, MoveType.CHECK, MoveType.CALL],
+            Position.BIG_BLIND: [MoveType.CALL, MoveType.CHECK, MoveType.CALL]
+        }
+        
+        expected_result = {
+            Street.PREFLOP: [
+                (Position.BUTTON, MoveType.RAISE),
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL)
+            ],
+            Street.FLOP: [
+                (Position.BUTTON, MoveType.CALL),
+                (Position.SMALL_BLIND, MoveType.CHECK),
+                (Position.BIG_BLIND, MoveType.CHECK)
+            ],
+            Street.TURN: [
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL)
+            ],
+            Street.RIVER: []
+        }
+        
+        result = group_moves_by_street(input_data)
+        self.assertEqual(result, expected_result)
+
     # Note: Complex poker rule tests have been moved to omaha_game_test.py
     # This file now focuses on integration testing of the group_moves_by_street adapter function

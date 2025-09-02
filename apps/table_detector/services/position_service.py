@@ -10,6 +10,16 @@ from shared.domain.position import Position
 class PositionService:
 
     @staticmethod
+    def get_positions(position_detections: dict[int, Detection]) -> dict[int, Position]:
+        if len(position_detections.items()) < 6:
+            raise Exception(f"Could not convert {position_detections.items()}")
+
+        detected_positions = PositionService.convert_detections_to_detected_positions(position_detections)
+        recovered_positions = PositionService.filter_and_recover_positions(detected_positions)
+
+        return recovered_positions
+
+    @staticmethod
     def convert_detections_to_detected_positions(positions: Dict[int, Detection]) -> Dict[int, DetectedPosition]:
         """
         Convert a dictionary of Detection objects to DetectedPosition enums.
