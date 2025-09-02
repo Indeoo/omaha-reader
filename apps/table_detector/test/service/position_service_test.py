@@ -1,5 +1,4 @@
 import unittest
-from unittest.mock import Mock
 
 from shared.domain.detected_position import DetectedPosition
 from shared.domain.detection import Detection
