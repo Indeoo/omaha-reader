@@ -2,6 +2,7 @@ from typing import Dict, List
 
 from loguru import logger
 
+from shared.domain.detection import Detection
 from shared.domain.game_snapshot import GameSnapshot
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
@@ -19,10 +20,7 @@ class GameSnapshotService:
         position_detections = DetectUtils.detect_positions(cv2_image)
         action_detections = DetectUtils.get_player_actions_detection(cv2_image)
 
-        # Convert position detections to DetectedPosition enums first  
-        detected_positions = PositionService.convert_detections_to_detected_positions(position_detections)
-        # Filter valid positions and recover missing positions in a single pass
-        recovered_positions = PositionService.filter_and_recover_positions(detected_positions)
+        recovered_positions = GameSnapshotService.get_positions(position_detections)
 
         position_actions = GameSnapshotService._convert_to_position_actions(action_detections, recovered_positions)
         moves = group_moves_by_street(position_actions)
@@ -41,6 +39,16 @@ class GameSnapshotService:
         )
 
         return game_snapshot
+
+    @staticmethod
+    def get_positions(position_detections: dict[int, Detection]) -> dict[int, Position]:
+        if len(position_detections.items()) < 6:
+            raise Exception(f"Could not convert {position_detections.items()}")
+
+        detected_positions = PositionService.convert_detections_to_detected_positions(position_detections)
+        recovered_positions = PositionService.filter_and_recover_positions(detected_positions)
+
+        return recovered_positions
 
     @staticmethod
     def _convert_to_position_actions(actions, positions: Dict[int, Position]) -> Dict[Position, List[MoveType]]:

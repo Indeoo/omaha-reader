@@ -30,9 +30,6 @@ class PositionService:
                 logger.warning(f"Skipping unknown detection '{position_detection.name}' for player {player_id}: {e}")
                 continue
 
-        if len(converted_positions) < 6:
-            raise Exception(f"Could not convert {converted_positions}")
-
         return converted_positions
 
     @staticmethod
