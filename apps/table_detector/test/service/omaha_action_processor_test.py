@@ -350,13 +350,14 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
                 (Position.BIG_BLIND, MoveType.CALL)
             ],
             Street.FLOP: [
-                (Position.BUTTON, MoveType.CALL),
                 (Position.SMALL_BLIND, MoveType.CHECK),
-                (Position.BIG_BLIND, MoveType.CHECK)
-            ],
-            Street.TURN: [
+                (Position.BIG_BLIND, MoveType.CHECK),
+                (Position.BUTTON, MoveType.BET),
                 (Position.SMALL_BLIND, MoveType.CALL),
                 (Position.BIG_BLIND, MoveType.CALL)
+            ],
+            Street.TURN: [
+
             ],
             Street.RIVER: []
         }
