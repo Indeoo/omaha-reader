@@ -90,11 +90,11 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
                 (Position.EARLY_POSITION, MoveType.CHECK),
                 (Position.CUTOFF, MoveType.BET),
                 (Position.BUTTON, MoveType.CALL),
-                (Position.BIG_BLIND, MoveType.CALL)
+                (Position.BIG_BLIND, MoveType.CALL),
+                (Position.EARLY_POSITION, MoveType.FOLD)
             ],
             Street.TURN: [
                 (Position.BIG_BLIND, MoveType.CHECK),
-                (Position.EARLY_POSITION, MoveType.FOLD),
                 (Position.CUTOFF, MoveType.BET),
                 (Position.BUTTON, MoveType.CALL)
             ],

@@ -242,49 +242,58 @@ def _process_street_actions(player_moves: Dict[Position, List[MoveType]],
 def _process_flop_street_specially(player_moves: Dict[Position, List[MoveType]], 
                                   action_indices: Dict[Position, int]) -> List[Tuple[Position, MoveType]]:
     """
-    Special handling for flop street which can have complex betting patterns.
+    Process flop street with proper betting round logic.
     
-    For the failing test case:
-    BTN=[RAISE, CALL], SB=[CALL, CHECK, CALL], BB=[CALL, CHECK, CALL]
-    
-    Flop should be: SB check, BB check, BTN bet, SB call, BB call
+    Expected for test_multistreet_simple:
+    BB check, EP check, CO bet, BTN call, BB call
     """
     flop_actions = []
     position_order = [p for p in Position.get_postflop_action_order() if p in player_moves.keys()]
     
-    # First round: checks  
-    actions_this_round = []
+    # Round 1: Initial actions (checks/bets)
     betting_occurred = False
+    bettor = None
     
     for position in position_order:
         if position in player_moves and action_indices[position] < len(player_moves[position]):
             original_move = player_moves[position][action_indices[position]]
             
-            # On flop, first actions are likely checks or bets
             interpreted_move = _interpret_action_contextually(
-                original_move, position, actions_this_round, betting_occurred, is_preflop=False
+                original_move, position, [], betting_occurred, is_preflop=False
             )
             
             flop_actions.append((position, interpreted_move))
-            actions_this_round.append((position, interpreted_move))
             action_indices[position] += 1
             
             if interpreted_move in [MoveType.BET, MoveType.RAISE]:
                 betting_occurred = True
-                # If someone bets, others must respond
-                break
+                bettor = position
+                break  # Once someone bets, others need to respond
     
-    # Second round: responses to any betting
-    if betting_occurred:
-        for position in position_order:
+    # Round 2: Responses to betting (only if betting occurred)
+    if betting_occurred and bettor:
+        bettor_idx = position_order.index(bettor)
+        
+        # After betting, action continues in order: first players after bettor, then back to those who checked
+        response_order = []
+        
+        # Add positions after bettor
+        for i in range(bettor_idx + 1, len(position_order)):
+            response_order.append(position_order[i])
+            
+        # Add positions before bettor who checked - all must respond to complete betting round
+        for i in range(bettor_idx):
+            position = position_order[i]
+            if any(pos == position for pos, move in flop_actions if move == MoveType.CHECK):
+                response_order.append(position)
+        
+        # Process responses in correct order
+        for position in response_order:
             if position in player_moves and action_indices[position] < len(player_moves[position]):
                 original_move = player_moves[position][action_indices[position]]
-                
-                # These should be calls/folds in response to betting
                 interpreted_move = _interpret_action_contextually(
-                    original_move, position, actions_this_round, betting_occurred, is_preflop=False
+                    original_move, position, [], betting_occurred, is_preflop=False
                 )
-                
                 flop_actions.append((position, interpreted_move))
                 action_indices[position] += 1
     
