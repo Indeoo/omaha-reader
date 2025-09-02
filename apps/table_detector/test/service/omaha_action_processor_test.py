@@ -73,7 +73,7 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
             Position.CUTOFF: [MoveType.CALL, MoveType.BET, MoveType.BET],
             Position.BUTTON: [MoveType.CALL, MoveType.CALL, MoveType.CALL],
             Position.SMALL_BLIND: [MoveType.FOLD],
-            Position.BIG_BLIND: [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK]
+            Position.BIG_BLIND: [MoveType.CHECK, MoveType.CHECK, MoveType.CALL, MoveType.CHECK]
         }
         
         expected_result = {
@@ -86,16 +86,17 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
                 (Position.BIG_BLIND, MoveType.CHECK)
             ],
             Street.FLOP: [
+                (Position.BIG_BLIND, MoveType.CHECK),
                 (Position.EARLY_POSITION, MoveType.CHECK),
                 (Position.CUTOFF, MoveType.BET),
                 (Position.BUTTON, MoveType.CALL),
-                (Position.BIG_BLIND, MoveType.CHECK)
+                (Position.BIG_BLIND, MoveType.CALL)
             ],
             Street.TURN: [
+                (Position.BIG_BLIND, MoveType.CHECK),
                 (Position.EARLY_POSITION, MoveType.FOLD),
                 (Position.CUTOFF, MoveType.BET),
-                (Position.BUTTON, MoveType.CALL),
-                (Position.BIG_BLIND, MoveType.CHECK)
+                (Position.BUTTON, MoveType.CALL)
             ],
             Street.RIVER: []
         }
