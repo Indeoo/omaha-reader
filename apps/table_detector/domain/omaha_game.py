@@ -1,18 +1,9 @@
-from enum import Enum
 from typing import Dict, List, Tuple, Set, Optional
 
 from pokerkit import Automation, PotLimitOmahaHoldem
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
 from shared.domain.street import Street
-
-
-class GameState(Enum):
-    """Enum representing the current state of the Omaha game"""
-    WAITING_FOR_PLAYERS = "waiting_for_players"
-    IN_BETTING_ROUND = "in_betting_round"
-    STREET_COMPLETE = "street_complete"
-    GAME_OVER = "game_over"
 
 
 class InvalidActionError(Exception):
@@ -42,7 +33,6 @@ class OmahaGame:
         """Initialize a new Omaha game wrapper"""
         # Core game state for compatibility
         self.current_street = Street.PREFLOP
-        self.game_state = GameState.WAITING_FOR_PLAYERS
 
         # Player tracking for compatibility
         self.all_players: Set[Position] = set()
@@ -96,7 +86,6 @@ class OmahaGame:
             player_count,  # Number of players
         )
 
-        self.game_state = GameState.IN_BETTING_ROUND
         self.players_yet_to_act = self.active_players.copy()
     
     def _add_player(self, position: Position) -> None:
@@ -112,10 +101,8 @@ class OmahaGame:
         player_index = len(self.position_to_index)
         self.position_to_index[position] = player_index
         self.index_to_position[player_index] = position
-        
-        # If this is the first street, initialize players_yet_to_act
-        if self.current_street == Street.PREFLOP and self.game_state == GameState.WAITING_FOR_PLAYERS:
-            self.players_yet_to_act.add(position)
+
+        self.players_yet_to_act.add(position)
     
     def can_accept_action(self, position: Position, action: MoveType) -> bool:
         """
@@ -128,9 +115,6 @@ class OmahaGame:
         Returns:
             True if action is valid, False otherwise
         """
-        # Basic validations
-        if self.game_state == GameState.GAME_OVER:
-            return False
         
         if position not in self.all_players:
             return False
@@ -139,10 +123,6 @@ class OmahaGame:
             return False
         
         if position not in self.active_players:
-            return False
-        
-        # Game must be started
-        if self.game_state == GameState.WAITING_FOR_PLAYERS:
             return False
         
         # Validate action type
@@ -205,39 +185,17 @@ class OmahaGame:
         # Validate action
         if not self.can_accept_action(position, action):
             raise InvalidActionError(
-                f"Invalid action: {action} by {position} on {self.current_street}. "
+                f"Invalid action: {action} by {position} on {self.get_current_street()}. "
                 f"Pokerkit state available: {self.poker_state is not None}",
-                position, action, self.current_street
+                position, action, self.get_current_street()
             )
         
-        # Try to execute action in pokerkit, but fallback to simple logic if needed
-        pokerkit_success = False
-        if self.poker_state is not None:
-            pokerkit_success = self._execute_pokerkit_action(action)
-            
-        if not pokerkit_success:
-            # Fallback to simple wrapper logic for compatibility
-            self._update_wrapper_state_simple(position, action)
-        else:
-            # Sync state from pokerkit only if it successfully processed the action
-            self._sync_state_from_pokerkit()
+        self._execute_pokerkit_action(action)
         
         # Always record the action in our move history
         self._record_action(position, action)
         
         return True
-    
-    def _update_wrapper_state_simple(self, position: Position, action: MoveType) -> None:
-        """Simple state update for compatibility when pokerkit isn't available"""
-        if action == MoveType.FOLD:
-            self.folded_players.add(position)
-            self.active_players.discard(position)
-            if len(self.active_players) <= 1:
-                self.game_state = GameState.GAME_OVER
-        elif action in [MoveType.BET, MoveType.RAISE]:
-            self.last_aggressor = position
-        # For other actions like CHECK and CALL, no special state update needed
-        # They'll just be recorded in the move history
     
     def _execute_pokerkit_action(self, action: MoveType) -> bool:
         """Execute the action in pokerkit if valid, return True if successful"""
@@ -269,46 +227,10 @@ class OmahaGame:
             pass
         
         return False
-    
-    def _sync_state_from_pokerkit(self) -> None:
-        """Synchronize wrapper state from pokerkit state"""
-        if self.poker_state is None:
-            return
-            
-        try:
-            # Update current street
-            board_card_count = len([card for card in self.poker_state.board_cards if card is not None])
-            if board_card_count == 0:
-                self.current_street = Street.PREFLOP
-            elif board_card_count == 3:
-                self.current_street = Street.FLOP
-            elif board_card_count == 4:
-                self.current_street = Street.TURN
-            elif board_card_count == 5:
-                self.current_street = Street.RIVER
-            
-            # Update game state
-            if self.poker_state.status:
-                self.game_state = GameState.GAME_OVER
-            else:
-                self.game_state = GameState.IN_BETTING_ROUND
-            
-            # Update active/folded players from pokerkit
-            self.active_players.clear()
-            self.folded_players.clear()
-            
-            for player_index, position in self.index_to_position.items():
-                if player_index < len(self.poker_state.statuses):
-                    if self.poker_state.statuses[player_index]:  # Player is still active
-                        self.active_players.add(position)
-                    else:
-                        self.folded_players.add(position)
-        except Exception:
-            # If sync fails, don't break - just skip the pokerkit sync
-            pass
 
     def get_current_street(self):
         board_card_count = len([card for card in self.poker_state.board_cards if card is not None])
+
         if board_card_count == 0:
             return Street.PREFLOP
         elif board_card_count == 3:
@@ -321,23 +243,7 @@ class OmahaGame:
     def _record_action(self, position: Position, action: MoveType) -> None:
         """Record the action in move history"""
         self.moves_by_street[self.current_street].append((position, action))
-    
-    def is_game_over(self) -> bool:
-        """Check if the game is over"""
-        return self.game_state == GameState.GAME_OVER
-    
+
     def get_moves_by_street(self) -> Dict[Street, List[Tuple[Position, MoveType]]]:
         """Get the complete move history organized by street"""
         return self.moves_by_street.copy()
-    
-    def get_game_state_info(self) -> Dict:
-        """Get current game state information for debugging"""
-        return {
-            'current_street': self.current_street,
-            'game_state': self.game_state,
-            'active_players': self.active_players,
-            'folded_players': self.folded_players,
-            'last_aggressor': self.last_aggressor,
-            'players_yet_to_act': self.players_yet_to_act,
-            'players_acted_this_round': self.players_acted_this_round
-        }
