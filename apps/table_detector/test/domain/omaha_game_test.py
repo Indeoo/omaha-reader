@@ -23,7 +23,7 @@ class TestOmahaGame(unittest.TestCase):
     
     def test_initial_game_state(self):
         """Test that new game starts in correct initial state"""
-        self.assertEqual(self.game.current_street, Street.PREFLOP)
+        self.assertEqual(self.game.get_current_street(), Street.PREFLOP)
         self.assertEqual(self.game.game_state, GameState.WAITING_FOR_PLAYERS)
         self.assertEqual(len(self.game.all_players), 0)
         self.assertEqual(len(self.game.active_players), 0)
@@ -174,7 +174,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
         
         # Should advance to flop
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
         self.assertEqual(self.game.game_state, GameState.IN_BETTING_ROUND)
     
     # ===================== STREET ADVANCEMENT TESTS =====================
@@ -188,17 +188,17 @@ class TestOmahaGame(unittest.TestCase):
         # Complete preflop
         self.game.process_action(Position.BUTTON, MoveType.CALL)
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
         
         # Complete flop
         self.game.process_action(Position.BUTTON, MoveType.CHECK)
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
-        self.assertEqual(self.game.current_street, Street.TURN)
+        self.assertEqual(self.game.get_current_street(), Street.TURN)
         
         # Complete turn
         self.game.process_action(Position.BUTTON, MoveType.CHECK)
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
-        self.assertEqual(self.game.current_street, Street.RIVER)
+        self.assertEqual(self.game.get_current_street(), Street.RIVER)
         
         # Complete river - game should end
         self.game.process_action(Position.BUTTON, MoveType.CHECK)
@@ -217,17 +217,17 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BUTTON, MoveType.RAISE)
         
         # Should still be on preflop until all respond
-        self.assertEqual(self.game.current_street, Street.PREFLOP)
+        self.assertEqual(self.game.get_current_street(), Street.PREFLOP)
         
         # BB calls
         self.game.process_action(Position.BIG_BLIND, MoveType.CALL)
         
         # Still on preflop - EP must respond
-        self.assertEqual(self.game.current_street, Street.PREFLOP)
+        self.assertEqual(self.game.get_current_street(), Street.PREFLOP)
         
         # EP calls - now should advance
         self.game.process_action(Position.EARLY_POSITION, MoveType.CALL)
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
     
     # ===================== GAME OVER CONDITIONS TESTS =====================
     
@@ -339,7 +339,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.MIDDLE_POSITION, MoveType.FOLD)
         
         # Should advance to flop after all responses
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
     
     def test_multiple_betting_rounds_same_street(self):
         """Test multiple betting rounds on the same street"""
@@ -360,7 +360,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
         
         # Now on flop - multiple betting rounds
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
         
         # First betting round: EP checks, CO bets, BTN calls, BB checks
         self.game.process_action(Position.EARLY_POSITION, MoveType.CHECK)
@@ -376,7 +376,7 @@ class TestOmahaGame(unittest.TestCase):
         # because that was a response to CO's bet
         
         # Verify we advanced properly
-        self.assertIn(self.game.current_street, [Street.FLOP, Street.TURN])  # Allow either based on implementation
+        self.assertIn(self.game.get_current_street(), [Street.FLOP, Street.TURN])  # Allow either based on implementation
     
     def test_check_round_completion(self):
         """Test that checking rounds complete when all active players check"""
@@ -397,7 +397,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
         
         # Now on flop - all active players check
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
         
         self.game.process_action(Position.EARLY_POSITION, MoveType.CHECK)
         self.game.process_action(Position.CUTOFF, MoveType.CHECK)
@@ -405,7 +405,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
         
         # Should advance to turn
-        self.assertEqual(self.game.current_street, Street.TURN)
+        self.assertEqual(self.game.get_current_street(), Street.TURN)
     
     def test_bet_call_sequence(self):
         """Test proper bet-call sequence completion"""
@@ -426,7 +426,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
         
         # Flop: EP checks, CO bets, others call
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
         
         self.game.process_action(Position.EARLY_POSITION, MoveType.CHECK)
         self.game.process_action(Position.CUTOFF, MoveType.BET)  # CO becomes aggressor
@@ -436,7 +436,7 @@ class TestOmahaGame(unittest.TestCase):
         # BIG_BLIND checking after CO's bet creates an issue in the state machine
         # Let me fix this by having BIG_BLIND call instead of check to properly respond to the bet
         # Actually, let me verify what street we're on - there might be different logic
-        self.assertIn(self.game.current_street, [Street.FLOP, Street.TURN])  # Allow either based on implementation
+        self.assertIn(self.game.get_current_street(), [Street.FLOP, Street.TURN])  # Allow either based on implementation
     
     def test_three_bet_action(self):
         """Test 3-bet scenario with proper response tracking"""
@@ -473,7 +473,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BIG_BLIND, MoveType.CALL)
         
         # Should advance to next available street (implementation dependent)
-        self.assertIn(self.game.current_street, [Street.FLOP, Street.TURN])  # Allow either based on implementation
+        self.assertIn(self.game.get_current_street(), [Street.FLOP, Street.TURN])  # Allow either based on implementation
     
     def test_action_closes_when_aggressor_called(self):
         """Test that betting round closes when all players call the last aggressor"""
@@ -497,7 +497,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.EARLY_POSITION, MoveType.CALL)  # Last response
         
         # Round should be complete and advance to flop
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
         
         # Active players should be EP, MP, CO, BB
         expected_active = {Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BIG_BLIND}
@@ -522,7 +522,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
         
         # Flop: EP folds to CO's bet, BTN and BB call
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
         
         self.game.process_action(Position.EARLY_POSITION, MoveType.FOLD)
         self.game.process_action(Position.CUTOFF, MoveType.BET)  # CO becomes aggressor
@@ -530,7 +530,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BIG_BLIND, MoveType.CALL)
         
         # Should advance to turn
-        self.assertEqual(self.game.current_street, Street.TURN)
+        self.assertEqual(self.game.get_current_street(), Street.TURN)
         
         # Active players should be CO, BTN, BB
         expected_active = {Position.CUTOFF, Position.BUTTON, Position.BIG_BLIND}
@@ -591,7 +591,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.SMALL_BLIND, MoveType.FOLD)
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
         
-        self.assertEqual(self.game.current_street, Street.FLOP)
+        self.assertEqual(self.game.get_current_street(), Street.FLOP)
         
         # Complete flop
         self.game.process_action(Position.EARLY_POSITION, MoveType.CHECK)
@@ -599,7 +599,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BUTTON, MoveType.CHECK)
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
         
-        self.assertEqual(self.game.current_street, Street.TURN)
+        self.assertEqual(self.game.get_current_street(), Street.TURN)
         
         # Complete turn
         self.game.process_action(Position.EARLY_POSITION, MoveType.CHECK)
@@ -607,7 +607,7 @@ class TestOmahaGame(unittest.TestCase):
         self.game.process_action(Position.BUTTON, MoveType.CHECK)
         self.game.process_action(Position.BIG_BLIND, MoveType.CHECK)
         
-        self.assertEqual(self.game.current_street, Street.RIVER)
+        self.assertEqual(self.game.get_current_street(), Street.RIVER)
         
         # Complete river
         self.game.process_action(Position.EARLY_POSITION, MoveType.CHECK)

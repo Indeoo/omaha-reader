@@ -7,5 +7,8 @@ loguru==0.7.2
 # Environment variable loading
 python-dotenv==1.0.1
 
+# Poker game engine for proper Omaha poker rule implementation
+pokerkit>=0.6.3
+
 # Platform-specific dependencies (commented out for cross-platform compatibility)
 #pywin32==310
