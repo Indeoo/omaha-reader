@@ -61,12 +61,8 @@ def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
 
 
 def execute_game(all_actions, player_moves):
-    game = OmahaGame()
-    # Add all players to the game
-    for position in player_moves.keys():
-        game.add_player(position)
-    # Start the game
-    game.start_game()
+    game = OmahaGame(player_moves.keys())
+
     # Process all actions through the state machine
     for position, move in all_actions:
         # Process action if game is still active

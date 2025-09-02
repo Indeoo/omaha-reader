@@ -38,12 +38,12 @@ class OmahaGame:
     - Game state tracking for compatibility
     """
     
-    def __init__(self):
+    def __init__(self, player_positions: List[Position]):
         """Initialize a new Omaha game wrapper"""
         # Core game state for compatibility
         self.current_street = Street.PREFLOP
         self.game_state = GameState.WAITING_FOR_PLAYERS
-        
+
         # Player tracking for compatibility
         self.all_players: Set[Position] = set()
         self.active_players: Set[Position] = set()
@@ -65,11 +65,41 @@ class OmahaGame:
         # Position mapping
         self.position_to_index: Dict[Position, int] = {}
         self.index_to_position: Dict[int, Position] = {}
-        
-        # Pokerkit game instance (created when game starts)
-        self.poker_state: Optional[PotLimitOmahaHoldem] = None
+
+        for position in player_positions:
+            self._add_player(position)
+
+        """Start the game - create pokerkit instance and transition to active betting"""
+        if len(self.all_players) < 2:
+            raise ValueError("Need at least 2 players to start game")
+
+        # Create pokerkit game state
+        player_count = len(self.all_players)
+        starting_stacks = [1000] * player_count  # Default stack size
+        blinds = (5, 10)  # Default blinds (SB, BB)
+
+        self.poker_state = PotLimitOmahaHoldem.create_state(
+            (
+                Automation.ANTE_POSTING,
+                Automation.BET_COLLECTION,
+                Automation.BLIND_OR_STRADDLE_POSTING,
+                Automation.HOLE_CARDS_SHOWING_OR_MUCKING,
+                Automation.HAND_KILLING,
+                Automation.CHIPS_PUSHING,
+                Automation.CHIPS_PULLING,
+            ),
+            True,  # Uniform antes?
+            0,  # Antes
+            blinds,  # Blinds (SB, BB)
+            10,  # Min-bet
+            starting_stacks,  # Starting stacks
+            player_count,  # Number of players
+        )
+
+        self.game_state = GameState.IN_BETTING_ROUND
+        self.players_yet_to_act = self.active_players.copy()
     
-    def add_player(self, position: Position) -> None:
+    def _add_player(self, position: Position) -> None:
         """Add a player to the game"""
         if not isinstance(position, Position):
             raise TypeError(f"Position must be Position enum, got {type(position)}")
@@ -86,37 +116,6 @@ class OmahaGame:
         # If this is the first street, initialize players_yet_to_act
         if self.current_street == Street.PREFLOP and self.game_state == GameState.WAITING_FOR_PLAYERS:
             self.players_yet_to_act.add(position)
-    
-    def start_game(self) -> None:
-        """Start the game - create pokerkit instance and transition to active betting"""
-        if len(self.all_players) < 2:
-            raise ValueError("Need at least 2 players to start game")
-        
-        # Create pokerkit game state
-        player_count = len(self.all_players)
-        starting_stacks = [1000] * player_count  # Default stack size
-        blinds = (5, 10)  # Default blinds (SB, BB)
-        
-        self.poker_state = PotLimitOmahaHoldem.create_state(
-            (
-                Automation.ANTE_POSTING,
-                Automation.BET_COLLECTION, 
-                Automation.BLIND_OR_STRADDLE_POSTING,
-                Automation.HOLE_CARDS_SHOWING_OR_MUCKING,
-                Automation.HAND_KILLING,
-                Automation.CHIPS_PUSHING,
-                Automation.CHIPS_PULLING,
-            ),
-            True,  # Uniform antes?
-            0,     # Antes
-            blinds,  # Blinds (SB, BB)
-            10,    # Min-bet
-            starting_stacks,  # Starting stacks
-            player_count,     # Number of players
-        )
-        
-        self.game_state = GameState.IN_BETTING_ROUND
-        self.players_yet_to_act = self.active_players.copy()
     
     def can_accept_action(self, position: Position, action: MoveType) -> bool:
         """
