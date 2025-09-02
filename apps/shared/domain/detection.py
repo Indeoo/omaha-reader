@@ -30,10 +30,6 @@ class Detection:
     def template_name(self) -> str:
         return self.name
 
-    @property
-    def position_name(self) -> str:
-        return self.name
-
     def format_with_unicode(self) -> str:
         try:
             from apps.shared.utils.card_format_utils import format_card_with_unicode

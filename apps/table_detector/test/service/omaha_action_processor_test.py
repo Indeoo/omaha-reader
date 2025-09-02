@@ -1,9 +1,9 @@
 import unittest
 
-from apps.shared.domain.moves import MoveType
-from apps.shared.domain.position import Position
-from apps.shared.domain.street import Street
-from apps.table_detector.services.omaha_action_processor import group_moves_by_street
+from shared.domain.moves import MoveType
+from shared.domain.position import Position
+from shared.domain.street import Street
+from table_detector.services.omaha_action_processor import group_moves_by_street
 
 
 class TestMovesByStreetWithExpectedResults(unittest.TestCase):
@@ -73,7 +73,7 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
             Position.CUTOFF: [MoveType.CALL, MoveType.BET, MoveType.BET],
             Position.BUTTON: [MoveType.CALL, MoveType.CALL, MoveType.CALL],
             Position.SMALL_BLIND: [MoveType.FOLD],
-            Position.BIG_BLIND: [MoveType.CHECK, MoveType.CHECK, MoveType.CHECK]
+            Position.BIG_BLIND: [MoveType.CHECK, MoveType.CHECK, MoveType.CALL, MoveType.CHECK]
         }
         
         expected_result = {
@@ -86,16 +86,17 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
                 (Position.BIG_BLIND, MoveType.CHECK)
             ],
             Street.FLOP: [
+                (Position.BIG_BLIND, MoveType.CHECK),
                 (Position.EARLY_POSITION, MoveType.CHECK),
                 (Position.CUTOFF, MoveType.BET),
                 (Position.BUTTON, MoveType.CALL),
-                (Position.BIG_BLIND, MoveType.CHECK)
+                (Position.BIG_BLIND, MoveType.CALL),
+                (Position.EARLY_POSITION, MoveType.FOLD)
             ],
             Street.TURN: [
-                (Position.EARLY_POSITION, MoveType.FOLD),
+                (Position.BIG_BLIND, MoveType.CHECK),
                 (Position.CUTOFF, MoveType.BET),
-                (Position.BUTTON, MoveType.CALL),
-                (Position.BIG_BLIND, MoveType.CHECK)
+                (Position.BUTTON, MoveType.CALL)
             ],
             Street.RIVER: []
         }
@@ -329,6 +330,36 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
             Street.PREFLOP: [],
             Street.FLOP: [],
             Street.TURN: [],
+            Street.RIVER: []
+        }
+        
+        result = group_moves_by_street(input_data)
+        self.assertEqual(result, expected_result)
+
+    def test_button_raise_call_scenario(self):
+        """Test scenario with BTN raise preflop, then BTN call on flop without prior aggression"""
+        input_data = {
+            Position.BUTTON: [MoveType.RAISE, MoveType.CALL],
+            Position.SMALL_BLIND: [MoveType.CALL, MoveType.CHECK, MoveType.CALL],
+            Position.BIG_BLIND: [MoveType.CALL, MoveType.CHECK, MoveType.CALL]
+        }
+        
+        expected_result = {
+            Street.PREFLOP: [
+                (Position.BUTTON, MoveType.RAISE),
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL)
+            ],
+            Street.FLOP: [
+                (Position.SMALL_BLIND, MoveType.CHECK),
+                (Position.BIG_BLIND, MoveType.CHECK),
+                (Position.BUTTON, MoveType.BET),
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL)
+            ],
+            Street.TURN: [
+
+            ],
             Street.RIVER: []
         }
         

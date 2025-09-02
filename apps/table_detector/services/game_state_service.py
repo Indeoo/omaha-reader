@@ -120,7 +120,7 @@ class GameStateService:
             formatted.append({
                 'player': player_num,
                 'player_label': f'Player {player_num}',
-                'name': position.position_name,
+                'name': position.name,
                 'is_main_player': player_num == 1
             })
         return formatted

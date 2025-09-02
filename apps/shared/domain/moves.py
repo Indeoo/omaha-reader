@@ -73,6 +73,7 @@ class MoveType(Enum):
             'limp': cls.CALL,   # Alternative form
             'raise': cls.RAISE,
             'or_35': cls.RAISE,
+            'or_2': cls.RAISE,
             'r': cls.RAISE,
             'bet': cls.BET,
             'b': cls.BET,
