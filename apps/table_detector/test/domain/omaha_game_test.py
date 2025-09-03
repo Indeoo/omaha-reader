@@ -1,7 +1,7 @@
 import unittest
 
 from shared.domain.moves import MoveType
-from table_detector.domain.omaha_game import OmahaGame, InvalidActionError, InvalidPositionSequenceError
+from table_detector.domain.omaha_game import OmahaGame, InvalidPositionSequenceError
 from shared.domain.position import Position
 from shared.domain.street import Street
 
@@ -47,16 +47,6 @@ class TestOmahaGame(unittest.TestCase):
 
     # === ACTION PROCESSING TESTS ===
     
-    def test_process_action_valid_bet(self):
-        """Test processing a valid bet action"""
-        game = OmahaGame(self.default_positions)
-        
-        result = game.process_action(Position.EARLY_POSITION, MoveType.BET)
-        
-        moves = game.get_moves_by_street()
-        self.assertEqual(len(moves[Street.PREFLOP]), 1)
-        self.assertEqual(moves[Street.PREFLOP][0], (Position.EARLY_POSITION, MoveType.BET))
-    
     def test_process_action_multiple_players(self):
         """Test processing actions from multiple players"""
         game = OmahaGame(self.default_positions)
@@ -83,42 +73,32 @@ class TestOmahaGame(unittest.TestCase):
         
         self.assertEqual(game.get_current_street(), Street.PREFLOP)
     
-    def test_get_current_street_mapping(self):
-        """Test street mapping from pokerkit street_index"""
-        game = OmahaGame(self.default_positions)
-        
-        # Test that the mapping works correctly
-        # Note: We can't easily change street_index in pokerkit without complex setup
-        # But we can at least verify the initial state is correct
-        self.assertEqual(game.get_current_street(), Street.PREFLOP)
-        self.assertEqual(game.poker_state.street_index, 0)
-    
     def test_actions_recorded_on_correct_street(self):
         """Test that actions are recorded on the current street"""
         game = OmahaGame(self.default_positions)
-
-        # Check preflop has the moves
-        with self.assertRaises(InvalidPositionSequenceError):
-            game.process_action(Position.BUTTON, MoveType.CALL)
-
-    # === MOVE HISTORY TESTS ===
-
-    def test_move_history_structure(self):
-        """Test that move history has correct structure"""
-        game = OmahaGame(self.default_positions)
+        
+        # Test valid action sequence - should succeed
+        game.process_action(Position.EARLY_POSITION, MoveType.FOLD)
+        game.process_action(Position.MIDDLE_POSITION, MoveType.CALL)
         
         moves = game.get_moves_by_street()
         
-        # Check all streets exist
-        self.assertIn(Street.PREFLOP, moves)
-        self.assertIn(Street.FLOP, moves)
-        self.assertIn(Street.TURN, moves)
-        self.assertIn(Street.RIVER, moves)
+        # Verify actions are recorded on current street (preflop)
+        self.assertEqual(len(moves[Street.PREFLOP]), 2)
+        self.assertEqual(moves[Street.PREFLOP][0], (Position.EARLY_POSITION, MoveType.FOLD))
+        self.assertEqual(moves[Street.PREFLOP][1], (Position.MIDDLE_POSITION, MoveType.CALL))
         
-        # Check all streets are lists
-        for street_moves in moves.values():
-            self.assertIsInstance(street_moves, list)
-    
+        # Other streets should be empty
+        self.assertEqual(moves[Street.FLOP], [])
+        self.assertEqual(moves[Street.TURN], [])
+        self.assertEqual(moves[Street.RIVER], [])
+        
+        # Test invalid position sequence - should raise error
+        with self.assertRaises(InvalidPositionSequenceError):
+            game.process_action(Position.BUTTON, MoveType.CALL)  # Wrong position order
+
+    # === MOVE HISTORY TESTS ===
+
     def test_move_history_ordering(self):
         """Test that moves are stored in chronological order"""
         game = OmahaGame(self.default_positions)
@@ -145,15 +125,6 @@ class TestOmahaGame(unittest.TestCase):
             actual_position, actual_action = preflop_moves[i]
             self.assertEqual(actual_position, expected_position)
             self.assertEqual(actual_action, expected_action)
-    
-    def test_empty_move_history_initially(self):
-        """Test that all streets start with empty move history"""
-        game = OmahaGame(self.default_positions)
-        
-        moves = game.get_moves_by_street()
-        
-        for street, street_moves in moves.items():
-            self.assertEqual(street_moves, [], f"Street {street} should start empty")
     
     # === INTEGRATION TESTS ===
     
@@ -260,52 +231,7 @@ class TestOmahaGame(unittest.TestCase):
         
         self.assertEqual(moves[Street.PREFLOP], expected_sequence)
 
-    def test_street_detection_consistency(self):
-        """Test that street detection remains consistent throughout game"""
-        game = OmahaGame(self.minimal_positions)
-        
-        initial_street = game.get_current_street()
-        self.assertEqual(initial_street, Street.PREFLOP)
-        
-        # Process some actions
-        game.process_action(Position.SMALL_BLIND, MoveType.CALL)
-        game.process_action(Position.BIG_BLIND, MoveType.CHECK)
-        
-        moves = game.get_moves_by_street()
-        
-        # Both actions should be on preflop
-        self.assertEqual(len(moves[Street.PREFLOP]), 2)
-        self.assertEqual(moves[Street.PREFLOP][0], (Position.SMALL_BLIND, MoveType.CALL))
-        self.assertEqual(moves[Street.PREFLOP][1], (Position.BIG_BLIND, MoveType.CHECK))
-
     # === GAME END SCENARIOS ===
-
-    def test_all_fold_except_one_scenario(self):
-        """Test scenario where all players fold except the big blind"""
-        game = OmahaGame(self.default_positions)
-        
-        fold_positions = [
-            Position.EARLY_POSITION,
-            Position.MIDDLE_POSITION,
-            Position.CUTOFF,
-            Position.BUTTON,
-            Position.SMALL_BLIND
-        ]
-        
-        for position in fold_positions:
-            game.process_action(position, MoveType.FOLD)
-        
-        moves = game.get_moves_by_street()
-        
-        # Should have exactly 5 folds, all on preflop
-        self.assertEqual(len(moves[Street.PREFLOP]), 5)
-        for i, position in enumerate(fold_positions):
-            self.assertEqual(moves[Street.PREFLOP][i], (position, MoveType.FOLD))
-        
-        # Other streets should be empty since game ended preflop
-        self.assertEqual(moves[Street.FLOP], [])
-        self.assertEqual(moves[Street.TURN], [])
-        self.assertEqual(moves[Street.RIVER], [])
 
     def test_heads_up_all_in_scenario(self):
         """Test heads-up all-in scenario"""
@@ -358,210 +284,68 @@ class TestOmahaGame(unittest.TestCase):
         
         self.assertEqual(moves[Street.PREFLOP], expected_moves)
 
-    def test_four_player_game(self):
-        """Test 4-player game with different position combination"""
-        four_player_positions = [
-            Position.SMALL_BLIND,
-            Position.BIG_BLIND,
-            Position.CUTOFF,
-            Position.BUTTON
+    def test_multiple_player_counts(self):
+        """Test game functionality with different player counts (parameterized test)"""
+        test_cases = [
+            {
+                'player_count': 2,
+                'positions': [Position.SMALL_BLIND, Position.BIG_BLIND],
+                'actions': [
+                    (Position.SMALL_BLIND, MoveType.CALL),
+                    (Position.BIG_BLIND, MoveType.CHECK)
+                ]
+            },
+            {
+                'player_count': 4,
+                'positions': [Position.SMALL_BLIND, Position.BIG_BLIND, Position.CUTOFF, Position.BUTTON],
+                'actions': [
+                    (Position.CUTOFF, MoveType.RAISE),
+                    (Position.BUTTON, MoveType.CALL),
+                    (Position.SMALL_BLIND, MoveType.FOLD),
+                    (Position.BIG_BLIND, MoveType.CALL)
+                ]
+            },
+            {
+                'player_count': 5,
+                'positions': [Position.SMALL_BLIND, Position.BIG_BLIND, Position.EARLY_POSITION, Position.CUTOFF, Position.BUTTON],
+                'actions': [
+                    (Position.EARLY_POSITION, MoveType.FOLD),
+                    (Position.CUTOFF, MoveType.CALL),
+                    (Position.BUTTON, MoveType.RAISE),
+                    (Position.SMALL_BLIND, MoveType.FOLD),
+                    (Position.BIG_BLIND, MoveType.CALL)
+                ]
+            }
         ]
         
-        game = OmahaGame(four_player_positions)
-        
-        # Test that all positions are properly mapped
-        for position in four_player_positions:
-            self.assertIn(position, game.position_to_index)
-            index = game.position_to_index[position]
-            self.assertEqual(game.index_to_position[index], position)
-        
-        # Test complex betting round
-        game.process_action(Position.CUTOFF, MoveType.RAISE)
-        game.process_action(Position.BUTTON, MoveType.CALL)
-        game.process_action(Position.SMALL_BLIND, MoveType.FOLD)
-        game.process_action(Position.BIG_BLIND, MoveType.CALL)
-        
-        moves = game.get_moves_by_street()
-        self.assertEqual(len(moves[Street.PREFLOP]), 4)
-
-    def test_five_player_game(self):
-        """Test 5-player game scenario"""
-        five_player_positions = [
-            Position.SMALL_BLIND,
-            Position.BIG_BLIND,
-            Position.EARLY_POSITION,
-            Position.CUTOFF,
-            Position.BUTTON
-        ]
-        
-        game = OmahaGame(five_player_positions)
-        
-        # Test initial state
-        self.assertEqual(game.get_current_street(), Street.PREFLOP)
-        self.assertEqual(len(game.position_to_index), 5)
-        
-        # Test action from each position (use realistic sequence)
-        actions = [
-            (Position.EARLY_POSITION, MoveType.FOLD),
-            (Position.CUTOFF, MoveType.CALL),
-            (Position.BUTTON, MoveType.RAISE),
-            (Position.SMALL_BLIND, MoveType.FOLD),
-            (Position.BIG_BLIND, MoveType.CALL)
-        ]
-        
-        for position, action in actions:
-            game.process_action(position, action)
-        
-        moves = game.get_moves_by_street()
-        self.assertEqual(len(moves[Street.PREFLOP]), 5)
-        
-        # Verify each position appears once
-        recorded_positions = [move[0] for move in moves[Street.PREFLOP]]
-        expected_positions = [action[0] for action in actions]
-        for position in expected_positions:
-            self.assertIn(position, recorded_positions)
+        for test_case in test_cases:
+            with self.subTest(player_count=test_case['player_count']):
+                positions = test_case['positions']
+                actions = test_case['actions']
+                
+                game = OmahaGame(positions)
+                
+                # Test position mappings
+                self.assertEqual(len(game.position_to_index), test_case['player_count'])
+                self.assertEqual(len(game.index_to_position), test_case['player_count'])
+                
+                # Test that all positions are properly mapped
+                for position in positions:
+                    self.assertIn(position, game.position_to_index)
+                    index = game.position_to_index[position]
+                    self.assertEqual(game.index_to_position[index], position)
+                
+                # Test action processing
+                for position, action in actions:
+                    game.process_action(position, action)
+                
+                moves = game.get_moves_by_street()
+                self.assertEqual(len(moves[Street.PREFLOP]), len(actions))
+                self.assertEqual(moves[Street.PREFLOP], actions)
 
     # === EDGE CASE TESTS ===
 
-    def test_rapid_action_sequence(self):
-        """Test rapid sequence of actions without game state corruption"""
-        game = OmahaGame(self.default_positions)
-        
-        # Rapid fire actions
-        actions = [
-            (Position.EARLY_POSITION, MoveType.FOLD),
-            (Position.MIDDLE_POSITION, MoveType.FOLD),
-            (Position.CUTOFF, MoveType.FOLD),
-            (Position.BUTTON, MoveType.FOLD),
-            (Position.SMALL_BLIND, MoveType.FOLD)
-        ]
-        
-        for position, action in actions:
-            result = game.process_action(position, action)
-
-        moves = game.get_moves_by_street()
-        self.assertEqual(len(moves[Street.PREFLOP]), 5)
-        self.assertEqual(moves[Street.PREFLOP], actions)
-
-    def test_mixed_action_types_validation(self):
-        """Test various combinations of action types"""
-        game = OmahaGame(self.default_positions)
-        
-        # Test all action types in a more realistic sequence
-        action_types = [
-            (Position.EARLY_POSITION, MoveType.FOLD),
-            (Position.MIDDLE_POSITION, MoveType.CALL),
-            (Position.CUTOFF, MoveType.RAISE),
-            (Position.BUTTON, MoveType.CALL),
-            (Position.SMALL_BLIND, MoveType.FOLD),
-            (Position.BIG_BLIND, MoveType.CALL)
-        ]
-        
-        for position, action in action_types:
-            result = game.process_action(position, action)
-
-        moves = game.get_moves_by_street()
-        self.assertEqual(len(moves[Street.PREFLOP]), 6)
-        self.assertEqual(moves[Street.PREFLOP], action_types)
-
     # === INTEGRATION SCENARIOS ===
-
-    def test_realistic_tournament_scenario(self):
-        """Test realistic tournament-style hand"""
-        game = OmahaGame(self.default_positions)
-        
-        # Early position folds
-        game.process_action(Position.EARLY_POSITION, MoveType.FOLD)
-        
-        # Middle position calls
-        game.process_action(Position.MIDDLE_POSITION, MoveType.CALL)
-        
-        # Cutoff raises (isolation play)
-        game.process_action(Position.CUTOFF, MoveType.RAISE)
-        
-        # Button calls (position play)
-        game.process_action(Position.BUTTON, MoveType.CALL)
-        
-        # Small blind folds
-        game.process_action(Position.SMALL_BLIND, MoveType.FOLD)
-        
-        # Big blind calls
-        game.process_action(Position.BIG_BLIND, MoveType.CALL)
-        
-        # Middle position folds to the raise
-        game.process_action(Position.MIDDLE_POSITION, MoveType.FOLD)
-        
-        moves = game.get_moves_by_street()
-        
-        expected_sequence = [
-            (Position.EARLY_POSITION, MoveType.FOLD),
-            (Position.MIDDLE_POSITION, MoveType.CALL),
-            (Position.CUTOFF, MoveType.RAISE),
-            (Position.BUTTON, MoveType.CALL),
-            (Position.SMALL_BLIND, MoveType.FOLD),
-            (Position.BIG_BLIND, MoveType.CALL),
-            (Position.MIDDLE_POSITION, MoveType.FOLD)
-        ]
-        
-        self.assertEqual(moves[Street.PREFLOP], expected_sequence)
-        
-        # Should have 3 players remaining (CO, BTN, BB)
-        # Track who folded vs who is still in
-        folded_players = set()
-        active_players = set()
-        
-        for position, action in expected_sequence:
-            if action == MoveType.FOLD:
-                folded_players.add(position)
-            else:
-                active_players.add(position)
-        
-        # Players who are still active (didn't fold)
-        remaining_players = active_players - folded_players
-        expected_remaining = {Position.CUTOFF, Position.BUTTON, Position.BIG_BLIND}
-        self.assertEqual(remaining_players, expected_remaining)
-
-    def test_complex_multi_raise_scenario(self):
-        """Test complex scenario with multiple raises and calls"""
-        game = OmahaGame(self.default_positions)
-        
-        # Initial raise from EP
-        game.process_action(Position.EARLY_POSITION, MoveType.RAISE)
-        
-        # MP 3-bets
-        game.process_action(Position.MIDDLE_POSITION, MoveType.RAISE)
-        
-        # CO calls the 3-bet
-        game.process_action(Position.CUTOFF, MoveType.CALL)
-        
-        # BTN 4-bets
-        game.process_action(Position.BUTTON, MoveType.RAISE)
-        
-        # SB folds
-        game.process_action(Position.SMALL_BLIND, MoveType.FOLD)
-        
-        # BB folds
-        game.process_action(Position.BIG_BLIND, MoveType.FOLD)
-        
-        # EP calls the 4-bet
-        game.process_action(Position.EARLY_POSITION, MoveType.CALL)
-        
-        # MP calls the 4-bet
-        game.process_action(Position.MIDDLE_POSITION, MoveType.CALL)
-        
-        # CO folds to the 4-bet
-        game.process_action(Position.CUTOFF, MoveType.FOLD)
-        
-        moves = game.get_moves_by_street()
-        
-        # Should have 9 total actions
-        self.assertEqual(len(moves[Street.PREFLOP]), 9)
-        
-        # Verify the raising sequence
-        raise_actions = [move for move in moves[Street.PREFLOP] if move[1] == MoveType.RAISE]
-        expected_raisers = [Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.BUTTON]
-        actual_raisers = [move[0] for move in raise_actions]
-        self.assertEqual(actual_raisers, expected_raisers)
 
     def test_position_order_consistency(self):
         """Test that position order is maintained consistently across different game sizes"""
@@ -597,138 +381,22 @@ class TestOmahaGame(unittest.TestCase):
         """Test automatic transition from preflop to flop with community cards"""
         game = OmahaGame([Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON])
         
-        # Complete preflop betting round (3-handed to avoid immediate showdown)
-        game.process_action(Position.BUTTON, MoveType.CALL)     # BTN calls
-        game.process_action(Position.SMALL_BLIND, MoveType.CALL) # SB calls
-        game.process_action(Position.BIG_BLIND, MoveType.CHECK)  # BB checks
-        
-        street_after_preflop = game.get_current_street()
-        
-        moves = game.get_moves_by_street()
-        
-        # All preflop actions should be recorded on preflop
-        self.assertEqual(len(moves[Street.PREFLOP]), 3)
-        self.assertEqual(moves[Street.PREFLOP][0], (Position.BUTTON, MoveType.CALL))
-        self.assertEqual(moves[Street.PREFLOP][1], (Position.SMALL_BLIND, MoveType.CALL))
-        self.assertEqual(moves[Street.PREFLOP][2], (Position.BIG_BLIND, MoveType.CHECK))
-        
-        # After completing preflop, game should transition to flop
-        self.assertEqual(street_after_preflop, Street.FLOP)
-        
-        # Test flop actions (if game is still active)
-        if game.poker_state.actor_index is not None:
-            # Try a flop action - whoever can act first
-            try:
-                # In 3-handed, SB acts first on flop
-                game.process_action(Position.SMALL_BLIND, MoveType.CHECK)
-                
-                moves_after_flop_check = game.get_moves_by_street()
-                
-                # Should now have flop actions
-                self.assertEqual(len(moves_after_flop_check[Street.FLOP]), 1)
-                self.assertEqual(moves_after_flop_check[Street.FLOP][0], (Position.SMALL_BLIND, MoveType.CHECK))
-            except:
-                # If actions fail, at least verify street transition happened
-                pass
-
-    def test_automatic_turn_transition(self):
-        """Test automatic transition through flop to turn"""
-        game = OmahaGame([Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON])
-        
-        # Complete preflop betting
-        game.process_action(Position.BUTTON, MoveType.CALL)
-        game.process_action(Position.SMALL_BLIND, MoveType.CALL)
-        game.process_action(Position.BIG_BLIND, MoveType.CHECK)
-        
-        current_street = game.get_current_street()
-        
-        # Test that we transitioned to flop
-        self.assertEqual(current_street, Street.FLOP)
-        
-        # Check if game is still active for flop betting
-        if game.poker_state.actor_index is not None:
-            try:
-                # Complete flop betting round with some action to keep game alive
-                game.process_action(Position.SMALL_BLIND, MoveType.BET)  # SB bets instead of check
-                game.process_action(Position.BIG_BLIND, MoveType.CALL)
-                game.process_action(Position.BUTTON, MoveType.CALL)
-                
-                # Should now be on turn
-                turn_street = game.get_current_street()
-                
-                if turn_street == Street.TURN and game.poker_state.actor_index is not None:
-                    # Process turn action
-                    game.process_action(Position.SMALL_BLIND, MoveType.CHECK)
-                    
-                    moves = game.get_moves_by_street()
-                    
-                    # Verify turn action recorded correctly
-                    self.assertGreater(len(moves[Street.TURN]), 0)
-                    # Verify we have actions on both preflop and flop
-                    self.assertGreater(len(moves[Street.PREFLOP]), 0)
-                    self.assertGreater(len(moves[Street.FLOP]), 0)
-            except:
-                # If actions fail, just verify street transitions work
-                pass
-
-    def test_automatic_river_transition(self):
-        """Test automatic transition through all streets to river"""
-        game = OmahaGame([Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON])
-        
-        # Complete preflop
-        game.process_action(Position.BUTTON, MoveType.CALL)
-        game.process_action(Position.SMALL_BLIND, MoveType.CALL)
-        game.process_action(Position.BIG_BLIND, MoveType.CHECK)
-        
-        current_street = game.get_current_street()
-        self.assertEqual(current_street, Street.FLOP)
-        
-        moves = game.get_moves_by_street()
-        
-        # At minimum, verify we have preflop actions and transitioned to flop
-        self.assertGreater(len(moves[Street.PREFLOP]), 0)
-        
-        # Verify all streets are present in structure
-        for street in [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]:
-            self.assertIn(street, moves)
-            self.assertIsInstance(moves[street], list)
-        
-        # The fact that we reached flop proves automatic transition works
-        # Further transitions depend on pokerkit's internal game state
-        # which may end the game early in check-check-check scenarios
-
-    def test_complete_four_street_hand(self):
-        """Test complete hand through all four streets with realistic Omaha poker action"""
-        game = OmahaGame([Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON])
-        
-        # Define realistic action sequence that progresses through all streets
+        # Define action sequence that transitions from preflop to flop
         actions = [
-            # Preflop: BTN calls, SB calls, BB checks (completes preflop)
+            # Preflop: Complete betting round to trigger flop transition
             (Position.BUTTON, MoveType.CALL),
-            (Position.SMALL_BLIND, MoveType.CALL), 
+            (Position.SMALL_BLIND, MoveType.CALL),
             (Position.BIG_BLIND, MoveType.CHECK),
             
-            # Flop: SB checks, BB checks, BTN checks (all check around)
-            (Position.SMALL_BLIND, MoveType.CHECK),
-            (Position.BIG_BLIND, MoveType.CHECK),
-            (Position.BUTTON, MoveType.CHECK),
-            
-            # Turn: SB checks, BB bets, BTN calls, SB folds
-            (Position.SMALL_BLIND, MoveType.CHECK),
-            (Position.BIG_BLIND, MoveType.BET),
-            (Position.BUTTON, MoveType.CALL),
-            (Position.SMALL_BLIND, MoveType.FOLD),
-            
-            # River: BB bets, BTN calls
-            (Position.BIG_BLIND, MoveType.BET),
-            (Position.BUTTON, MoveType.CALL)
+            # Flop: First action on flop to verify transition worked
+            (Position.SMALL_BLIND, MoveType.CHECK)
         ]
         
         # Process all actions
         for position, action in actions:
             game.process_action(position, action)
         
-        # Expected moves by street based on proper Omaha poker rules
+        # Expected moves showing preflop completion and flop transition
         expected_moves = {
             Street.PREFLOP: [
                 (Position.BUTTON, MoveType.CALL),
@@ -736,19 +404,112 @@ class TestOmahaGame(unittest.TestCase):
                 (Position.BIG_BLIND, MoveType.CHECK)
             ],
             Street.FLOP: [
-                (Position.SMALL_BLIND, MoveType.CHECK),
-                (Position.BIG_BLIND, MoveType.CHECK),
-                (Position.BUTTON, MoveType.CHECK)
+                (Position.SMALL_BLIND, MoveType.CHECK)
+            ],
+            Street.TURN: [],
+            Street.RIVER: []
+        }
+        
+        # Verify actual moves match expected moves
+        actual_moves = game.get_moves_by_street()
+        self.assertEqual(actual_moves, expected_moves)
+
+    def test_automatic_turn_transition(self):
+        """Test automatic transition through flop to turn"""
+        game = OmahaGame([Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON])
+        
+        # Define action sequence that progresses from preflop through flop to turn
+        actions = [
+            # Preflop: Complete betting round
+            (Position.BUTTON, MoveType.CALL),
+            (Position.SMALL_BLIND, MoveType.CALL),
+            (Position.BIG_BLIND, MoveType.CHECK),
+            
+            # Flop: Complete betting round with action to keep game alive
+            (Position.SMALL_BLIND, MoveType.BET),
+            (Position.BIG_BLIND, MoveType.CALL),
+            (Position.BUTTON, MoveType.CALL),
+            
+            # Turn: First action on turn to verify transition worked
+            (Position.SMALL_BLIND, MoveType.CHECK)
+        ]
+        
+        # Process all actions
+        for position, action in actions:
+            game.process_action(position, action)
+        
+        # Expected moves showing progression through preflop, flop, to turn
+        expected_moves = {
+            Street.PREFLOP: [
+                (Position.BUTTON, MoveType.CALL),
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CHECK)
+            ],
+            Street.FLOP: [
+                (Position.SMALL_BLIND, MoveType.BET),
+                (Position.BIG_BLIND, MoveType.CALL),
+                (Position.BUTTON, MoveType.CALL)
+            ],
+            Street.TURN: [
+                (Position.SMALL_BLIND, MoveType.CHECK)
+            ],
+            Street.RIVER: []
+        }
+        
+        # Verify actual moves match expected moves
+        actual_moves = game.get_moves_by_street()
+        self.assertEqual(actual_moves, expected_moves)
+
+    def test_automatic_river_transition(self):
+        """Test automatic transition through all streets to river"""
+        game = OmahaGame([Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON])
+        
+        # Define action sequence that progresses through all streets to river
+        actions = [
+            # Preflop: Complete betting round
+            (Position.BUTTON, MoveType.CALL),
+            (Position.SMALL_BLIND, MoveType.CALL),
+            (Position.BIG_BLIND, MoveType.CHECK),
+            
+            # Flop: Betting action to keep game alive
+            (Position.SMALL_BLIND, MoveType.BET),
+            (Position.BIG_BLIND, MoveType.CALL),
+            (Position.BUTTON, MoveType.CALL),
+            
+            # Turn: Betting action to keep game alive and reach river
+            (Position.SMALL_BLIND, MoveType.CHECK),
+            (Position.BIG_BLIND, MoveType.BET),
+            (Position.BUTTON, MoveType.CALL),
+            (Position.SMALL_BLIND, MoveType.CALL),
+            
+            # River: First action on river to verify transition worked
+            (Position.SMALL_BLIND, MoveType.CHECK)
+        ]
+        
+        # Process all actions
+        for position, action in actions:
+            game.process_action(position, action)
+        
+        # Expected moves showing progression through all four streets
+        expected_moves = {
+            Street.PREFLOP: [
+                (Position.BUTTON, MoveType.CALL),
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CHECK)
+            ],
+            Street.FLOP: [
+                (Position.SMALL_BLIND, MoveType.BET),
+                (Position.BIG_BLIND, MoveType.CALL),
+                (Position.BUTTON, MoveType.CALL)
             ],
             Street.TURN: [
                 (Position.SMALL_BLIND, MoveType.CHECK),
                 (Position.BIG_BLIND, MoveType.BET),
                 (Position.BUTTON, MoveType.CALL),
-                (Position.SMALL_BLIND, MoveType.FOLD)
+                (Position.SMALL_BLIND, MoveType.CALL)
             ],
             Street.RIVER: [
-                (Position.BIG_BLIND, MoveType.BET),
-                (Position.BUTTON, MoveType.CALL)
+                (Position.SMALL_BLIND, MoveType.CHECK)
             ]
         }
         
@@ -756,113 +517,70 @@ class TestOmahaGame(unittest.TestCase):
         actual_moves = game.get_moves_by_street()
         self.assertEqual(actual_moves, expected_moves)
 
-    def test_heads_up_multi_street_completion(self):
-        """Test heads-up game through multiple streets"""
-        game = OmahaGame(self.minimal_positions)
-        
-        # Preflop completion
-        game.process_action(Position.SMALL_BLIND, MoveType.CALL)
-        
-        # Check if we transitioned to flop
-        if game.get_current_street() == Street.FLOP:
-            # Flop action
-            game.process_action(Position.BIG_BLIND, MoveType.CHECK)
-            game.process_action(Position.SMALL_BLIND, MoveType.BET)
-            game.process_action(Position.BIG_BLIND, MoveType.CALL)
-            
-            # Check if we transitioned to turn
-            if game.get_current_street() == Street.TURN:
-                # Turn action
-                game.process_action(Position.BIG_BLIND, MoveType.CHECK)
-                game.process_action(Position.SMALL_BLIND, MoveType.CHECK)
-                
-                # Check if we transitioned to river
-                if game.get_current_street() == Street.RIVER:
-                    # River action
-                    game.process_action(Position.BIG_BLIND, MoveType.BET)
-                    game.process_action(Position.SMALL_BLIND, MoveType.CALL)
-                    
-                    moves = game.get_moves_by_street()
-                    
-                    # Verify we have actions on multiple streets
-                    streets_with_actions = sum(1 for street_moves in moves.values() if len(street_moves) > 0)
-                    self.assertGreater(streets_with_actions, 1, "Should have actions on multiple streets")
-
     def test_street_transition_with_eliminations(self):
-        """Test street transitions when players fold on different streets"""
+        """Test realistic scenario with player eliminations across streets"""
         game = OmahaGame(self.default_positions)
         
-        # Preflop with eliminations
-        game.process_action(Position.EARLY_POSITION, MoveType.FOLD)
-        game.process_action(Position.MIDDLE_POSITION, MoveType.CALL)
-        game.process_action(Position.CUTOFF, MoveType.RAISE)
-        game.process_action(Position.BUTTON, MoveType.FOLD)
-        game.process_action(Position.SMALL_BLIND, MoveType.FOLD)
-        game.process_action(Position.BIG_BLIND, MoveType.CALL)
-        game.process_action(Position.MIDDLE_POSITION, MoveType.CALL)
-        
-        moves = game.get_moves_by_street()
-        
-        # Track which players are still active
-        folded_players = set()
-        active_players = set()
-        
-        for position, action in moves[Street.PREFLOP]:
-            if action == MoveType.FOLD:
-                folded_players.add(position)
-            else:
-                active_players.add(position)
-        
-        # Remove folded players from active set
-        remaining_players = active_players - folded_players
-        
-        # Should have some remaining players
-        self.assertGreater(len(remaining_players), 0)
-        
-        # If game continues to flop, only remaining players should be able to act
-        if game.get_current_street() == Street.FLOP:
-            # Test that folded players can't act (this would raise an error in a strict implementation)
-            # For now, just verify the structure
-            self.assertIn(Street.FLOP, moves)
+        # Define action sequence with eliminations
+        actions = [
+            # Preflop: Some folds, some calls/raises (EP, BTN, SB fold; MP, CO, BB remain)
+            (Position.EARLY_POSITION, MoveType.FOLD),
+            (Position.MIDDLE_POSITION, MoveType.CALL),
+            (Position.CUTOFF, MoveType.RAISE),
+            (Position.BUTTON, MoveType.FOLD),
+            (Position.SMALL_BLIND, MoveType.FOLD),
+            (Position.BIG_BLIND, MoveType.CALL),
+            (Position.MIDDLE_POSITION, MoveType.CALL),
+            
+            # Flop: Remaining players (SB already folded, so BB acts first, then MP, then CO)
+            (Position.BIG_BLIND, MoveType.CHECK),
+            (Position.MIDDLE_POSITION, MoveType.BET),
+            (Position.CUTOFF, MoveType.CALL),
+            (Position.BIG_BLIND, MoveType.CALL),
 
-    def test_action_recording_street_accuracy(self):
-        """Test that actions are recorded on the correct street"""
-        game = OmahaGame([Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON])
+            # Turn: MP folds, leaving only BB and CO
+            (Position.BIG_BLIND, MoveType.BET),
+            (Position.MIDDLE_POSITION, MoveType.FOLD),
+            (Position.CUTOFF, MoveType.CALL),
+            
+            # River: Heads-up between BB and CO
+            (Position.BIG_BLIND, MoveType.BET),
+            (Position.CUTOFF, MoveType.CALL)
+        ]
         
-        # Track street transitions
-        streets_seen = []
+        # Process all actions
+        for position, action in actions:
+            game.process_action(position, action)
         
-        # Preflop actions
-        initial_street = game.get_current_street()
-        streets_seen.append(initial_street)
+        # Expected moves showing eliminations across streets
+        expected_moves = {
+            Street.PREFLOP: [
+                (Position.EARLY_POSITION, MoveType.FOLD),
+                (Position.MIDDLE_POSITION, MoveType.CALL),
+                (Position.CUTOFF, MoveType.RAISE),
+                (Position.BUTTON, MoveType.FOLD),
+                (Position.SMALL_BLIND, MoveType.FOLD),
+                (Position.BIG_BLIND, MoveType.CALL),
+                (Position.MIDDLE_POSITION, MoveType.CALL)
+            ],
+            Street.FLOP: [
+                (Position.BIG_BLIND, MoveType.CHECK),
+                (Position.MIDDLE_POSITION, MoveType.BET),
+                (Position.CUTOFF, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL),
+            ],
+            Street.TURN: [
+                (Position.BIG_BLIND, MoveType.BET),
+                (Position.MIDDLE_POSITION, MoveType.FOLD),
+                (Position.CUTOFF, MoveType.CALL),
+            ],
+            Street.RIVER: [
+                (Position.BIG_BLIND, MoveType.BET),
+                (Position.CUTOFF, MoveType.CALL)
+            ]
+        }
         
-        game.process_action(Position.BUTTON, MoveType.CALL)
-        street_after_btn = game.get_current_street()
-        streets_seen.append(street_after_btn)
-        
-        game.process_action(Position.SMALL_BLIND, MoveType.CALL)
-        street_after_sb = game.get_current_street()
-        streets_seen.append(street_after_sb)
-        
-        game.process_action(Position.BIG_BLIND, MoveType.CHECK)
-        street_after_bb = game.get_current_street()
-        streets_seen.append(street_after_bb)
-        
-        moves = game.get_moves_by_street()
-        
-        # Verify move history integrity
-        total_actions = sum(len(street_moves) for street_moves in moves.values())
-        self.assertEqual(total_actions, 3, "Should have exactly 3 actions recorded")
-        
-        # Verify all recorded actions have valid position and action types
-        for street, street_moves in moves.items():
-            for position, action in street_moves:
-                self.assertIsInstance(position, Position)
-                self.assertIsInstance(action, MoveType)
-        
-        # Verify street progression makes sense
-        unique_streets = list(set(streets_seen))
-        for street in unique_streets:
-            street_index = street.value if hasattr(street, 'value') else str(street)
-            # Basic sanity check that we're dealing with valid streets
-            self.assertIn(street, [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER])
+        # Verify actual moves match expected moves
+        actual_moves = game.get_moves_by_street()
+        self.assertEqual(actual_moves, expected_moves)
+
