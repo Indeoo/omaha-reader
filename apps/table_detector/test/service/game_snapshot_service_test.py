@@ -4,7 +4,7 @@ from pathlib import Path
 
 from shared.domain.street import Street
 from table_detector.services.game_snapshot_service import GameSnapshotService
-from table_detector.domain.omaha_game import InvalidActionError, InvalidPositionSequenceError
+from table_detector.domain.omaha_game import InvalidPositionSequenceError
 from shared.domain.position import Position
 from shared.domain.moves import MoveType
 
@@ -111,6 +111,7 @@ class GameSnapshotServiceTest(unittest.TestCase):
                 (Position.CUTOFF, MoveType.FOLD),
                 (Position.BUTTON, MoveType.CALL),
                 (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL),
             ],
             Street.FLOP: [
                 (Position.SMALL_BLIND, MoveType.CHECK),

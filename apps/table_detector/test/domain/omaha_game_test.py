@@ -698,71 +698,63 @@ class TestOmahaGame(unittest.TestCase):
         # which may end the game early in check-check-check scenarios
 
     def test_complete_four_street_hand(self):
-        """Test complete hand through all four streets"""
+        """Test complete hand through all four streets with realistic Omaha poker action"""
         game = OmahaGame([Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON])
         
-        # Track actions by street
-        expected_moves = {
-            Street.PREFLOP: [],
-            Street.FLOP: [],
-            Street.TURN: [],
-            Street.RIVER: []
-        }
-        
-        # Preflop actions
-        preflop_actions = [
+        # Define realistic action sequence that progresses through all streets
+        actions = [
+            # Preflop: BTN calls, SB calls, BB checks (completes preflop)
             (Position.BUTTON, MoveType.CALL),
-            (Position.SMALL_BLIND, MoveType.CALL),
-            (Position.BIG_BLIND, MoveType.CHECK)
+            (Position.SMALL_BLIND, MoveType.CALL), 
+            (Position.BIG_BLIND, MoveType.CHECK),
+            
+            # Flop: SB checks, BB checks, BTN checks (all check around)
+            (Position.SMALL_BLIND, MoveType.CHECK),
+            (Position.BIG_BLIND, MoveType.CHECK),
+            (Position.BUTTON, MoveType.CHECK),
+            
+            # Turn: SB checks, BB bets, BTN calls, SB folds
+            (Position.SMALL_BLIND, MoveType.CHECK),
+            (Position.BIG_BLIND, MoveType.BET),
+            (Position.BUTTON, MoveType.CALL),
+            (Position.SMALL_BLIND, MoveType.FOLD),
+            
+            # River: BB bets, BTN calls
+            (Position.BIG_BLIND, MoveType.BET),
+            (Position.BUTTON, MoveType.CALL)
         ]
         
-        for position, action in preflop_actions:
-            current_street = game.get_current_street()
+        # Process all actions
+        for position, action in actions:
             game.process_action(position, action)
-            expected_moves[current_street].append((position, action))
         
-        # Continue through streets if transitions occur
-        streets_to_test = [Street.FLOP, Street.TURN, Street.RIVER]
+        # Expected moves by street based on proper Omaha poker rules
+        expected_moves = {
+            Street.PREFLOP: [
+                (Position.BUTTON, MoveType.CALL),
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CHECK)
+            ],
+            Street.FLOP: [
+                (Position.SMALL_BLIND, MoveType.CHECK),
+                (Position.BIG_BLIND, MoveType.CHECK),
+                (Position.BUTTON, MoveType.CHECK)
+            ],
+            Street.TURN: [
+                (Position.SMALL_BLIND, MoveType.CHECK),
+                (Position.BIG_BLIND, MoveType.BET),
+                (Position.BUTTON, MoveType.CALL),
+                (Position.SMALL_BLIND, MoveType.FOLD)
+            ],
+            Street.RIVER: [
+                (Position.BIG_BLIND, MoveType.BET),
+                (Position.BUTTON, MoveType.CALL)
+            ]
+        }
         
-        for street in streets_to_test:
-            if game.get_current_street() == street:
-                # Add some actions on this street
-                if street == Street.FLOP:
-                    street_actions = [
-                        (Position.SMALL_BLIND, MoveType.CHECK),
-                        (Position.BIG_BLIND, MoveType.BET),
-                        (Position.BUTTON, MoveType.CALL),
-                        (Position.SMALL_BLIND, MoveType.FOLD)
-                    ]
-                elif street == Street.TURN:
-                    street_actions = [
-                        (Position.BIG_BLIND, MoveType.CHECK),
-                        (Position.BUTTON, MoveType.CHECK)
-                    ]
-                elif street == Street.RIVER:
-                    street_actions = [
-                        (Position.BIG_BLIND, MoveType.BET),
-                        (Position.BUTTON, MoveType.CALL)
-                    ]
-                
-                for position, action in street_actions:
-                    try:
-                        current_street = game.get_current_street()
-                        game.process_action(position, action)
-                        expected_moves[current_street].append((position, action))
-                    except InvalidActionError:
-                        # Some actions might not be valid, skip them
-                        break
-        
-        moves = game.get_moves_by_street()
-        
-        # Verify we have actions recorded (at minimum preflop)
-        self.assertGreater(len(moves[Street.PREFLOP]), 0)
-        
-        # Verify structure is maintained
-        for street in [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]:
-            self.assertIn(street, moves)
-            self.assertIsInstance(moves[street], list)
+        # Verify actual moves match expected moves
+        actual_moves = game.get_moves_by_street()
+        self.assertEqual(actual_moves, expected_moves)
 
     def test_heads_up_multi_street_completion(self):
         """Test heads-up game through multiple streets"""

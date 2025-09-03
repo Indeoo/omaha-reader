@@ -27,7 +27,7 @@ def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
     return game.get_moves_by_street()
 
 
-def execute_game(game ,all_actions):
+def execute_game(game, all_actions):
     for position, move in all_actions:
         game.process_action(position, move)
 
