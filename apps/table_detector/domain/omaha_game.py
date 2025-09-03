@@ -54,9 +54,12 @@ class OmahaGame:
                 Automation.BET_COLLECTION,
                 Automation.BLIND_OR_STRADDLE_POSTING,
                 Automation.HOLE_CARDS_SHOWING_OR_MUCKING,
+                Automation.CARD_BURNING,
+                Automation.BOARD_DEALING,
                 Automation.HAND_KILLING,
                 Automation.CHIPS_PUSHING,
                 Automation.CHIPS_PULLING,
+                Automation.HOLE_DEALING
             ),
             True,  # Uniform antes?
             0,  # Antes
@@ -65,27 +68,6 @@ class OmahaGame:
             starting_stacks,  # Starting stacks
             player_count,  # Number of players
         )
-
-        # Deal hole cards to all players to make state ready for betting
-        self._deal_hole_cards()
-
-    def _deal_hole_cards(self) -> None:
-        """Deal hole cards to all players to make the poker state ready for betting"""
-        # Deal 4 cards to each player (Omaha requires 4 hole cards)
-        for player_index in range(len(self.position_to_index)):
-            # Deal placeholder cards - in real usage, these would be actual cards
-            # For testing purposes, we use generic Omaha hands
-            if player_index == 0:
-                self.poker_state.deal_hole('AsAhKsKh')  # Strong starting hand
-            elif player_index == 1:
-                self.poker_state.deal_hole('QdQcJsTs')  # Good starting hand
-            else:
-                # For additional players, cycle through some reasonable hands
-                hands = [
-                    'JhJd9h8s', 'ThTc9c8c', 'AcKcQhJh', '9d8d7s6c'
-                ]
-                hand_index = (player_index - 2) % len(hands)
-                self.poker_state.deal_hole(hands[hand_index])
 
     def _validate_position_sequence(self, position: Position) -> bool:
         if position not in self.active_players:
