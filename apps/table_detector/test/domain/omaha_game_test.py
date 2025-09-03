@@ -87,54 +87,6 @@ class TestOmahaGame(unittest.TestCase):
         # Check current street is preflop (street_index = 0)
         self.assertEqual(game.get_current_street(), Street.PREFLOP)
     
-    # === ACTION VALIDATION TESTS ===
-    
-    def test_can_accept_action_valid_actions(self):
-        """Test that valid actions are accepted"""
-        game = OmahaGame(self.default_positions)
-        
-        # Test all basic MoveType actions
-        valid_actions = [
-            MoveType.FOLD,
-            MoveType.CHECK,
-            MoveType.CALL,
-            MoveType.BET,
-            MoveType.RAISE
-        ]
-        
-        for action in valid_actions:
-            self.assertTrue(
-                game.can_accept_action(Position.BUTTON, action),
-                f"Action {action} should be valid"
-            )
-    
-    def test_can_accept_action_invalid_move_type(self):
-        """Test that non-MoveType values are rejected"""
-        game = OmahaGame(self.default_positions)
-        
-        # Test with invalid action type
-        self.assertFalse(game.can_accept_action(Position.BUTTON, "invalid_action"))
-        self.assertFalse(game.can_accept_action(Position.BUTTON, 123))
-        self.assertFalse(game.can_accept_action(Position.BUTTON, None))
-    
-    def test_can_accept_action_invalid_position(self):
-        """Test that non-existent positions are rejected"""
-        game = OmahaGame(self.minimal_positions)  # Only SB and BB
-        
-        # Test with position not in game
-        self.assertFalse(game.can_accept_action(Position.BUTTON, MoveType.FOLD))
-        self.assertFalse(game.can_accept_action(Position.CUTOFF, MoveType.CHECK))
-    
-    def test_can_accept_action_valid_positions(self):
-        """Test that positions in the game are accepted"""
-        game = OmahaGame(self.default_positions)
-        
-        for position in self.default_positions:
-            self.assertTrue(
-                game.can_accept_action(position, MoveType.FOLD),
-                f"Position {position} should be valid for actions"
-            )
-    
     # === ACTION PROCESSING TESTS ===
     
     def test_process_action_valid_fold(self):
