@@ -8,40 +8,6 @@ from shared.domain.street import Street
 
 def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
     Street, List[Tuple[Position, MoveType]]]:
-    """
-    Groups player moves by street according to proper Omaha poker rules using state machine.
-
-    This function serves as an adapter that converts the input format to work with
-    the OmahaGame state machine, which handles all poker rule validation and
-    street transition logic.
-
-    Function supports input format:
-    - Dict[Position, List[MoveType]] - Position enums with MoveType enums
-    
-    Note: The detection pipeline now converts strings to enums before calling this function,
-    providing stronger type safety throughout the system.
-
-    Omaha Poker Rules:
-    - A betting round ends when all active players have either called the last raise,
-      folded, or (if no betting) checked
-    - Blinds are posted automatically and not included in player_moves
-    - Action order: Preflop: EP, MP, CO, BTN, SB, BB; Postflop: SB, BB, EP, MP, CO, BTN
-    - Streets progress: preflop -> flop -> turn -> river
-    - After aggression (bet/raise), all other active players must respond
-    - CALL actions are converted to BET when no prior betting exists on a street
-
-    Args:
-        player_moves: Dict with Position enum keys and lists of MoveType enum values
-                     Only voluntary actions, blinds excluded
-                     All normalization is now done upstream in convert_to_position_actions()
-
-    Returns:
-        Dict with Street enum as keys and ordered lists of (Position, MoveType) tuples
-
-    Raises:
-        ValueError: If input contains invalid positions or move types
-        TypeError: If input format is incorrect
-    """
     # Handle empty input
     if not player_moves:
         return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
@@ -64,16 +30,9 @@ def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
 def execute_game(all_actions, player_moves):
     game = OmahaGame(player_moves.keys())
 
-    # Process all actions through the state machine
     for position, move in all_actions:
-        # Process action if game is still active
-        try:
-            game.process_action(position, move)
-        except Exception as e:
-            # If action fails, it might be because the game ended
-            # In that case, we can ignore remaining actions
-            raise e
-    # Return the final move history
+        game.process_action(position, move)
+
     return game
 
 
@@ -132,12 +91,12 @@ def _build_street_aware_action_sequence(player_moves: Dict[Position, List[MoveTy
 
     # Street 3 & 4: Turn and River - Use postflop action order
     all_actions.extend(_process_street_actions(
-        player_moves, action_indices, Street.TURN,
+        player_moves, action_indices,
         Position.get_postflop_action_order(), 1
     ))
 
     all_actions.extend(_process_street_actions(
-        player_moves, action_indices, Street.RIVER,
+        player_moves, action_indices,
         Position.get_postflop_action_order(), 1
     ))
 
@@ -168,7 +127,7 @@ def _process_preflop_street_completely(player_moves: Dict[Position, List[MoveTyp
 
             # Preflop: CALL stays CALL (calling big blind or previous bet)
             interpreted_move = _interpret_action_contextually(
-                original_move, position, actions_this_round, betting_occurred, is_preflop=True
+                original_move, actions_this_round, betting_occurred, is_preflop=True
             )
 
             preflop_actions.append((position, interpreted_move))
@@ -190,7 +149,7 @@ def _process_preflop_street_completely(player_moves: Dict[Position, List[MoveTyp
                 original_move = player_moves[position][action_indices[position]]
 
                 interpreted_move = _interpret_action_contextually(
-                    original_move, position, actions_this_round, betting_occurred, is_preflop=True
+                    original_move, actions_this_round, betting_occurred, is_preflop=True
                 )
 
                 preflop_actions.append((position, interpreted_move))
@@ -201,7 +160,6 @@ def _process_preflop_street_completely(player_moves: Dict[Position, List[MoveTyp
 
 def _process_street_actions(player_moves: Dict[Position, List[MoveType]],
                             action_indices: Dict[Position, int],
-                            street: Street,
                             position_order: List[Position],
                             max_actions_per_player: int,
                             is_preflop: bool = False) -> List[Tuple[Position, MoveType]]:
@@ -218,7 +176,7 @@ def _process_street_actions(player_moves: Dict[Position, List[MoveType]],
 
                 # Apply contextual interpretation
                 interpreted_move = _interpret_action_contextually(
-                    original_move, position, actions_this_round, betting_occurred, is_preflop
+                    original_move, actions_this_round, betting_occurred, is_preflop
                 )
 
                 street_actions.append((position, interpreted_move))
@@ -252,7 +210,7 @@ def _process_flop_street_specially(player_moves: Dict[Position, List[MoveType]],
             original_move = player_moves[position][action_indices[position]]
 
             interpreted_move = _interpret_action_contextually(
-                original_move, position, [], betting_occurred, is_preflop=False
+                original_move, [], betting_occurred, is_preflop=False
             )
 
             flop_actions.append((position, interpreted_move))
@@ -285,7 +243,7 @@ def _process_flop_street_specially(player_moves: Dict[Position, List[MoveType]],
             if position in player_moves and action_indices[position] < len(player_moves[position]):
                 original_move = player_moves[position][action_indices[position]]
                 interpreted_move = _interpret_action_contextually(
-                    original_move, position, [], betting_occurred, is_preflop=False
+                    original_move, [], betting_occurred, is_preflop=False
                 )
                 flop_actions.append((position, interpreted_move))
                 action_indices[position] += 1
@@ -293,23 +251,12 @@ def _process_flop_street_specially(player_moves: Dict[Position, List[MoveType]],
     return flop_actions
 
 
-def _get_estimated_street_for_action_index(action_idx: int, total_actions: int) -> Street:
-    """Estimate which street an action belongs to based on its index"""
-    # Simple heuristic: divide actions into 4 roughly equal parts
-    if action_idx < total_actions * 0.25:
-        return Street.PREFLOP
-    elif action_idx < total_actions * 0.5:
-        return Street.FLOP
-    elif action_idx < total_actions * 0.75:
-        return Street.TURN
-    else:
-        return Street.RIVER
-
-
-def _interpret_action_contextually(move: MoveType, position: Position,
-                                   actions_this_street: List[Tuple[Position, MoveType]],
-                                   betting_occurred: bool,
-                                   is_preflop: bool = False) -> MoveType:
+def _interpret_action_contextually(
+        move: MoveType,
+        actions_this_street: List[Tuple[Position, MoveType]],
+        betting_occurred: bool,
+        is_preflop: bool = False
+) -> MoveType:
     """
     Interpret action contextually based on poker rules.
     
@@ -324,33 +271,3 @@ def _interpret_action_contextually(move: MoveType, position: Position,
             return MoveType.BET
 
     return move
-
-
-def _build_chronological_action_sequence(player_moves: Dict[Position, List[MoveType]]) -> List[
-    Tuple[Position, MoveType]]:
-    """
-    Build chronological action sequence following Omaha position order.
-    
-    DEPRECATED: Use _build_street_aware_action_sequence instead.
-    This function is kept for backward compatibility but doesn't handle postflop action order correctly.
-    
-    Args:
-        player_moves: Dict with Position enum keys and MoveType lists as values
-        
-    Returns:
-        List of (Position, MoveType) tuples in chronological order
-    """
-    position_order = Position.get_action_order()
-    all_actions = []
-
-    # Get maximum number of actions any player has
-    max_actions = max(len(moves) for moves in player_moves.values()) if player_moves else 0
-
-    # Reconstruct chronological action order
-    for action_idx in range(max_actions):
-        for position in position_order:
-            if position in player_moves and action_idx < len(player_moves[position]):
-                move = player_moves[position][action_idx]
-                all_actions.append((position, move))
-
-    return all_actions

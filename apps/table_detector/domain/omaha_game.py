@@ -153,18 +153,18 @@ class OmahaGame:
                 position, action, self.get_current_street()
             )
         
-        self._execute_pokerkit_action(action)
-        
+        action_result = self._execute_pokerkit_action(action)
+
+        if not action_result:
+            raise InvalidActionError(f"Invalid action: {action} on {self.get_current_street()} for {position}.", position, action, self.get_current_street())
+        else:
+            print(f"Action {action} for {position} successfully processed")
         # Always record the action in our move history
         self._record_action(position, action)
         
         return True
     
     def _execute_pokerkit_action(self, action: MoveType) -> bool:
-        """Execute the action in pokerkit if valid, return True if successful"""
-        if self.poker_state is None:
-            return False
-            
         try:
             if action == MoveType.FOLD and self.poker_state.can_fold():
                 self.poker_state.fold()

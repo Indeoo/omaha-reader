@@ -111,12 +111,11 @@ class GameSnapshotServiceTest(unittest.TestCase):
                 (Position.CUTOFF, MoveType.FOLD),
                 (Position.BUTTON, MoveType.CALL),
                 (Position.SMALL_BLIND, MoveType.CALL),
-                (Position.BIG_BLIND, MoveType.CALL),
             ],
             Street.FLOP: [
-                (Position.EARLY_POSITION, MoveType.CHECK),
                 (Position.SMALL_BLIND, MoveType.CHECK),
                 (Position.BIG_BLIND, MoveType.CHECK),
+                (Position.EARLY_POSITION, MoveType.CHECK),
             ],
             Street.TURN: [],
             Street.RIVER: []
