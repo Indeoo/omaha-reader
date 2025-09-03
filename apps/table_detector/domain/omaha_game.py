@@ -16,21 +16,7 @@ class InvalidActionError(Exception):
 
 
 class OmahaGame:
-    """
-    Wrapper for PotLimitOmahaHoldem that maintains the same API as the original OmahaGame.
-    
-    This class provides a simplified interface to pokerkit's professional poker engine
-    while maintaining compatibility with existing code that expects move history tracking.
-    
-    The wrapper handles:
-    - Position mapping between Position enums and player indices
-    - Action conversion between MoveType enums and pokerkit actions
-    - State extraction to maintain move history format
-    - Game state tracking for compatibility
-    """
-    
     def __init__(self, player_positions: List[Position]):
-        # Move history - main output format
         self.moves_by_street: Dict[Street, List[Tuple[Position, MoveType]]] = {
             Street.PREFLOP: [],
             Street.FLOP: [],
@@ -42,14 +28,15 @@ class OmahaGame:
         self.position_to_index: Dict[Position, int] = {}
         self.index_to_position: Dict[int, Position] = {}
 
-        for position in player_positions:
-            self._add_player(position)
-
         player_count = len(player_positions)
 
-        """Start the game - create pokerkit instance and transition to active betting"""
         if player_count < 2:
             raise ValueError("Need at least 2 players to start game")
+
+        for position in player_positions:
+            player_index = len(self.position_to_index)
+            self.position_to_index[position] = player_index
+            self.index_to_position[player_index] = position
 
         starting_stacks = [100] * player_count  # Default stack size
         blinds = (0.5, 1)  # Default blinds (SB, BB)
@@ -74,16 +61,6 @@ class OmahaGame:
 
         # Deal hole cards to all players to make state ready for betting
         self._deal_hole_cards()
-
-    def _add_player(self, position: Position) -> None:
-        """Add a player to the game"""
-        if not isinstance(position, Position):
-            raise TypeError(f"Position must be Position enum, got {type(position)}")
-
-        # Create position mapping 
-        player_index = len(self.position_to_index)
-        self.position_to_index[position] = player_index
-        self.index_to_position[player_index] = position
 
     def _deal_hole_cards(self) -> None:
         """Deal hole cards to all players to make the poker state ready for betting"""
