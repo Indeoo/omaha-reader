@@ -4,7 +4,7 @@ from pathlib import Path
 
 from shared.domain.street import Street
 from table_detector.services.game_snapshot_service import GameSnapshotService
-from table_detector.domain.omaha_game import InvalidActionError
+from table_detector.domain.omaha_game import InvalidActionError, InvalidPositionSequenceError
 from shared.domain.position import Position
 from shared.domain.moves import MoveType
 
@@ -31,7 +31,7 @@ class GameSnapshotServiceTest(unittest.TestCase):
         # Execute the method under test
         cv2_image = self.load_image(1, "01__2_50__5_Pot_Limit_Omaha.png")
 
-        with self.assertRaises(InvalidActionError):
+        with self.assertRaises(InvalidPositionSequenceError):
             GameSnapshotService.create_game_snapshot(cv2_image)
 
     def test_create_game_snapshot_basic_2(self):
