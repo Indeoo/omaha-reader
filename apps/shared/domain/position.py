@@ -141,6 +141,17 @@ class Position(Enum):
             2: {Position.SMALL_BLIND, Position.BIG_BLIND}
         }
 
+    @classmethod
+    def get_priority_order(cls):
+        return [
+            Position.BUTTON,  # Most important - dealer position
+            Position.SMALL_BLIND,  # Critical blind position
+            Position.BIG_BLIND,  # Critical blind position
+            Position.CUTOFF,  # Strong late position
+            Position.EARLY_POSITION,  # Early position
+            Position.MIDDLE_POSITION  # Least critical if present
+        ]
+
     def is_blind(self) -> bool:
         """Check if this position posts a blind"""
         return self in self.get_blind_positions()

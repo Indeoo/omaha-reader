@@ -105,14 +105,7 @@ class PositionService:
 
         # Use Position enum's action order for logical priority
         # Priority: most important positions first (Button, Blinds, then others)
-        priority_order = [
-            Position.BUTTON,      # Most important - dealer position
-            Position.SMALL_BLIND, # Critical blind position
-            Position.BIG_BLIND,   # Critical blind position
-            Position.CUTOFF,      # Strong late position
-            Position.EARLY_POSITION, # Early position
-            Position.MIDDLE_POSITION # Least critical if present
-        ]
+        priority_order = Position.get_priority_order()
         
         for position in priority_order:
             if position in missing_positions:
