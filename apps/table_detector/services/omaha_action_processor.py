@@ -6,8 +6,7 @@ from shared.domain.position import Position
 from shared.domain.street import Street
 
 
-def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
-    Street, List[Tuple[Position, MoveType]]]:
+def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
     # Handle empty input
     if not player_moves:
         return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
@@ -22,18 +21,15 @@ def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
         return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
 
     # Phase 3: Use OmahaGame state machine to process actions
-    game = execute_game(all_actions, player_moves)
+    game = OmahaGame(player_moves.keys())
+    execute_game(game, all_actions)
 
     return game.get_moves_by_street()
 
 
-def execute_game(all_actions, player_moves):
-    game = OmahaGame(player_moves.keys())
-
+def execute_game(game ,all_actions):
     for position, move in all_actions:
         game.process_action(position, move)
-
-    return game
 
 
 def _validate_input(player_moves: Dict[Position, List[MoveType]]) -> None:
