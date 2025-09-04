@@ -2,7 +2,6 @@ from typing import List, Dict, Optional
 
 from shared.domain.detection import Detection
 from shared.domain.game import Game
-from shared.domain.position import Position
 from shared.utils.card_format_utils import format_cards_simple
 
 
@@ -45,13 +44,9 @@ class GameFormatService:
         for street, moves in game.get_moves_by_streets().items():
             street_moves = []
             for position, move_type in moves:
-                player_number = Position.get_position_to_player().get(position, 1)  # Default to player 1
                 street_moves.append({
-                    'player_number': player_number,
-                    'player_label': f'P{player_number}',
-                    'action': move_type.value,
-                    'amount': 0.0,  # Not available in tuple format
-                    'total_contribution': 0.0  # Not available in tuple format
+                    'player_label': position.name,
+                    'action': move_type.value
                 })
 
             moves_by_street.append({
