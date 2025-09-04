@@ -7,12 +7,11 @@ from shared.domain.street import Street
 
 
 def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[Street, List[Tuple[Position, MoveType]]]:
-    # Handle empty input
     if not player_moves:
         return {Street.PREFLOP: [], Street.FLOP: [], Street.TURN: [], Street.RIVER: []}
 
     # Phase 1: Validate input
-    _validate_input(player_moves)
+    # _validate_input(player_moves)
 
     # Phase 2: Build street-aware chronological action sequence with contextual interpretation
     all_actions = _build_street_aware_action_sequence(player_moves)
@@ -32,32 +31,32 @@ def execute_game(game, all_actions):
         game.process_action(position, move)
 
 
-def _validate_input(player_moves: Dict[Position, List[MoveType]]) -> None:
-    """
-    Validate input types and structure for player moves.
-    
-    Args:
-        player_moves: Dict with Position enum keys and MoveType enum values
-        
-    Raises:
-        TypeError: If input types are incorrect
-    """
-    if not isinstance(player_moves, dict):
-        raise TypeError("player_moves must be a dictionary")
-
-    for pos_key, moves in player_moves.items():
-        # Validate Position enum key
-        if not isinstance(pos_key, Position):
-            raise TypeError(f"Position key must be Position enum, got {type(pos_key)}")
-
-        # Validate moves list
-        if not isinstance(moves, list):
-            raise TypeError(f"Moves for position {pos_key} must be a list, got {type(moves)}")
-
-        # Validate all moves are MoveType enums
-        for i, move in enumerate(moves):
-            if not isinstance(move, MoveType):
-                raise TypeError(f"Move must be MoveType enum at position {pos_key}, move {i}: got {type(move)}")
+# def _validate_input(player_moves: Dict[Position, List[MoveType]]) -> None:
+#     """
+#     Validate input types and structure for player moves.
+#
+#     Args:
+#         player_moves: Dict with Position enum keys and MoveType enum values
+#
+#     Raises:
+#         TypeError: If input types are incorrect
+#     """
+#     if not isinstance(player_moves, dict):
+#         raise TypeError("player_moves must be a dictionary")
+#
+#     for pos_key, moves in player_moves.items():
+#         # Validate Position enum key
+#         if not isinstance(pos_key, Position):
+#             raise TypeError(f"Position key must be Position enum, got {type(pos_key)}")
+#
+#         # Validate moves list
+#         if not isinstance(moves, list):
+#             raise TypeError(f"Moves for position {pos_key} must be a list, got {type(moves)}")
+#
+#         # Validate all moves are MoveType enums
+#         for i, move in enumerate(moves):
+#             if not isinstance(move, MoveType):
+#                 raise TypeError(f"Move must be MoveType enum at position {pos_key}, move {i}: got {type(move)}")
 
 
 def _build_street_aware_action_sequence(player_moves: Dict[Position, List[MoveType]]) -> List[

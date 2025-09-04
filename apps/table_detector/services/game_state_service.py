@@ -15,19 +15,6 @@ class GameStateService:
     def __init__(self, state_repository: GameStateRepository):
         self.state_repository = state_repository
 
-    # def is_new_game(self, window_name: str, player_cards: List[Detection],
-    #                 detected_positions: Dict[int, Detection]) -> bool:
-    #     existing_game = self.state_repository.get_by_window(window_name)
-    #
-    #     if existing_game is None:
-    #         return True
-    #
-    #     is_new_game = player_cards != existing_game.player_cards and detected_positions != existing_game.positions
-    #
-    #     logger.info(f"{window_name} new game == {is_new_game}")
-    #
-    #     return is_new_game
-
     def is_new_street(self, window_name: str, detected_table_cards) -> bool:
         current_game = self.state_repository.get_by_window(window_name)
 
@@ -36,8 +23,8 @@ class GameStateService:
 
         return current_game.table_cards != detected_table_cards
 
-    def is_player_move(self, detected_actions: List) -> bool:
-        return len(detected_actions) > 0
+    # def is_player_move(self, detected_actions: List) -> bool:
+    #     return len(detected_actions) > 0
 
     def create_or_update_game(self, window_name: str, game_snapshot: GameSnapshot,
                               is_new_game: bool, is_new_street: bool) -> Game:
