@@ -7,3 +7,7 @@ class Street(Enum):
     FLOP = "Flop"
     TURN = "Turn"
     RIVER = "River"
+
+    @classmethod
+    def get_street_order(cls):
+        return [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]

@@ -90,7 +90,7 @@ class FlopHeroLinkService:
                 action_params[param_name] = "_".join(action_strings) if action_strings else ""
 
         # Ensure all expected parameters are present
-        for street in game.get_street_order():
+        for street in Street.get_street_order():
             param_name = street_param_map.get(street)
             if param_name and param_name not in action_params:
                 action_params[param_name] = ""

@@ -54,16 +54,8 @@ class Game:
         """Returns moves organized by street in chronological order.
         Only includes streets that have moves."""
         street_moves = []
-        for street in self.get_street_order():
+        for street in Street.get_street_order():
             moves = self.moves.get(street, [])
             if moves:
                 street_moves.append((street, moves))
         return street_moves
-
-    def get_street_order(self) -> List[Street]:
-        """Returns the canonical poker street processing order."""
-        return [Street.PREFLOP, Street.FLOP, Street.TURN, Street.RIVER]
-
-    def has_moves_for_street(self, street: Street) -> bool:
-        """Checks if the given street has any moves."""
-        return bool(self.moves.get(street, []))
