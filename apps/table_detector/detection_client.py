@@ -1,11 +1,11 @@
 # Ensure proper path setup
+import os
 import traceback
 import uuid
 from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from loguru import logger
-
 
 from table_detector.services.image_capture_service import ImageCaptureService
 from table_detector.services.game_state_service import GameStateService
@@ -18,31 +18,24 @@ from shared.protocol.message_protocol import GameUpdateMessage, TableRemovalMess
 
 
 class DetectionClient:
-    def __init__(self, client_id: str = None, debug_mode: bool = True,
-                 detection_interval: int = 10, server_connector=None):
+    def __init__(self, client_id: str = None, detection_interval: int = 10, server_connector=None):
         initialize_platform()
 
         self.client_id = client_id or f"client_{uuid.uuid4().hex[:8]}"
-        self.debug_mode = debug_mode
         self.detection_interval = detection_interval
         self.http_connector = server_connector  # SimpleHttpConnector
 
         # Initialize detection services (reuse existing components)
-        self.image_capture_service = ImageCaptureService(debug_mode=debug_mode)
+        self.image_capture_service = ImageCaptureService()
         self.game_state_repository = GameStateRepository()
         self.game_state_service = GameStateService(self.game_state_repository)
 
-        self.poker_game_processor = PokerGameProcessor(
-            self.game_state_service,
-            save_result_images=debug_mode,  # Save result images only in debug mode
-            write_detection_files=debug_mode  # Write detection files only in debug mode
-        )
-
+        self.poker_game_processor = PokerGameProcessor(self.game_state_service)
+        self.debug_mode = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
         self.scheduler = BackgroundScheduler()
         self._setup_scheduler()
 
         logger.info(f"🎯 Detection client initialized: {self.client_id}")
-
 
     def _setup_scheduler(self):
         self.scheduler.add_job(
@@ -62,7 +55,7 @@ class DetectionClient:
             # Ensure client is registered with server before starting detection
             if self.http_connector:
                 self.http_connector.register_client(self.client_id, self.detection_interval)
-            
+
             self.scheduler.start()
             logger.info(f"✅ Detection started (interval: {self.detection_interval}s)")
         else:
@@ -85,11 +78,8 @@ class DetectionClient:
             base_timestamp_folder = create_timestamp_folder(self.debug_mode)
             if not self.debug_mode:
                 load_logger(base_timestamp_folder)
-            
-            window_changes = self.image_capture_service.get_changed_images(base_timestamp_folder)
 
-            changed_games = []
-            removal_messages = []
+            window_changes = self.image_capture_service.get_changed_images(base_timestamp_folder)
 
             # Process changed windows and collect changed game states
             changed_games = self._handle_changed_windows(window_changes.changed_images, base_timestamp_folder)
@@ -107,7 +97,7 @@ class DetectionClient:
     def _handle_changed_windows(self, captured_windows, base_timestamp_folder):
         """Process changed windows using existing poker game processor and return list of changed game states."""
         changed_games = []
-        
+
         for i, captured_image in enumerate(captured_windows):
             try:
                 logger.info(f"\n📷 Processing image {i + 1}: {captured_image.window_name}")
@@ -117,8 +107,8 @@ class DetectionClient:
                 window_folder = create_window_folder(base_timestamp_folder, captured_image.window_name)
 
                 # Process and get formatted game data for transmission
-                game_data = self.poker_game_processor. process_and_get_changes(captured_image, window_folder)
-                
+                game_data = self.poker_game_processor.process_window(captured_image, window_folder)
+
                 if game_data:
                     changed_games.append(game_data)
                     logger.debug(f"✅ Captured changes for {captured_image.window_name}")
@@ -129,17 +119,17 @@ class DetectionClient:
             finally:
                 # Clean up the image immediately after processing to prevent memory leaks
                 captured_image.close()
-        
+
         return changed_games
 
     def _handle_removed_windows(self, removed_window_names):
         """Handle removed windows and return removal message data for transmission."""
         logger.info(f"🗑️ Removing {len(removed_window_names)} closed windows from state")
-        
+
         removal_messages = []
         for window_name in removed_window_names:
             logger.info(f"    Removing: {window_name}")
-            
+
             # Create removal message data structure
             removal_data = {
                 'type': 'table_removal',
@@ -148,10 +138,10 @@ class DetectionClient:
                 'timestamp': datetime.now().isoformat()
             }
             removal_messages.append(removal_data)
-        
+
         # Remove from local state
         self.game_state_service.remove_windows(removed_window_names)
-        
+
         return removal_messages
 
     def _send_updates_to_server(self, changed_games=None, removal_messages=None):
@@ -171,13 +161,13 @@ class DetectionClient:
                 logger.debug(f"Sending {len(changed_games)} changed game states to server")
                 for game_data in changed_games:
                     self._send_game_update(game_data)
-            
+
             # Send removal messages (if any)
             if removal_messages:
                 logger.debug(f"Sending {len(removal_messages)} removal messages to server")
                 for removal_data in removal_messages:
                     self._send_removal_update(removal_data)
-            
+
             # Log if nothing to send
             if not changed_games and not removal_messages:
                 logger.debug("No game data or removal messages to send to server")
@@ -208,7 +198,7 @@ class DetectionClient:
 
             # Simple HTTP request - fire and forget
             self.http_connector.send_game_update(game_update)
-            
+
         except Exception as e:
             logger.debug(f"Failed to send game update for {game_data.get('window_name', 'unknown')}: {str(e)}")
 
@@ -225,7 +215,7 @@ class DetectionClient:
 
             # Simple HTTP request - fire and forget
             self.http_connector.send_removal_message(removal_message)
-            
+
         except Exception as e:
             logger.debug(f"Failed to send removal update for {removal_data.get('window_name', 'unknown')}: {str(e)}")
 

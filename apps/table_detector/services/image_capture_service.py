@@ -1,3 +1,4 @@
+import os
 from typing import List, Dict, NamedTuple
 
 from loguru import logger
@@ -13,8 +14,8 @@ class WindowChanges(NamedTuple):
 
 
 class ImageCaptureService:
-    def __init__(self, debug_mode: bool = True):
-        self.debug_mode = debug_mode
+    def __init__(self):
+        self.debug_mode = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
         self._window_hashes: Dict[str, str] = {}
 
     def get_changed_images(self, base_timestamp_folder) -> WindowChanges:
