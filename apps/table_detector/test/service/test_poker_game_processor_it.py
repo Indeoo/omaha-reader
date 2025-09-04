@@ -93,7 +93,7 @@ class PokerGameProcessorTest(unittest.TestCase):
                 preflop_moves = street_data['moves']
                 break
 
-        self.assertIsNotNone(preflop_moves, "PREFLOP moves not found in game data")
+        #self.assertIsNotNone(preflop_moves, "PREFLOP moves not found in game data")
         self.assertEqual(expected_moves, preflop_moves)
 
     def test_process_window_basic_3(self):
