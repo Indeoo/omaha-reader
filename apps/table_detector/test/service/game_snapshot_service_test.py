@@ -3,6 +3,7 @@ import cv2
 from pathlib import Path
 
 from shared.domain.street import Street
+from table_detector.services.flophero_link_service import FlopHeroLinkService
 from table_detector.services.game_snapshot_service import GameSnapshotService
 from table_detector.domain.omaha_game import InvalidPositionSequenceError
 from shared.domain.position import Position
@@ -148,8 +149,11 @@ class GameSnapshotServiceTest(unittest.TestCase):
             Street.RIVER: []
         }
 
-        result = GameSnapshotService.create_game_snapshot(cv2_image).moves
+        game = GameSnapshotService.create_game_snapshot(cv2_image)
+        result = game.moves
         print(result)
+
+        print(FlopHeroLinkService.generate_link(game))
 
         self.assertEqual(expected, result)
 
