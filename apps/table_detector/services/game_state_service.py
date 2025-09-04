@@ -63,21 +63,6 @@ class GameStateService:
     def remove_windows(self, window_names: List[str]) -> bool:
         return self.state_repository.remove_windows(window_names)
 
-    def get_notification_data(self) -> dict:
-        games = self.state_repository.get_all_games()
-        return {
-            'type': 'detection_update',
-            'detections': [self._game_to_dict(window_name, game) for window_name, game in games],
-            'last_update': self.state_repository.get_last_update()
-        }
-
-    def get_all_games_dict(self) -> dict:
-        games = self.state_repository.get_all_games()
-        return {
-            'detections': [self._game_to_dict(window_name, game) for window_name, game in games],
-            'last_update': self.state_repository.get_last_update()
-        }
-
     def _game_to_dict(self, window_name: str, game: Game) -> dict:
         return {
             'window_name': window_name,
