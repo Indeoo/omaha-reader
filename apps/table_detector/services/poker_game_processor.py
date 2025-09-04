@@ -1,4 +1,5 @@
 from table_detector.domain.captured_window import CapturedWindow
+from table_detector.services.game_format_service import GameFormatService
 from table_detector.services.game_snapshot_service import GameSnapshotService
 from table_detector.services.game_state_service import GameStateService
 from table_detector.utils.drawing_utils import save_detection_result
@@ -30,4 +31,4 @@ class PokerGameProcessor:
         updated_game = self.game_state_service.create_or_update_game(window_name, game_snapshot, True, is_new_street)
 
         # Return formatted game data for transmission
-        return self.game_state_service._game_to_dict(window_name, updated_game)
+        return GameFormatService.game_to_dict(window_name, updated_game)
