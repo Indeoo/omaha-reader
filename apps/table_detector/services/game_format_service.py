@@ -41,21 +41,11 @@ class GameFormatService:
     def _get_moves_for_web(game: Game) -> List[Dict]:
         moves_by_street = []
 
-        # Position to player number mapping (1-indexed)
-        position_to_player = {
-            Position.BUTTON: 1,        # Hero position
-            Position.SMALL_BLIND: 2,
-            Position.BIG_BLIND: 3,
-            Position.EARLY_POSITION: 4,
-            Position.MIDDLE_POSITION: 5,
-            Position.CUTOFF: 6
-        }
-
         # Use Game's domain method to get moves by street
         for street, moves in game.get_moves_by_streets().items():
             street_moves = []
             for position, move_type in moves:
-                player_number = position_to_player.get(position, 1)  # Default to player 1
+                player_number = Position.get_position_to_player().get(position, 1)  # Default to player 1
                 street_moves.append({
                     'player_number': player_number,
                     'player_label': f'P{player_number}',
