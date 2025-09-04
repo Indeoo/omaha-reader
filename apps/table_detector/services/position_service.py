@@ -66,69 +66,47 @@ class PositionService:
 
             elif detected_pos.is_action():
                 # Recover position for action text detected in position templates
-                inferred_position_string = PositionService._infer_missing_position(result_positions)
+                inferred_position_enum = PositionService._infer_missing_position(result_positions)
 
-                if inferred_position_string:
-                    try:
-                        inferred_position_enum = Position.normalize_position(inferred_position_string)
-                        result_positions[player_id] = inferred_position_enum
-                        logger.info(
-                            f"Recovered position for player {player_id}: {inferred_position_enum} (detected action: {detected_pos.value})")
-                    except ValueError as e:
-                        logger.warning(
-                            f"Failed to convert inferred position '{inferred_position_string}' for player {player_id}: {e}")
+                if inferred_position_enum:
+                    result_positions[player_id] = inferred_position_enum
+                    logger.info(
+                        f"Recovered position for player {player_id}: {inferred_position_enum} (detected action: {detected_pos.value})")
 
             # NO_POSITION is automatically ignored (neither is_position() nor is_action())
 
         return result_positions
 
     @staticmethod
-    def _infer_missing_position(detected_positions: Dict[int, Position]) -> Optional[str]:
-        """
-        Infer the most likely position for a player based on detected positions of other players.
-        Uses poker table position logic and seating order.
-
-        Args:
-            detected_positions: Currently detected Position enums from other players
-
-        Returns:
-            Inferred position name or None if cannot be determined
-        """
+    def _infer_missing_position(detected_positions: Dict[int, Position]) -> Optional[Position]:
         if not detected_positions:
             return None
 
-        # Extract detected position names
-        detected_position_names = set()
-        for position_enum in detected_positions.values():
-            detected_position_names.add(position_enum.value)
+        # Work directly with Position enums
+        detected_position_enums = set(detected_positions.values())
 
-        # Define common position sets for different table sizes
-        position_sets = {
-            6: ['EP', 'MP', 'CO', 'BTN', 'SB', 'BB'],
-            5: ['EP', 'CO', 'BTN', 'SB', 'BB'],
-            4: ['CO', 'BTN', 'SB', 'BB'],
-            3: ['BTN', 'SB', 'BB'],
-            2: ['SB', 'BB']
-        }
+        # Define position sets for different table sizes using Position enums
+        position_table = Position.get_all_position_table()
 
         # Determine likely table size based on detected positions
         table_size = 6  # Default
-        for size, positions in position_sets.items():
-            if detected_position_names.issubset(set(positions)):
+        for size, positions in position_table.items():
+            if detected_position_enums.issubset(positions):
                 table_size = size
                 break
 
         # Find missing positions for this table size
-        expected_positions = set(position_sets[table_size])
-        missing_positions = expected_positions - detected_position_names
+        expected_positions = position_table[table_size]
+        missing_positions = expected_positions - detected_position_enums
 
         # Simple heuristic: if only one position is missing, assign it
         if len(missing_positions) == 1:
             return list(missing_positions)[0]
 
-        # More complex logic could be added here based on player_id and seating patterns
-        # For now, return the most common missing position based on typical poker games
-        priority_order = ['BTN', 'SB', 'BB', 'CO', 'EP', 'MP']
+        # Use Position enum's action order for logical priority
+        # Priority: most important positions first (Button, Blinds, then others)
+        priority_order = Position.get_priority_order()
+        
         for position in priority_order:
             if position in missing_positions:
                 return position

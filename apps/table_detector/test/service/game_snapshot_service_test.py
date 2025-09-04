@@ -4,7 +4,7 @@ from pathlib import Path
 
 from shared.domain.street import Street
 from table_detector.services.game_snapshot_service import GameSnapshotService
-from table_detector.domain.omaha_game import InvalidActionError
+from table_detector.domain.omaha_game import InvalidPositionSequenceError
 from shared.domain.position import Position
 from shared.domain.moves import MoveType
 
@@ -31,7 +31,7 @@ class GameSnapshotServiceTest(unittest.TestCase):
         # Execute the method under test
         cv2_image = self.load_image(1, "01__2_50__5_Pot_Limit_Omaha.png")
 
-        with self.assertRaises(InvalidActionError):
+        with self.assertRaises(InvalidPositionSequenceError):
             GameSnapshotService.create_game_snapshot(cv2_image)
 
     def test_create_game_snapshot_basic_2(self):
@@ -114,9 +114,9 @@ class GameSnapshotServiceTest(unittest.TestCase):
                 (Position.BIG_BLIND, MoveType.CALL),
             ],
             Street.FLOP: [
-                (Position.EARLY_POSITION, MoveType.CHECK),
                 (Position.SMALL_BLIND, MoveType.CHECK),
                 (Position.BIG_BLIND, MoveType.CHECK),
+                (Position.EARLY_POSITION, MoveType.CHECK),
             ],
             Street.TURN: [],
             Street.RIVER: []
@@ -131,26 +131,25 @@ class GameSnapshotServiceTest(unittest.TestCase):
         # Execute the method under test
         cv2_image = self.load_image(7, "01__0_02__0_05_Pot_Limit_Omaha.png")
 
-        # expected = {
-        #     Street.PREFLOP: [
-        #         (Position.EARLY_POSITION, MoveType.RAISE),
-        #         (Position.MIDDLE_POSITION, MoveType.CALL),
-        #         (Position.CUTOFF, MoveType.FOLD),
-        #         (Position.BUTTON, MoveType.CALL),
-        #         (Position.SMALL_BLIND, MoveType.CALL),
-        #         (Position.BIG_BLIND, MoveType.CALL),
-        #     ],
-        #     Street.FLOP: [
-        #         (Position.EARLY_POSITION, MoveType.CHECK),
-        #         (Position.SMALL_BLIND, MoveType.CHECK),
-        #         (Position.BIG_BLIND, MoveType.CHECK),
-        #     ],
-        #     Street.TURN: [],
-        #     Street.RIVER: []
-        # }
+        expected = {
+            Street.PREFLOP: [
+                (Position.BUTTON, MoveType.RAISE),
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL),
+            ],
+            Street.FLOP: [
+                (Position.SMALL_BLIND, MoveType.CHECK),
+                (Position.BIG_BLIND, MoveType.CHECK),
+                (Position.BUTTON, MoveType.BET),
+                (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL),
+            ],
+            Street.TURN: [],
+            Street.RIVER: []
+        }
 
         result = GameSnapshotService.create_game_snapshot(cv2_image).moves
         print(result)
 
-        #self.assertEqual(expected, result)
+        self.assertEqual(expected, result)
 

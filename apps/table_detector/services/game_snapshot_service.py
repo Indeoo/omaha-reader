@@ -31,7 +31,7 @@ class GameSnapshotService:
             .with_player_cards(player_cards_detections)
             .with_table_cards(table_cards_detections)
             .with_bids(None)
-            .with_positions(recovered_positions)
+            .with_positions(position_detections)
             .with_actions(action_detections)
             .with_moves(moves)
             .build()

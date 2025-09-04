@@ -7,7 +7,40 @@ from table_detector.services.omaha_action_processor import group_moves_by_street
 
 
 class TestMovesByStreetWithExpectedResults(unittest.TestCase):
-    
+
+
+    def test_group_moves_by_street(self):
+        expected = {
+            Street.PREFLOP: [
+                (Position.EARLY_POSITION, MoveType.RAISE),
+                (Position.MIDDLE_POSITION, MoveType.CALL),
+                (Position.CUTOFF, MoveType.FOLD),
+                (Position.BUTTON, MoveType.CALL),
+                (Position.SMALL_BLIND, MoveType.CALL),
+            ],
+            Street.FLOP: [
+                (Position.SMALL_BLIND, MoveType.CHECK),
+                (Position.BIG_BLIND, MoveType.CHECK),
+                (Position.EARLY_POSITION, MoveType.CHECK),
+            ],
+            Street.TURN: [],
+            Street.RIVER: []
+        }
+
+        input_data = {
+            Position.EARLY_POSITION: [MoveType.RAISE, MoveType.CHECK],
+            Position.MIDDLE_POSITION: [MoveType.CALL],
+            Position.CUTOFF: [MoveType.FOLD],
+            Position.BUTTON: [MoveType.CALL],
+            Position.SMALL_BLIND: [MoveType.CALL, MoveType.CHECK],
+            Position.BIG_BLIND: [MoveType.CALL, MoveType.CHECK],
+        }
+
+        result = group_moves_by_street(input_data)
+
+        self.assertEqual(expected, result)
+    #
+
     def test_simple_preflop_only(self):
         """Test simple scenario where everyone folds preflop except BTN/BB"""
         input_data = {
