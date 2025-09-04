@@ -41,7 +41,7 @@ class GameFormatService:
         moves_by_street = []
 
         # Use Game's domain method to get moves by street
-        for street, moves in game.get_moves_by_streets():
+        for street, moves in game.moves.items():
             street_moves = []
             for position, move_type in moves:
                 street_moves.append({
