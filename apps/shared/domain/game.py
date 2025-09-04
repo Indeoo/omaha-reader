@@ -43,19 +43,16 @@ class Game:
             return f"ERROR ({len(self.table_cards)} cards)"
         return street.value
 
-    def has_moves(self) -> bool:
-        return any(moves for moves in self.moves.values())
-
     def get_active_position(self):
         return {player_num: position for player_num, position in self.positions.items()
                 if position.name != "NO"}
 
-    def get_moves_by_streets(self) -> List[Tuple[Street, List[Tuple[Position, MoveType]]]]:
+    def get_moves_by_streets(self) -> Dict[Street, List[Tuple[Position, MoveType]]]:
         """Returns moves organized by street in chronological order.
         Only includes streets that have moves."""
-        street_moves = []
-        for street in Street.get_street_order():
-            moves = self.moves.get(street, [])
-            if moves:
-                street_moves.append((street, moves))
-        return street_moves
+        # street_moves = []
+        # for street in Street.get_street_order():
+        #     moves = self.moves.get(street, [])
+        #     if moves:
+        #         street_moves.append((street, moves))
+        return self.moves

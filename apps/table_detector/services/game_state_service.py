@@ -105,9 +105,6 @@ class GameStateService:
         return formatted
 
     def _get_moves_for_web(self, game: Game) -> List[Dict]:
-        if not game.has_moves():
-            return []
-
         moves_by_street = []
 
         # Position to player number mapping (1-indexed)
@@ -121,7 +118,7 @@ class GameStateService:
         }
 
         # Use Game's domain method to get moves by street
-        for street, moves in game.get_moves_by_streets():
+        for street, moves in game.get_moves_by_streets().items():
             street_moves = []
             for position, move_type in moves:
                 player_number = position_to_player.get(position, 1)  # Default to player 1
@@ -143,9 +140,5 @@ class GameStateService:
 
     def _get_solver_link_for_web(self, game: Game) -> Optional[str]:
         from table_detector.services.flophero_link_service import FlopHeroLinkService
-
-        # Only generate link if we have meaningful data
-        if not (game.player_cards or game.table_cards) and not game.has_moves():
-            return None
 
         return FlopHeroLinkService.generate_link(game)

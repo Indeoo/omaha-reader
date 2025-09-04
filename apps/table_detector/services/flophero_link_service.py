@@ -77,7 +77,7 @@ class FlopHeroLinkService:
         }
 
         # Use Game's domain method to get moves by street
-        for street, moves in game.get_moves_by_streets():
+        for street, moves in game.get_moves_by_streets().items():
             param_name = street_param_map.get(street)
             if param_name:
                 # Format moves as comma-separated string
