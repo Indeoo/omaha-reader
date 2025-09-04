@@ -13,13 +13,12 @@ class CapturedWindow:
             self,
             image: Image.Image,
             filename: str,
-            window_name: str,
-            description: str = ""
+            window_name: str
     ):
         self.image = image
         self.filename = filename
         self.window_name = window_name
-        self.description = description
+        self.description = None
         self._image_hash: Optional[str] = None
         self._is_closed = False
 
