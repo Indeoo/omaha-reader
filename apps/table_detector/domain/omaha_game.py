@@ -27,11 +27,7 @@ class OmahaGame:
             Street.TURN: [],
             Street.RIVER: []
         }
-        
-        # Position mapping
-        self.position_to_index: Dict[Position, int] = {}
-        self.index_to_position: Dict[int, Position] = {}
-        
+
         # Track active players for position sequence validation
         self.active_players: set[Position] = set(player_positions)
 
@@ -39,11 +35,6 @@ class OmahaGame:
 
         if player_count < 2:
             raise ValueError("Need at least 2 players to start game")
-
-        for position in player_positions:
-            player_index = len(self.position_to_index)
-            self.position_to_index[position] = player_index
-            self.index_to_position[player_index] = position
 
         starting_stacks = [100] * player_count  # Default stack size
         blinds = (0.5, 1)  # Default blinds (SB, BB)
@@ -68,6 +59,7 @@ class OmahaGame:
             starting_stacks,  # Starting stacks
             player_count,  # Number of players
         )
+
 
     def _validate_position_sequence(self, position: Position) -> bool:
         if position not in self.active_players:
@@ -111,7 +103,7 @@ class OmahaGame:
 
     def process_action(self, position: Position, action: MoveType):
         street = self.get_current_street()
-        
+
         # Validate position sequence (optional - can be disabled for testing)
         if not self._validate_position_sequence(position):
             raise InvalidPositionSequenceError(f"Invalid position sequence: {position} cannot act on {street}", position, action, street)
@@ -145,7 +137,7 @@ class OmahaGame:
                 if calling_amount is not None and calling_amount > 0:
                     self.poker_state.check_or_call()
                     return True
-            elif action in [MoveType.BET, MoveType.RAISE] and self.poker_state.can_complete_bet_or_raise_to():
+            elif action in [MoveType.BET, MoveType.CALL, MoveType.RAISE] and self.poker_state.can_complete_bet_or_raise_to():
                 # Use minimum bet/raise amount
                 min_amount = self.poker_state.min_completion_betting_or_raising_to_amount
                 if min_amount is not None:
@@ -173,3 +165,57 @@ class OmahaGame:
     def get_moves_by_street(self) -> Dict[Street, List[Tuple[Position, MoveType]]]:
         """Get the complete move history organized by street"""
         return self.moves_by_street.copy()
+
+    def get_seat_to_position_mapping(self) -> Dict[int, Position]:
+        """
+        Get mapping from PokerKit seat indices to Position enums based on 
+        player count and opener index.
+        
+        Returns:
+            Dict[int, Position]: Mapping from seat index (0 to player_count-1) to Position
+        """
+        player_count = self.poker_state.player_count
+        opener_index = self.poker_state.opener_index
+        
+        # Get the position order based on player count
+        position_order = self._get_position_order_for_player_count(player_count)
+        
+        # Create mapping by rotating positions based on opener_index
+        seat_to_position = {}
+        for i in range(player_count):
+            # PokerKit seat index
+            seat_index = i
+            # Corresponding position index (rotated by opener_index)
+            position_index = (i - opener_index) % player_count
+            # Map seat to position
+            seat_to_position[seat_index] = position_order[position_index]
+        
+        return seat_to_position
+    
+    def _get_position_order_for_player_count(self, player_count: int) -> List[Position]:
+        """
+        Get the position order for a given player count in poker action order.
+        
+        Args:
+            player_count: Number of players (2-6)
+            
+        Returns:
+            List[Position]: Positions in poker action order for the given player count
+        """
+        if player_count == 2:
+            # Heads-up: SB acts first preflop, BB acts first postflop
+            return [Position.SMALL_BLIND, Position.BIG_BLIND]
+        elif player_count == 3:
+            # 3-handed: BTN, SB, BB
+            return [Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
+        elif player_count == 4:
+            # 4-handed: CO, BTN, SB, BB
+            return [Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
+        elif player_count == 5:
+            # 5-handed: EP, CO, BTN, SB, BB
+            return [Position.EARLY_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
+        elif player_count == 6:
+            # 6-max: EP, MP, CO, BTN, SB, BB
+            return [Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
+        else:
+            raise ValueError(f"Unsupported player count: {player_count}. Supported range: 2-6 players")

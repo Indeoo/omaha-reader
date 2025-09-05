@@ -264,10 +264,6 @@ class TestOmahaGame(unittest.TestCase):
         
         game = OmahaGame(three_player_positions)
         
-        # Test position mappings
-        self.assertEqual(len(game.position_to_index), 3)
-        self.assertEqual(len(game.index_to_position), 3)
-        
         # Test action processing
         game.process_action(Position.BUTTON, MoveType.CALL)
         game.process_action(Position.SMALL_BLIND, MoveType.RAISE)
@@ -324,17 +320,7 @@ class TestOmahaGame(unittest.TestCase):
                 actions = test_case['actions']
                 
                 game = OmahaGame(positions)
-                
-                # Test position mappings
-                self.assertEqual(len(game.position_to_index), test_case['player_count'])
-                self.assertEqual(len(game.index_to_position), test_case['player_count'])
-                
-                # Test that all positions are properly mapped
-                for position in positions:
-                    self.assertIn(position, game.position_to_index)
-                    index = game.position_to_index[position]
-                    self.assertEqual(game.index_to_position[index], position)
-                
+
                 # Test action processing
                 for position, action in actions:
                     game.process_action(position, action)
@@ -347,33 +333,29 @@ class TestOmahaGame(unittest.TestCase):
 
     # === INTEGRATION SCENARIOS ===
 
-    def test_position_order_consistency(self):
-        """Test that position order is maintained consistently across different game sizes"""
-        position_sets = [
-            # 3-handed
-            [Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON],
-            # 4-handed
-            [Position.SMALL_BLIND, Position.BIG_BLIND, Position.CUTOFF, Position.BUTTON],
-            # 6-handed (full)
-            self.default_positions
-        ]
-        
-        for positions in position_sets:
-            with self.subTest(player_count=len(positions)):
-                game = OmahaGame(positions)
-                
-                # Test that each position maps to a unique index
-                indices = set(game.position_to_index.values())
-                self.assertEqual(len(indices), len(positions))
-                
-                # Test that indices are consecutive starting from 0
-                expected_indices = set(range(len(positions)))
-                self.assertEqual(indices, expected_indices)
-                
-                # Test reverse mapping consistency
-                for position in positions:
-                    index = game.position_to_index[position]
-                    self.assertEqual(game.index_to_position[index], position)
+    # def test_position_order_consistency(self):
+    #     """Test that position order is maintained consistently across different game sizes"""
+    #     position_sets = [
+    #         # 3-handed
+    #         [Position.SMALL_BLIND, Position.BIG_BLIND, Position.BUTTON],
+    #         # 4-handed
+    #         [Position.SMALL_BLIND, Position.BIG_BLIND, Position.CUTOFF, Position.BUTTON],
+    #         # 6-handed (full)
+    #         self.default_positions
+    #     ]
+    #
+    #     for positions in position_sets:
+    #         with self.subTest(player_count=len(positions)):
+    #             game = OmahaGame(positions)
+    #
+    #             # Test that each position maps to a unique index
+    #             indices = set(game.position_to_index.values())
+    #             self.assertEqual(len(indices), len(positions))
+    #
+    #             # Test that indices are consecutive starting from 0
+    #             expected_indices = set(range(len(positions)))
+    #             self.assertEqual(indices, expected_indices)
+
 
     # === MULTI-STREET TRANSITION TESTS ===
 
