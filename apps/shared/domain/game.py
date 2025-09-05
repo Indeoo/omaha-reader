@@ -47,12 +47,12 @@ class Game:
         return {player_num: position for player_num, position in self.positions.items()
                 if position.name != "NO"}
 
-    def get_moves_by_streets(self) -> List[Tuple[Street, List[Tuple[Position, MoveType]]]]:
-        """Returns moves organized by street in chronological order.
-        Only includes streets that have moves."""
-        street_moves = []
-        for street in Street.get_street_order():
-            moves = self.moves.get(street, [])
-            if moves:
-                street_moves.append((street, moves))
-        return street_moves
+    # def get_moves_by_streets(self) -> List[Tuple[Street, List[Tuple[Position, MoveType]]]]:
+    #     """Returns moves organized by street in chronological order.
+    #     Only includes streets that have moves."""
+    #     street_moves = []
+    #     for street in Street.get_street_order():
+    #         moves = self.moves.get(street, [])
+    #         if moves:
+    #             street_moves.append((street, moves))
+    #     return street_moves
