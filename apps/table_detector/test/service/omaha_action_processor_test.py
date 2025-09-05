@@ -17,6 +17,7 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
                 (Position.CUTOFF, MoveType.FOLD),
                 (Position.BUTTON, MoveType.CALL),
                 (Position.SMALL_BLIND, MoveType.CALL),
+                (Position.BIG_BLIND, MoveType.CALL),
             ],
             Street.FLOP: [
                 (Position.SMALL_BLIND, MoveType.CHECK),
@@ -340,9 +341,9 @@ class TestMovesByStreetWithExpectedResults(unittest.TestCase):
                 (Position.CUTOFF, MoveType.CALL)
             ],
             Street.FLOP: [
-                (Position.BUTTON, MoveType.CALL),
+                (Position.BUTTON, MoveType.BET),
                 (Position.BIG_BLIND, MoveType.CALL),
-                (Position.CUTOFF, MoveType.BET),
+                (Position.CUTOFF, MoveType.CALL),
                 (Position.BUTTON, MoveType.CALL),
                 (Position.BIG_BLIND, MoveType.CALL)
             ],
