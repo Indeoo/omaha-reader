@@ -95,7 +95,6 @@ class PokerGameProcessorTest(unittest.TestCase):
 
         # Test solver link is present (but don't test exact value as it depends on implementation)
         solver_link = game_data.get('solver_link')
-        print(f"Solver link: {solver_link}")
         self.assertIsNotNone(solver_link, "Solver link should be generated")
 
         #self.assertIsNotNone(preflop_moves, "PREFLOP moves not found in game data")
@@ -129,7 +128,6 @@ class PokerGameProcessorTest(unittest.TestCase):
 
         # Test solver link is present (but don't test exact value as it depends on implementation)
         solver_link = game_data.get('solver_link')
-        print(f"Solver link: {solver_link}")
         self.assertIsNotNone(solver_link, "Solver link should be generated")
 
         self.assertIsNotNone(preflop_moves, "PREFLOP moves not found in game data")
@@ -160,7 +158,6 @@ class PokerGameProcessorTest(unittest.TestCase):
 
         # Test solver link is present (but don't test exact value as it depends on implementation)
         solver_link = game_data.get('solver_link')
-        print(f"Solver link: {solver_link}")
         self.assertIsNotNone(solver_link, "Solver link should be generated")
 
         self.assertIsNotNone(preflop_moves, "PREFLOP moves not found in game data")
@@ -193,7 +190,6 @@ class PokerGameProcessorTest(unittest.TestCase):
 
         # Test solver link is present (but don't test exact value as it depends on implementation)
         solver_link = game_data.get('solver_link')
-        print(f"Solver link: {solver_link}")
         self.assertIsNotNone(solver_link, "Solver link should be generated")
 
         self.assertIsNotNone(preflop_moves, "PREFLOP moves not found in game data")
@@ -245,7 +241,6 @@ class PokerGameProcessorTest(unittest.TestCase):
 
         # Test solver link is present (but don't test exact value as it depends on implementation)
         solver_link = game_data.get('solver_link')
-        print(f"Solver link: {solver_link}")
         self.assertIsNotNone(solver_link, "Solver link should be generated")
 
         # Compare the moves structure
@@ -301,7 +296,6 @@ class PokerGameProcessorTest(unittest.TestCase):
         
         # Test solver link is present (but don't test exact value as it depends on implementation)
         solver_link = game_data.get('solver_link')
-        print(f"Solver link: {solver_link}")
         self.assertIsNotNone(solver_link, "Solver link should be generated")
 
         # Compare the moves structure
