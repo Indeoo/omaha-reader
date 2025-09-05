@@ -119,7 +119,7 @@ class OmahaGame:
         action_result = self._execute_pokerkit_action(action)
 
         if not action_result:
-            raise InvalidActionError(f"Invalid action: {action} on {self.get_current_street()} for {position}.", position, action, self.get_current_street())
+            raise InvalidActionError(f"Invalid action: {action} on {street} for {position}.", position, action, street)
         else:
             print(f"Action {action} for {position} successfully processed")
         
