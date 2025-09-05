@@ -1,7 +1,6 @@
 import unittest
 import cv2
 import tempfile
-from pathlib import Path
 from PIL import Image
 
 from table_detector.services.poker_game_processor import PokerGameProcessor
@@ -9,24 +8,10 @@ from table_detector.services.game_state_service import GameStateService
 from table_detector.services.state_repository import GameStateRepository
 from table_detector.domain.captured_window import CapturedWindow
 from table_detector.domain.omaha_game import InvalidPositionSequenceError
+from table_detector.test.service.test_utils import load_image
 
 
 class PokerGameProcessorTest(unittest.TestCase):
-
-    def load_image(self, image_name):
-        test_dir = Path(__file__).parent.parent
-        test_image_path = test_dir / "resources" / "service" / "game_snapshot_service" / image_name
-
-        # Verify test image exists
-        if not test_image_path.exists():
-            self.fail(f"Test image not found: {test_image_path}")
-        # Load test image
-        cv2_image = cv2.imread(str(test_image_path))
-
-        if cv2_image is None:
-            self.fail(f"Failed to load test image: {test_image_path}")
-
-        return cv2_image
 
     def create_captured_window(self, cv2_image, window_name="test_window"):
         """Convert CV2 image to CapturedWindow for PokerGameProcessor."""
@@ -55,7 +40,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_1(self):
         """Test that process_window raises InvalidPositionSequenceError due to invalid poker action sequence."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image("1.png")
+        cv2_image = load_image("1.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -68,7 +53,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_2(self):
         """Test that process_window returns valid game data with expected moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image("2.png")
+        cv2_image = load_image("2.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -103,7 +88,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_3(self):
         """Test that process_window returns valid game data with expected moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image("3.png")
+        cv2_image = load_image("3.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -136,7 +121,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_4(self):
         """Test that process_window returns valid game data with no moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image("4.png")
+        cv2_image = load_image("4.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -166,7 +151,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_5(self):
         """Test that process_window returns valid game data with expected moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image("5.png")
+        cv2_image = load_image("5.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -198,7 +183,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_6(self):
         """Test that process_window returns valid game data with multi-street moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image("6.png")
+        cv2_image = load_image("6.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -250,7 +235,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_7(self):
         """Test that process_window returns valid game data with multi-street moves and solver link."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image("7.png")
+        cv2_image = load_image("7.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
