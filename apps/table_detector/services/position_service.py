@@ -68,8 +68,9 @@ class PositionService:
 
     @staticmethod
     def _infer_missing_position(detected_positions: Dict[int, Position]) -> Optional[Position]:
-        # if not detected_positions:
-        #     return None
+        # Handle empty input - no positions detected means we can't infer anything
+        if not detected_positions:
+            return None
 
         # Work directly with Position enums
         detected_position_enums = set(detected_positions.values())
