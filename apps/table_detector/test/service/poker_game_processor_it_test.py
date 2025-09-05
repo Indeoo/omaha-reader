@@ -281,6 +281,13 @@ class PokerGameProcessorTest(unittest.TestCase):
         
         # Test solver link is present (but don't test exact value as it depends on implementation)
         solver_link = game_data.get('solver_link')
+
+        #REAL
+        print("https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=3&openRaise=3.5&stack=100&topRanks&suitLevel&preflopActions=r35_c_c&flopActions=c_c_r70_c_c&turnActions&riverActions&boardCards=6s5d3dTd")
+
+        #todo: DON'T work only due to lack of TURN
+
+        print("https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=3&openRaise=3.5&stack=100&topRanks&suitLevel&preflopActions=r35_c_c&flopActions=c_c_r70_c_c&turnActions&riverActions&boardCards=7s6c5s")
         self.assertIsNotNone(solver_link, "Solver link should be generated")
 
         # Compare the moves structure
