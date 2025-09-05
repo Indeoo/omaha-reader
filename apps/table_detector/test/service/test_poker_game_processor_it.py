@@ -13,9 +13,9 @@ from table_detector.domain.omaha_game import InvalidPositionSequenceError
 
 class PokerGameProcessorTest(unittest.TestCase):
 
-    def load_image(self, folder, image_name):
+    def load_image(self, image_name):
         test_dir = Path(__file__).parent.parent
-        test_image_path = test_dir / "resources" / "service" / "game_snapshot_service" / str(folder) / image_name
+        test_image_path = test_dir / "resources" / "service" / "game_snapshot_service" / image_name
 
         # Verify test image exists
         if not test_image_path.exists():
@@ -55,7 +55,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_1(self):
         """Test that process_window raises InvalidPositionSequenceError due to invalid poker action sequence."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image(1, "01__2_50__5_Pot_Limit_Omaha.png")
+        cv2_image = self.load_image("1.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -68,7 +68,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_2(self):
         """Test that process_window returns valid game data with expected moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image(2, "01__5__10_Pot_Limit_Omaha.png")
+        cv2_image = self.load_image("2.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -104,7 +104,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_3(self):
         """Test that process_window returns valid game data with expected moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image(3, "01__2_50__5_Pot_Limit_Omaha.png")
+        cv2_image = self.load_image("3.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -138,7 +138,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_4(self):
         """Test that process_window returns valid game data with no moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image(4, "debug_2.png")
+        cv2_image = self.load_image("4.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -169,7 +169,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_5(self):
         """Test that process_window returns valid game data with expected moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image(5, "debug_3.png")
+        cv2_image = self.load_image("5.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -202,7 +202,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_6(self):
         """Test that process_window returns valid game data with multi-street moves."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image(6, "debug_1.png")
+        cv2_image = self.load_image("6.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
@@ -255,7 +255,7 @@ class PokerGameProcessorTest(unittest.TestCase):
     def test_process_window_basic_7(self):
         """Test that process_window returns valid game data with multi-street moves and solver link."""
         # Load test image and create CapturedWindow
-        cv2_image = self.load_image(7, "01__0_02__0_05_Pot_Limit_Omaha.png")
+        cv2_image = self.load_image("7.png")
         captured_window = self.create_captured_window(cv2_image)
         
         # Create processor and temp folder
