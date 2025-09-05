@@ -310,24 +310,24 @@ class PokerGameProcessorTest(unittest.TestCase):
             {
                 'street': 'Preflop',
                 'moves': [
-                    {'player_label': 'BUTTON', 'action': 'raise'},
+                    {'player_label': 'BUTTON', 'action': 'fold'},
                     {'player_label': 'SMALL_BLIND', 'action': 'call'},
-                    {'player_label': 'BIG_BLIND', 'action': 'call'},
+                    {'player_label': 'BIG_BLIND', 'action': 'raise'},
+                    {'player_label': 'SMALL_BLIND', 'action': 'call'},
                 ]
             },
             {
                 'street': 'Flop',
                 'moves': [
-                    {'player_label': 'SMALL_BLIND', 'action': 'check'},
-                    {'player_label': 'BIG_BLIND', 'action': 'check'},
-                    {'player_label': 'BUTTON', 'action': 'bet'},
-                    {'player_label': 'SMALL_BLIND', 'action': 'call'},
+                    {'player_label': 'SMALL_BLIND', 'action': 'bet'},
                     {'player_label': 'BIG_BLIND', 'action': 'call'},
                 ]
             },
             {
                 'street': 'Turn',
-                'moves': []
+                'moves': [
+                        {'player_label': 'SMALL_BLIND', 'action': 'bet'},
+                ]
             },
             {
                 'street': 'River',
@@ -344,12 +344,10 @@ class PokerGameProcessorTest(unittest.TestCase):
 
         # REAL
         print(
-            "https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=3&openRaise=3.5&stack=100&topRanks&suitLevel&preflopActions=r35_c_c&flopActions=c_c_r70_c_c&turnActions&riverActions&boardCards=6s5d3dTd")
-
-        # todo: DON'T work only due to lack of TURN
-
+            "https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=3&openRaise=3.5&stack=100&preflopActions=f_c_r30_c&flopActions=r50_c&turnActions=r83&riverActions&boardCards=Jc7d5c5s")
+        # Generated
         print(
-            "https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=3&openRaise=3.5&stack=100&topRanks&suitLevel&preflopActions=r35_c_c&flopActions=c_c_r70_c_c&turnActions&riverActions&boardCards=7s6c5s")
+            "https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=3&openRaise=3.5&stack=100&preflopActions=f_c_r35_c&flopActions=b_c&turnActions=b&boardCards=Qc5sQdTs")
         self.assertIsNotNone(solver_link, "Solver link should be generated")
 
         # Compare the moves structure
