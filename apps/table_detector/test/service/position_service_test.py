@@ -80,35 +80,6 @@ class PositionServiceTest(unittest.TestCase):
 
         self.assertEqual(result, expected)
 
-    # def test_convert_detections_to_detected_positions_with_unknown_detection(self):
-    #     """Test conversion skips unknown detections and warns."""
-    #     positions = {
-    #         1: Detection("BTN", (300, 120), (280, 100, 40, 40), 0.99),
-    #         2: Detection("UNKNOWN_POS", (35, 330), (15, 310, 40, 40), 0.98),
-    #         3: Detection("BB", (35, 173), (15, 153, 40, 40), 0.97),
-    #         4: Detection("EP", (297, 120), (277, 100, 40, 40), 0.96),
-    #         5: Detection("MP", (562, 168), (542, 148, 40, 40), 0.95),
-    #         6: Detection("CO", (565, 332), (545, 312, 40, 40), 0.94)
-    #     }
-    #
-    #     # This should raise an exception since we don't have 6 valid positions
-    #     with self.assertRaises(Exception) as context:
-    #         PositionService.convert_detections_to_detected_positions(positions)
-    #
-    #     self.assertIn("Could not convert", str(context.exception))
-
-    # def test_convert_detections_to_detected_positions_insufficient_positions(self):
-    #     """Test conversion raises exception when less than 6 positions detected."""
-    #     positions = {
-    #         1: Detection("BTN", (300, 120), (280, 100, 40, 40), 0.99),
-    #         2: Detection("SB", (35, 330), (15, 310, 40, 40), 0.98),
-    #         3: Detection("BB", (35, 173), (15, 153, 40, 40), 0.97)
-    #     }
-    #
-    #     with self.assertRaises(Exception) as context:
-    #         PositionService.convert_detections_to_detected_positions(positions)
-    #
-    #     self.assertIn("Could not convert", str(context.exception))
 
     def test_filter_and_recover_positions_all_direct_positions(self):
         """Test filtering when all detections are direct positions."""
