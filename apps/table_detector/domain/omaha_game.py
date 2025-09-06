@@ -166,6 +166,9 @@ class OmahaGame:
         """Get the complete move history organized by street"""
         return self.moves_by_street.copy()
 
+    def get_current_position(self):
+        return self.get_seat_to_position_mapping()[self.poker_state.actor_index]
+
     def get_seat_to_position_mapping(self) -> Dict[int, Position]:
         """
         Get mapping from PokerKit seat indices to Position enums based on 
