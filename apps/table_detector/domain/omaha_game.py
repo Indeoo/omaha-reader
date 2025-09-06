@@ -60,6 +60,8 @@ class OmahaGame:
             player_count,  # Number of players
         )
 
+        self.seat_mapping = self._get_seat_to_position_mapping()
+
     def process_action(self, position: Position, action: MoveType):
         street = self.get_current_street()
 
@@ -122,11 +124,11 @@ class OmahaGame:
         return self.moves_by_street.copy()
 
     def get_current_position(self):
-        return self.get_seat_to_position_mapping()[self.poker_state.actor_index]
+        return self.seat_mapping[self.poker_state.actor_index]
 
-    def get_seat_to_position_mapping(self) -> Dict[int, Position]:
+    def _get_seat_to_position_mapping(self) -> Dict[int, Position]:
         """
-        Get mapping from PokerKit seat indices to Position enums based on 
+        Get mapping from PokerKit seat indices to Position enums based on
         player count and opener index.
         
         Returns:
@@ -134,7 +136,7 @@ class OmahaGame:
         """
         player_count = self.poker_state.player_count
         opener_index = self.poker_state.opener_index
-        
+
         # Get the position order based on player count
         position_order = self._get_position_order_for_player_count(player_count)
         
@@ -147,19 +149,12 @@ class OmahaGame:
             position_index = (i - opener_index) % player_count
             # Map seat to position
             seat_to_position[seat_index] = position_order[position_index]
-        
+
+
+        print(seat_to_position)
         return seat_to_position
     
     def _get_position_order_for_player_count(self, player_count: int) -> List[Position]:
-        """
-        Get the position order for a given player count in poker action order.
-        
-        Args:
-            player_count: Number of players (2-6)
-            
-        Returns:
-            List[Position]: Positions in poker action order for the given player count
-        """
         if player_count == 2:
             # Heads-up: SB acts first preflop, BB acts first postflop
             return [Position.SMALL_BLIND, Position.BIG_BLIND]
