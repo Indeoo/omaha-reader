@@ -20,30 +20,19 @@ class InvalidPositionSequenceError(Exception):
 
 
 class OmahaGame:
-    def __init__(self, player_positions: List[Position]):
+    def __init__(self, player_count):
+        if player_count < 2:
+            raise ValueError("Need at least 2 players to start game")
+
+        if player_count > 6:
+            raise ValueError("There can't be more than 6 players")
+
         self.moves_by_street: Dict[Street, List[Tuple[Position, MoveType]]] = {
             Street.PREFLOP: [],
             Street.FLOP: [],
             Street.TURN: [],
             Street.RIVER: []
         }
-        
-        # Position mapping
-        self.position_to_index: Dict[Position, int] = {}
-        self.index_to_position: Dict[int, Position] = {}
-        
-        # Track active players for position sequence validation
-        self.active_players: set[Position] = set(player_positions)
-
-        player_count = len(player_positions)
-
-        if player_count < 2:
-            raise ValueError("Need at least 2 players to start game")
-
-        for position in player_positions:
-            player_index = len(self.position_to_index)
-            self.position_to_index[position] = player_index
-            self.index_to_position[player_index] = position
 
         starting_stacks = [100] * player_count  # Default stack size
         blinds = (0.5, 1)  # Default blinds (SB, BB)
@@ -69,65 +58,21 @@ class OmahaGame:
             player_count,  # Number of players
         )
 
-    def _validate_position_sequence(self, position: Position) -> bool:
-        if position not in self.active_players:
-            return False
-            
-        current_street = self.get_current_street()
-        current_moves = self.moves_by_street[current_street]
-        
-        # Get proper action order for current street
-        if current_street == Street.PREFLOP:
-            action_order = Position.get_action_order()
-        else:
-            action_order = Position.get_postflop_action_order()
-        
-        # Filter action order to only include active players in this game
-        game_action_order = [pos for pos in action_order if pos in self.active_players]
-        
-        if not game_action_order:
-            return False
-            
-        # If this is the first action on this street, first player should act
-        if not current_moves:
-            expected_first_player = game_action_order[0]
-            return position == expected_first_player
-            
-        # Find who acted last and determine next expected player
-        last_action_position = current_moves[-1][0]
-        
-        # Find the next active player after the last action in full action order
-        last_player_index_in_full_order = action_order.index(last_action_position)
-        
-        # Look for next active player starting from the position after last action
-        for i in range(1, len(action_order)):
-            next_index = (last_player_index_in_full_order + i) % len(action_order)
-            next_position = action_order[next_index]
-            if next_position in self.active_players:
-                return position == next_position
-                
-        # No active players found (shouldn't happen)
-        return False
+        self.seat_mapping = self._get_seat_to_position_mapping()
 
     def process_action(self, position: Position, action: MoveType):
-        street = self.get_current_street()
-        
-        # Validate position sequence (optional - can be disabled for testing)
-        if not self._validate_position_sequence(position):
-            raise InvalidPositionSequenceError(f"Invalid position sequence: {position} cannot act on {street}", position, action, street)
 
+        if position != self.get_current_position():
+            raise InvalidPositionSequenceError()
+
+        street = self.get_current_street()
         action_result = self._execute_pokerkit_action(action)
 
         if not action_result:
-            raise InvalidActionError(f"Invalid action: {action} on {self.get_current_street()} for {position}.", position, action, self.get_current_street())
+            raise InvalidActionError(f"Invalid action: {action} on {street} for {position}.", position, action, street)
         else:
             print(f"Action {action} for {position} successfully processed")
-        
-        # Update active players if fold action
-        if action == MoveType.FOLD:
-            self.active_players.discard(position)
-            
-        # Always record the action in our move history
+
         self.moves_by_street[street].append((position, action))
 
     def _execute_pokerkit_action(self, action: MoveType) -> bool:
@@ -145,8 +90,7 @@ class OmahaGame:
                 if calling_amount is not None and calling_amount > 0:
                     self.poker_state.check_or_call()
                     return True
-            elif action in [MoveType.BET, MoveType.RAISE] and self.poker_state.can_complete_bet_or_raise_to():
-                # Use minimum bet/raise amount
+            elif action in [MoveType.BET, MoveType.CALL, MoveType.RAISE] and self.poker_state.can_complete_bet_or_raise_to():
                 min_amount = self.poker_state.min_completion_betting_or_raising_to_amount
                 if min_amount is not None:
                     self.poker_state.complete_bet_or_raise_to(min_amount)
@@ -171,5 +115,35 @@ class OmahaGame:
             raise Exception(f"Invalid street index: {street_index}")
 
     def get_moves_by_street(self) -> Dict[Street, List[Tuple[Position, MoveType]]]:
-        """Get the complete move history organized by street"""
         return self.moves_by_street.copy()
+
+    def get_current_position(self):
+        return self.seat_mapping[self.poker_state.actor_index]
+
+    def _get_seat_to_position_mapping(self) -> Dict[int, Position]:
+        player_count = self.poker_state.player_count
+        opener_index = self.poker_state.opener_index
+
+        position_order = self._get_position_order_for_player_count(player_count)
+        
+        seat_to_position = {}
+        for i in range(player_count):
+            seat_index = i
+            position_index = (i - opener_index) % player_count
+            seat_to_position[seat_index] = position_order[position_index]
+
+        return seat_to_position
+    
+    def _get_position_order_for_player_count(self, player_count: int) -> List[Position]:
+        if player_count == 2:
+            return [Position.SMALL_BLIND, Position.BIG_BLIND]
+        elif player_count == 3:
+            return [Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
+        elif player_count == 4:
+            return [Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
+        elif player_count == 5:
+            return [Position.EARLY_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
+        elif player_count == 6:
+            return [Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
+        else:
+            raise ValueError(f"Unsupported player count: {player_count}. Supported range: 2-6 players")

@@ -293,3 +293,63 @@ class PokerGameProcessorTest(unittest.TestCase):
         # Compare the moves structure
         self.assertEqual(expected_moves, result_moves)
 
+    def test_process_window_basic_8(self):
+        # Load test image and create CapturedWindow
+        cv2_image = load_image("8.png")
+        captured_window = self.create_captured_window(cv2_image)
+
+        # Create processor and temp folder
+        processor = self.create_poker_processor()
+        temp_folder = self.create_temp_folder()
+
+        # Execute the method under test
+        game_data = processor.process_window(captured_window, temp_folder)
+
+        # Expected moves in web format
+        expected_moves = [
+            {
+                'street': 'Preflop',
+                'moves': [
+                    {'player_label': 'BUTTON', 'action': 'fold'},
+                    {'player_label': 'SMALL_BLIND', 'action': 'call'},
+                    {'player_label': 'BIG_BLIND', 'action': 'raise'},
+                    {'player_label': 'SMALL_BLIND', 'action': 'call'},
+                ]
+            },
+            {
+                'street': 'Flop',
+                'moves': [
+                    {'player_label': 'SMALL_BLIND', 'action': 'bet'},
+                    {'player_label': 'BIG_BLIND', 'action': 'call'},
+                ]
+            },
+            {
+                'street': 'Turn',
+                'moves': [
+                        {'player_label': 'SMALL_BLIND', 'action': 'bet'},
+                ]
+            },
+            {
+                'street': 'River',
+                'moves': []
+            }
+        ]
+
+        # Debug output (keep original print statements)
+        result_moves = game_data['moves']
+        print(result_moves)
+
+        # Test solver link is present (but don't test exact value as it depends on implementation)
+        solver_link = game_data.get('solver_link')
+
+        # REAL
+        print(
+            "https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=3&openRaise=3.5&stack=100&preflopActions=f_c_r30_c&flopActions=r50_c&turnActions=r83&riverActions&boardCards=Jc7d5c5s")
+        # Generated
+        print(
+            "https://app.flophero.com/omaha/cash/strategies?research=full_tree&site=GGPoker&bb=10&blindStructure=Regular&players=3&openRaise=3.5&stack=100&preflopActions=f_c_r35_c&flopActions=b_c&turnActions=b&boardCards=Qc5sQdTs")
+        self.assertIsNotNone(solver_link, "Solver link should be generated")
+
+        # Compare the moves structure
+        self.assertEqual(expected_moves, result_moves)
+

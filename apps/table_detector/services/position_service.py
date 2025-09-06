@@ -44,41 +44,31 @@ class PositionService:
 
     @staticmethod
     def filter_and_recover_positions(detected_positions: Dict[int, DetectedPosition]) -> Dict[int, Position]:
-        """
-        Filter DetectedPosition enums to valid positions and recover missing positions
-        from action evidence in a single pass.
-
-        Args:
-            detected_positions: Dict mapping player_id to DetectedPosition enums
-        Returns:
-            Dict mapping player_id to Position enums (direct positions + recovered positions)
-        """
         result_positions = {}
 
-        # Single pass: filter valid positions and recover from actions
+        # Extract all direct positions upfront
+        direct_positions = {}
         for player_id, detected_pos in detected_positions.items():
             if detected_pos.is_position():
-                # Direct position conversion
                 position_enum = detected_pos.to_position()
                 if position_enum:
-                    result_positions[player_id] = position_enum
-                    logger.debug(f"Direct position for player {player_id}: {position_enum}")
+                    direct_positions[player_id] = position_enum
 
-            elif detected_pos.is_action():
-                # Recover position for action text detected in position templates
-                inferred_position_enum = PositionService._infer_missing_position(result_positions)
+        # Start with direct positions
+        result_positions.update(direct_positions)
 
+        # Now infer missing positions for actions (using complete direct_positions)
+        for player_id, detected_pos in detected_positions.items():
+            if detected_pos.is_action():
+                inferred_position_enum = PositionService._infer_missing_position(direct_positions)
                 if inferred_position_enum:
                     result_positions[player_id] = inferred_position_enum
-                    logger.info(
-                        f"Recovered position for player {player_id}: {inferred_position_enum} (detected action: {detected_pos.value})")
-
-            # NO_POSITION is automatically ignored (neither is_position() nor is_action())
 
         return result_positions
 
     @staticmethod
     def _infer_missing_position(detected_positions: Dict[int, Position]) -> Optional[Position]:
+        # Handle empty input - no positions detected means we can't infer anything
         if not detected_positions:
             return None
 

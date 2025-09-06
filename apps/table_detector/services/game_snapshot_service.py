@@ -1,11 +1,12 @@
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from loguru import logger
 
 from shared.domain.game_snapshot import GameSnapshot
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
-from table_detector.services.omaha_action_processor import group_moves_by_street
+from shared.domain.street import Street
+from table_detector.domain.omaha_game import OmahaGame, InvalidPositionSequenceError
 from table_detector.services.position_service import PositionService
 from table_detector.utils.detect_utils import DetectUtils
 
@@ -22,7 +23,7 @@ class GameSnapshotService:
         recovered_positions = PositionService.get_positions(position_detections)
 
         position_actions = GameSnapshotService._convert_to_position_actions(action_detections, recovered_positions)
-        moves = group_moves_by_street(position_actions)
+        moves = GameSnapshotService.group_moves_by_street(position_actions)
         logger.info(moves)
 
         game_snapshot = (
@@ -38,6 +39,21 @@ class GameSnapshotService:
         )
 
         return game_snapshot
+
+    @staticmethod
+    def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
+        Street, List[Tuple[Position, MoveType]]]:
+        game = OmahaGame(len(player_moves.keys()))
+
+        while any(player_moves[pos] for pos in player_moves):
+            current_position = game.get_current_position()
+            if len(player_moves[current_position]) > 0:
+                move = player_moves[current_position].pop(0)
+                game.process_action(current_position, move)
+            else:
+                raise InvalidPositionSequenceError()
+
+        return game.get_moves_by_street()
 
     @staticmethod
     def _convert_to_position_actions(actions, positions: Dict[int, Position]) -> Dict[Position, List[MoveType]]:
