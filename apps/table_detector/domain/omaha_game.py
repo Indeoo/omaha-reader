@@ -20,7 +20,7 @@ class InvalidPositionSequenceError(Exception):
 
 
 class OmahaGame:
-    def __init__(self, player_positions: List[Position]):
+    def __init__(self, player_count):
         self.moves_by_street: Dict[Street, List[Tuple[Position, MoveType]]] = {
             Street.PREFLOP: [],
             Street.FLOP: [],
@@ -29,9 +29,9 @@ class OmahaGame:
         }
 
         # Track active players for position sequence validation
-        self.active_players: set[Position] = set(player_positions)
+        # self.active_players: set[Position] = set(player_positions)
 
-        player_count = len(player_positions)
+        # player_count = len(player_positions)
 
         if player_count < 2:
             raise ValueError("Need at least 2 players to start game")
@@ -73,8 +73,8 @@ class OmahaGame:
             print(f"Action {action} for {position} successfully processed")
         
         # Update active players if fold action
-        if action == MoveType.FOLD:
-            self.active_players.discard(position)
+        # if action == MoveType.FOLD:
+        #     self.active_players.discard(position)
             
         # Always record the action in our move history
         self.moves_by_street[street].append((position, action))
