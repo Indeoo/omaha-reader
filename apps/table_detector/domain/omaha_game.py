@@ -61,8 +61,11 @@ class OmahaGame:
         self.seat_mapping = self._get_seat_to_position_mapping()
 
     def process_action(self, position: Position, action: MoveType):
-        street = self.get_current_street()
 
+        if position != self.get_current_position():
+            raise InvalidPositionSequenceError()
+
+        street = self.get_current_street()
         action_result = self._execute_pokerkit_action(action)
 
         if not action_result:

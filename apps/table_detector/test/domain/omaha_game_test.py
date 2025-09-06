@@ -235,7 +235,7 @@ class TestOmahaGame(unittest.TestCase):
 
     def test_heads_up_all_in_scenario(self):
         """Test heads-up all-in scenario"""
-        game = OmahaGame(3)
+        game = OmahaGame(2)
         
         # Simulate all-in scenario
         game.process_action(Position.SMALL_BLIND, MoveType.RAISE)  # SB raises
