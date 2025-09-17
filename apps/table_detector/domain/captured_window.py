@@ -13,7 +13,8 @@ class CapturedWindow:
             self,
             image: Image.Image,
             filename: str,
-            window_name: str
+            window_name: str,
+            description: str = 'test',
     ):
         self.image = image
         self.filename = filename
