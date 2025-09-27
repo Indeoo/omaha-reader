@@ -289,7 +289,10 @@ function updateStatus(lastUpdate, totalTables) {
 }
 
 function updateTimerDisplay() {
-    document.getElementById('backendInfo').textContent = `every ${config.backend_capture_interval}`;
+    const backendInfoEl = document.getElementById('backendInfo');
+    if (backendInfoEl) {
+        backendInfoEl.textContent = `every ${config.backend_capture_interval}`;
+    }
 }
 
 // HTTP Polling system for client-specific data
