@@ -1,7 +1,9 @@
 import os
+import atexit
 
 from flask.cli import load_dotenv
 from loguru import logger
+from apscheduler.schedulers.background import BackgroundScheduler
 
 from apps.server.server_web_api import ServerWebApi
 
@@ -39,8 +41,28 @@ def main():
             require_password=REQUIRE_PASSWORD,
             password=PASSWORD
         )
-        
+
         app = server_api.create_app()
+
+        # Setup periodic cleanup of stale clients
+        scheduler = BackgroundScheduler()
+        game_state_service = server_api.game_state_service
+
+        def cleanup_stale_clients():
+            disconnected_count = game_state_service.cleanup_stale_clients()
+            if disconnected_count > 0:
+                logger.info(f"🧹 Cleanup: disconnected {disconnected_count} stale clients")
+
+        # Run cleanup every 5 seconds
+        scheduler.add_job(
+            func=cleanup_stale_clients,
+            trigger="interval",
+            seconds=5,
+            id='cleanup_stale_clients'
+        )
+
+        scheduler.start()
+        atexit.register(lambda: scheduler.shutdown())
 
         logger.info(f"✅ Server starting on {HOST}:{PORT}")
         logger.info(f"🌍 Web UI will be accessible at http://{HOST}:{PORT}")
@@ -50,6 +72,7 @@ def main():
         logger.info(f"   - GET  http://{HOST}:{PORT}/api/detections")
         logger.info(f"   - GET  http://{HOST}:{PORT}/api/clients")
         logger.info(f"🔄 Using HTTP polling (5 second interval)")
+        logger.info(f"🧹 Stale client cleanup enabled (5 second interval)")
         logger.info("\nPress Ctrl+C to stop the server")
         logger.info("-" * 50)
 
