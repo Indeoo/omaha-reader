@@ -1,4 +1,3 @@
-# Ensure proper path setup
 import os
 import traceback
 import uuid
@@ -7,6 +6,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from loguru import logger
 
+from table_detector.domain.omaha_game import ExpectedException
 from table_detector.services.image_capture_service import ImageCaptureService
 from table_detector.services.game_state_service import GameStateService
 from table_detector.services.state_repository import GameStateRepository
@@ -112,9 +112,11 @@ class DetectionClient:
                 if game_data:
                     changed_games.append(game_data)
                     logger.debug(f"✅ Captured changes for {captured_image.window_name}")
-
+            except ExpectedException as e:
+                logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
+                logger.error(f"Expected exception: {e}")
             except Exception as e:
-                traceback.print_exc()
+                logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
                 logger.error(f"❌ Error processing {captured_image.window_name}: {str(e)}")
             finally:
                 # Clean up the image immediately after processing to prevent memory leaks

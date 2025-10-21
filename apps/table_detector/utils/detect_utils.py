@@ -47,6 +47,8 @@ class DetectUtils:
                     if detected_positions:
                         best_position = detected_positions[0]
                         player_positions[player_num] = best_position
+                    else:
+                        player_positions[player_num] = Detection("NO", None, None, 1)
 
                 except Exception as e:
                     logger.error(f"❌ Error checking player {player_num} position: {str(e)}")

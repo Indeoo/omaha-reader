@@ -6,7 +6,11 @@ from shared.domain.position import Position
 from shared.domain.street import Street
 
 
-class InvalidActionError(Exception):
+class ExpectedException(Exception):
+    pass
+
+
+class InvalidActionError(ExpectedException):
     """Raised when an invalid action is attempted"""
     def __init__(self, message: str, position: Position, action: MoveType, current_street: Street):
         super().__init__(message)
@@ -15,17 +19,21 @@ class InvalidActionError(Exception):
         self.current_street = current_street
 
 
-class InvalidPositionSequenceError(Exception):
+class InvalidPositionSequenceError(ExpectedException):
     """Raised when an invalid position sequence is attempted"""
+
+class WrongPlayerAmount(ExpectedException):
+    def __init__(self, message: str):
+        super().__init__(message)
 
 
 class OmahaGame:
     def __init__(self, player_count):
         if player_count < 2:
-            raise ValueError("Need at least 2 players to start game")
+            raise WrongPlayerAmount("Need at least 2 players to start game")
 
         if player_count > 6:
-            raise ValueError("There can't be more than 6 players")
+            raise WrongPlayerAmount("There can't be more than 6 players")
 
         self.moves_by_street: Dict[Street, List[Tuple[Position, MoveType]]] = {
             Street.PREFLOP: [],
