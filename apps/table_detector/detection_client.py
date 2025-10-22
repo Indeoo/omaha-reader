@@ -12,7 +12,7 @@ from table_detector.services.game_state_service import GameStateService
 from table_detector.services.state_repository import GameStateRepository
 from table_detector.services.poker_game_processor import PokerGameProcessor
 from table_detector.utils.fs_utils import create_timestamp_folder, create_window_folder
-from table_detector.utils.logs import load_logger
+from table_detector.utils.log_accumulator import LogAccumulator
 from table_detector.utils.windows_utils import initialize_platform
 from shared.protocol.message_protocol import GameUpdateMessage, TableRemovalMessage
 
@@ -74,25 +74,48 @@ class DetectionClient:
 
     def detect_and_send(self):
         """Main detection loop - detect game state and send to server."""
-        try:
-            base_timestamp_folder = create_timestamp_folder(self.debug_mode)
-            if not self.debug_mode:
-                load_logger(base_timestamp_folder)
+        log_accumulator = LogAccumulator() if not self.debug_mode else None
 
+        try:
+            # Start capturing logs to memory (if not in debug mode)
+            if log_accumulator:
+                log_accumulator.start_capture()
+
+            base_timestamp_folder = create_timestamp_folder(self.debug_mode)
             window_changes = self.image_capture_service.get_changed_images(base_timestamp_folder)
 
-            # Process changed windows and collect changed game states
-            changed_games = self._handle_changed_windows(window_changes.changed_images, base_timestamp_folder)
+            # Only process and write logs if there are changed windows
+            if window_changes.changed_images:
+                # Process changed windows and collect changed game states
+                changed_games = self._handle_changed_windows(window_changes.changed_images, base_timestamp_folder)
 
-            # Handle removed windows and collect removal messages
-            removal_messages = self._handle_removed_windows(window_changes.removed_windows)
+                # Handle removed windows and collect removal messages
+                removal_messages = self._handle_removed_windows(window_changes.removed_windows)
 
-            # Send updates to server (let the method handle empty inputs)
-            self._send_updates_to_server(changed_games, removal_messages)
+                # Send updates to server (let the method handle empty inputs)
+                self._send_updates_to_server(changed_games, removal_messages)
+
+                # Write accumulated logs to file
+                if log_accumulator and log_accumulator.has_logs():
+                    log_accumulator.write_to_file(base_timestamp_folder / "app.log")
+            else:
+                # No changes detected - clear accumulated logs
+                if log_accumulator:
+                    log_accumulator.clear()
 
         except Exception as e:
             logger.error(f"Error in detection cycle: {str(e)}")
             traceback.print_exc()
+
+            # Write logs on error too (for debugging)
+            if log_accumulator and log_accumulator.has_logs():
+                base_timestamp_folder = create_timestamp_folder(self.debug_mode)
+                log_accumulator.write_to_file(base_timestamp_folder / "app.log")
+
+        finally:
+            # Always cleanup the log handler
+            if log_accumulator:
+                log_accumulator.stop_capture()
 
     def _handle_changed_windows(self, captured_windows, base_timestamp_folder):
         """Process changed windows using existing poker game processor and return list of changed game states."""
