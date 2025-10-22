@@ -5,7 +5,6 @@ from loguru import logger
 
 from table_detector.domain.captured_window import CapturedWindow
 from table_detector.services.window_capture_service import capture_and_save_windows
-from table_detector.utils.logs import console_logger
 
 
 class WindowChanges(NamedTuple):
@@ -26,7 +25,7 @@ class ImageCaptureService:
         )
 
         if not captured_windows:
-            console_logger.warning("🚫 No poker tables detected")
+            logger.warning("🚫 No poker tables detected")
             removed_windows = list(self._window_hashes.keys())
             self._window_hashes.clear()
             return WindowChanges(changed_images=[], removed_windows=removed_windows)
