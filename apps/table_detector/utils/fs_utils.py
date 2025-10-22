@@ -7,7 +7,7 @@ from loguru import logger
 DEBUG_FOLDER = "test/resources/default_debug"
 
 
-def create_timestamp_folder(debug_mode=False) -> str:
+def create_timestamp_folder(debug_mode=False) -> Path:
     """
     Create timestamp folder path for current session
 
