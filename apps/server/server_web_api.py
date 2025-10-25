@@ -251,34 +251,6 @@ class ServerWebApi:
 
     def _setup_client_endpoints(self, app):
         """Endpoints for detection clients to send data."""
-        
-        @app.route('/api/client/register', methods=['POST'])
-        def register_client():
-            """HTTP endpoint for client registration."""
-            try:
-                data = request.get_json()
-                if not data or 'client_id' not in data:
-                    return jsonify({'error': 'client_id required'}), 400
-                
-                from apps.shared.protocol.message_protocol import ClientRegistrationMessage
-                from datetime import datetime
-                
-                message = ClientRegistrationMessage(
-                    type='client_register',
-                    client_id=data['client_id'],
-                    timestamp=datetime.now().isoformat()
-                )
-                
-                response = self.game_data_receiver.handle_client_message(message.to_json())
-                
-                if response and response.status == 'success':
-                    return jsonify({'status': 'success', 'message': response.message})
-                else:
-                    return jsonify({'status': 'error', 'message': response.message if response else 'Unknown error'}), 500
-                    
-            except Exception as e:
-                logger.error(f"Error in client registration: {str(e)}")
-                return jsonify({'error': str(e)}), 500
 
         @app.route('/api/client/update', methods=['POST'])
         def update_game_state():

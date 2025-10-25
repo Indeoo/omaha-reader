@@ -70,7 +70,6 @@ def main():
         logger.info(f"✅ Server starting on {HOST}:{PORT}")
         logger.info(f"🌍 Web UI will be accessible at http://{HOST}:{PORT}")
         logger.info(f"📡 Client HTTP endpoints:")
-        logger.info(f"   - POST http://{HOST}:{PORT}/api/client/register")
         logger.info(f"   - POST http://{HOST}:{PORT}/api/client/update")
         logger.info(f"   - GET  http://{HOST}:{PORT}/api/detections")
         logger.info(f"   - GET  http://{HOST}:{PORT}/api/clients")
