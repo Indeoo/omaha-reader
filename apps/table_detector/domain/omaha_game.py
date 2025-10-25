@@ -89,7 +89,7 @@ class OmahaGame:
             moves = player_moves[current_position]
 
             if not moves:
-                raise InvalidPositionSequenceError()
+                raise InvalidPositionSequenceError("Position error during simulation")
 
             self.process_action(current_position, moves.pop(0))
 
