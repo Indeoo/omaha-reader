@@ -136,7 +136,7 @@ class DetectionClient:
                     changed_games.append(game_data)
                     logger.debug(f"✅ Captured changes for {captured_image.window_name}")
             except ExpectedException as e:
-                logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
+                #logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
                 logger.error(f"Expected exception: {e}")
             except Exception as e:
                 logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
