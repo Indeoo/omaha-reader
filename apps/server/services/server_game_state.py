@@ -26,12 +26,8 @@ class ServerGameStateService:
         client_id = message.client_id
         window_name = message.window_name
 
-        # Ensure client is registered
-        if client_id not in self.client_states:
-            self.client_states[client_id] = {}
-
-        # Update client's last activity timestamp (tracks actual activity, not just registration)
-        self.connected_clients[client_id] = datetime.now()
+        # Ensure client is registered (reuses existing registration logic)
+        self.register_client(client_id)
 
         # Update or create game state with metadata
         self.client_states[client_id][window_name] = {
