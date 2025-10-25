@@ -12,11 +12,13 @@ class ServerGameStateService:
         self.connected_clients: Dict[str, datetime] = {}
 
     def register_client(self, client_id: str) -> None:
+        logger.info(f"Registering client {client_id}")
         self.connected_clients[client_id] = datetime.now()
         if client_id not in self.client_states:
             self.client_states[client_id] = {}
 
     def disconnect_client(self, client_id: str) -> None:
+        logger.info(f"Disconnecting client {client_id}")
         if client_id in self.connected_clients:
             del self.connected_clients[client_id]
         if client_id in self.client_states:
