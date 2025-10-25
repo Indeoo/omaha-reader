@@ -71,7 +71,7 @@ class OmahaGame:
     def process_action(self, position: Position, action: MoveType):
 
         if position != self.get_current_position():
-            raise InvalidPositionSequenceError()
+            raise InvalidPositionSequenceError("Wrong position sequence in OmahaGame")
 
         street = self.get_current_street()
         action_result = self._execute_pokerkit_action(action)
@@ -82,6 +82,16 @@ class OmahaGame:
             print(f"Action {action} for {position} successfully processed")
 
         self.moves_by_street[street].append((position, action))
+
+    def simulate_all_moves(self, player_moves: dict[Position, list[MoveType]]):
+        while any(player_moves.values()):
+            current_position = self.get_current_position()
+            moves = player_moves[current_position]
+
+            if not moves:
+                raise InvalidPositionSequenceError()
+
+            self.process_action(current_position, moves.pop(0))
 
     def _execute_pokerkit_action(self, action: MoveType) -> bool:
         try:

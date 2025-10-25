@@ -6,7 +6,7 @@ from shared.domain.game_snapshot import GameSnapshot
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
 from shared.domain.street import Street
-from table_detector.domain.omaha_game import OmahaGame, InvalidPositionSequenceError
+from table_detector.domain.omaha_game import OmahaGame
 from table_detector.services.position_service import PositionService
 from table_detector.utils.detect_utils import DetectUtils
 
@@ -23,7 +23,10 @@ class GameSnapshotService:
         recovered_positions = PositionService.get_positions(position_detections)
 
         position_actions = GameSnapshotService._convert_to_position_actions(action_detections, recovered_positions)
-        moves = GameSnapshotService.group_moves_by_street(position_actions)
+
+        game = OmahaGame(len(position_actions))
+        game.simulate_all_moves(position_actions)
+        moves = game.get_moves_by_street()
         logger.info(moves)
 
         game_snapshot = (
@@ -45,14 +48,7 @@ class GameSnapshotService:
         Street, List[Tuple[Position, MoveType]]]:
         game = OmahaGame(len(player_moves))
 
-        while any(player_moves.values()):
-            current_position = game.get_current_position()
-            moves = player_moves[current_position]
-
-            if not moves:
-                raise InvalidPositionSequenceError()
-
-            game.process_action(current_position, moves.pop(0))
+        game.simulate_all_moves(player_moves)
 
         return game.get_moves_by_street()
 
