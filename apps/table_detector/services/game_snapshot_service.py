@@ -43,15 +43,16 @@ class GameSnapshotService:
     @staticmethod
     def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
         Street, List[Tuple[Position, MoveType]]]:
-        game = OmahaGame(len(player_moves.keys()))
+        game = OmahaGame(len(player_moves))
 
-        while any(player_moves[pos] for pos in player_moves):
+        while any(player_moves.values()):
             current_position = game.get_current_position()
-            if len(player_moves[current_position]) > 0:
-                move = player_moves[current_position].pop(0)
-                game.process_action(current_position, move)
-            else:
+            moves = player_moves[current_position]
+
+            if not moves:
                 raise InvalidPositionSequenceError()
+
+            game.process_action(current_position, moves.pop(0))
 
         return game.get_moves_by_street()
 
