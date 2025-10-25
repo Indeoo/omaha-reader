@@ -7,10 +7,7 @@ from typing import List
 import requests
 from loguru import logger
 
-from shared.protocol.message_protocol import (
-    GameUpdateMessage,
-    ClientRegistrationMessage
-)
+from shared.protocol.message_protocol import GameUpdateMessage
 
 
 @dataclass
@@ -48,13 +45,7 @@ class SimpleHttpConnector:
             'Content-Type': 'application/json',
             'User-Agent': 'OmahaPokerClient/1.0'
         })
-        
-        # Track registration status per server URL
-        self.registration_status = {config.url: False for config in self.server_configs}
-        
-        # Store detection interval when first used (set during first registration)
-        self._detection_interval = None
-        
+
         # Thread pool for async HTTP requests
         self.executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="http-sender")
         
@@ -62,58 +53,8 @@ class SimpleHttpConnector:
         for config in self.server_configs:
             logger.info(f"   - {config.url} (timeout: {config.timeout}s, retries: {config.retry_attempts})")
 
-    def _ensure_registration(self, client_id: str, config: ServerConfig) -> bool:
-        """Ensure client is registered with a specific server. Returns True if registered."""
-        if self.registration_status.get(config.url, False):
-            return True  # Already registered
-        
-        # Attempt registration using stored detection interval (defaults to 10 if not set)
-        detection_interval = self._detection_interval or 10
-        message = ClientRegistrationMessage(
-            type='client_register',
-            client_id=client_id,
-            timestamp=datetime.now().isoformat(),
-            detection_interval=detection_interval
-        )
-        
-        try:
-            endpoint = f"{config.url.rstrip('/')}/api/client/register"
-            success = self._send_http_request(endpoint, message.to_dict(), config, "registration")
-            if success:
-                self.registration_status[config.url] = True
-                logger.info(f"✅ Registered with server: {config.url}")
-                return True
-            else:
-                logger.debug(f"Registration failed for {config.url}")
-                return False
-        except Exception as e:
-            logger.debug(f"Registration error for {config.url}: {str(e)}")
-            return False
-
-    def register_client(self, client_id: str, detection_interval: int = 10) -> bool:
-        """Register client with all servers via HTTP POST."""
-        if not self.server_configs:
-            logger.warning("No servers configured - skipping registration")
-            return False
-        
-        # Store detection interval for future use (re-registrations, etc.)
-        self._detection_interval = detection_interval
-        
-        successful_registrations = 0
-        
-        for config in self.server_configs:
-            if self._ensure_registration(client_id, config):
-                successful_registrations += 1
-        
-        if successful_registrations > 0:
-            logger.info(f"📝 Registered with {successful_registrations}/{len(self.server_configs)} servers")
-            return True
-        else:
-            logger.warning("⚠️ Failed to register with any server")
-            return False
-
     def send_game_update(self, game_update: GameUpdateMessage) -> bool:
-        """Send game update to all servers via HTTP POST (async fire-and-forget). Ensures registration first."""
+        """Send game update to all servers via HTTP POST (async fire-and-forget)."""
         if not self.server_configs:
             logger.debug("No servers configured - skipping game update")
             return False
@@ -128,23 +69,13 @@ class SimpleHttpConnector:
     def _send_game_update_async(self, game_update: GameUpdateMessage, config: ServerConfig):
         """Async worker method to send game update to a single server."""
         try:
-            # Ensure registration before sending data
-            if not self._ensure_registration(game_update.client_id, config):
-                logger.debug(f"Skipping game update for {config.url} - registration failed")
-                return
-            
             endpoint = f"{config.url.rstrip('/')}/api/client/update"
-            success = self._send_http_request(endpoint, game_update.to_dict(), config, "game update")
-            if not success:
-                # If data send fails, mark as unregistered to retry registration next time
-                self.registration_status[config.url] = False
+            self._send_http_request(endpoint, game_update.to_dict(), config, "game update")
         except Exception as e:
             logger.debug(f"Game update failed for {config.url}: {str(e)}")
-            # If exception occurs, mark as unregistered to retry registration next time
-            self.registration_status[config.url] = False
 
     def send_removal_message(self, removal_message) -> bool:
-        """Send table removal message to all servers via HTTP POST (async fire-and-forget). Ensures registration first."""
+        """Send table removal message to all servers via HTTP POST (async fire-and-forget)."""
         if not self.server_configs:
             logger.debug("No servers configured - skipping removal message")
             return False
@@ -159,20 +90,10 @@ class SimpleHttpConnector:
     def _send_removal_message_async(self, removal_message, config: ServerConfig):
         """Async worker method to send removal message to a single server."""
         try:
-            # Ensure registration before sending data
-            if not self._ensure_registration(removal_message.client_id, config):
-                logger.debug(f"Skipping removal message for {config.url} - registration failed")
-                return
-            
             endpoint = f"{config.url.rstrip('/')}/api/client/update"
-            success = self._send_http_request(endpoint, removal_message.to_dict(), config, "removal message")
-            if not success:
-                # If data send fails, mark as unregistered to retry registration next time
-                self.registration_status[config.url] = False
+            self._send_http_request(endpoint, removal_message.to_dict(), config, "removal message")
         except Exception as e:
             logger.debug(f"Removal message failed for {config.url}: {str(e)}")
-            # If exception occurs, mark as unregistered to retry registration next time
-            self.registration_status[config.url] = False
 
     def _send_http_request(self, endpoint: str, data: dict, config: ServerConfig, operation: str) -> bool:
         """Send HTTP request with simple retry logic."""

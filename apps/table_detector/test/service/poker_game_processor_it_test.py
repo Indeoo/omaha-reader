@@ -7,7 +7,7 @@ from table_detector.services.poker_game_processor import PokerGameProcessor
 from table_detector.services.game_state_service import GameStateService
 from table_detector.services.state_repository import GameStateRepository
 from table_detector.domain.captured_window import CapturedWindow
-from table_detector.domain.omaha_game import InvalidPositionSequenceError
+from table_detector.domain.omaha_game import InvalidPositionSequenceError, WrongPlayerAmount
 from table_detector.test.service.test_utils import load_image
 
 
@@ -353,3 +353,29 @@ class PokerGameProcessorTest(unittest.TestCase):
         # Compare the moves structure
         self.assertEqual(expected_moves, result_moves)
 
+    def test_process_window_basic_9(self):
+        # Load test image and create CapturedWindow
+        cv2_image = load_image("9.png")
+        captured_window = self.create_captured_window(cv2_image)
+
+        # Create processor and temp folder
+        processor = self.create_poker_processor()
+        temp_folder = self.create_temp_folder()
+
+        # Execute the method under test
+
+        with self.assertRaises(InvalidPositionSequenceError):
+            processor.process_window(captured_window, temp_folder)
+
+    def test_process_window_basic_10(self):
+        # Load test image and create CapturedWindow
+        cv2_image = load_image("10.png")
+        captured_window = self.create_captured_window(cv2_image)
+
+        # Create processor and temp folder
+        processor = self.create_poker_processor()
+        temp_folder = self.create_temp_folder()
+
+        # Execute the method under test
+        with self.assertRaises(WrongPlayerAmount):
+            processor.process_window(captured_window, temp_folder)
