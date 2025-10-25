@@ -52,10 +52,6 @@ class DetectionClient:
     def start_detection(self):
         """Start the detection scheduler."""
         if not self.scheduler.running:
-            # Ensure client is registered with server before starting detection
-            if self.http_connector:
-                self.http_connector.register_client(self.client_id, self.detection_interval)
-
             self.scheduler.start()
             logger.info(f"✅ Detection started (interval: {self.detection_interval}s)")
         else:
