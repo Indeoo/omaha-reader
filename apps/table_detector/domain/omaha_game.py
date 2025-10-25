@@ -110,7 +110,17 @@ class OmahaGame:
             moves = player_moves[current_position]
 
             if not moves:
-                raise InvalidPositionSequenceError("Position error during simulation")
+                # Gather diagnostic information
+                positions_with_moves = {pos: mvs for pos, mvs in player_moves.items() if mvs}
+                street = self.get_current_street()
+
+                error_msg = (
+                    f"Position sequence error: {current_position} expected to act but has no moves. "
+                    f"Street: {street}. "
+                    f"Positions with pending moves: {list(positions_with_moves.keys())}. "
+                    f"Pending moves: {positions_with_moves}"
+                )
+                raise InvalidPositionSequenceError(error_msg)
 
             self.process_action(current_position, moves.pop(0))
 
