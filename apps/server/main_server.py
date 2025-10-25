@@ -49,7 +49,7 @@ def main():
         game_state_service = server_api.game_state_service
 
         def cleanup_stale_tables():
-            result = game_state_service.cleanup_stale_tables(stale_threshold_minutes=5)
+            result = game_state_service.cleanup_stale_tables(stale_threshold_minutes=1)
             if result['tables_removed'] > 0 or result['clients_removed'] > 0:
                 logger.info(
                     f"🧹 Cleanup: removed {result['tables_removed']} stale tables, "
