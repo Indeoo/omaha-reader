@@ -164,17 +164,6 @@ class Position(Enum):
         """Check if this is a late position (CO/BTN)"""
         return self in {self.CUTOFF, self.BUTTON}
 
-    @classmethod
-    def get_position_to_player(cls):
-        return {
-            Position.BUTTON: 1,        # Hero position
-            Position.SMALL_BLIND: 2,
-            Position.BIG_BLIND: 3,
-            Position.EARLY_POSITION: 4,
-            Position.MIDDLE_POSITION: 5,
-            Position.CUTOFF: 6
-        }
-
 
 # Compatibility alias for existing code
 PokerPosition = Position
