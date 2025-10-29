@@ -60,7 +60,6 @@ def _format_positions_for_web(positions: Dict[str, dict]) -> List[Dict]:
                 'player': player_num,
                 'player_label': f'Player {player_num}',
                 'name': position_data.get('name', 'Unknown'),
-                'is_main_player': player_num == 1
             })
         except ValueError:
             continue
