@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple
 
+from loguru import logger
 from pokerkit import Automation, PotLimitOmahaHoldem
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
@@ -28,6 +29,37 @@ class WrongPlayerAmount(ExpectedException):
 
 
 class OmahaGame:
+    # Street index to Street enum mapping
+    STREET_INDEX_MAP = {
+        0: Street.PREFLOP,
+        1: Street.FLOP,
+        2: Street.TURN,
+        3: Street.RIVER
+    }
+
+    # Position orders for different player counts
+    POSITION_ORDERS = {
+        2: [Position.SMALL_BLIND, Position.BIG_BLIND],
+        3: [Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND],
+        4: [Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND],
+        5: [Position.EARLY_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND],
+        6: [Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
+    }
+
+    # Poker engine automations
+    AUTOMATIONS = (
+        Automation.ANTE_POSTING,
+        Automation.BET_COLLECTION,
+        Automation.BLIND_OR_STRADDLE_POSTING,
+        Automation.HOLE_CARDS_SHOWING_OR_MUCKING,
+        Automation.CARD_BURNING,
+        Automation.BOARD_DEALING,
+        Automation.HAND_KILLING,
+        Automation.CHIPS_PUSHING,
+        Automation.CHIPS_PULLING,
+        Automation.HOLE_DEALING
+    )
+
     def __init__(self, player_count):
         if player_count < 2:
             raise WrongPlayerAmount("Need at least 2 players to start game")
@@ -46,18 +78,7 @@ class OmahaGame:
         blinds = (0.5, 1)  # Default blinds (SB, BB)
 
         self.poker_state = PotLimitOmahaHoldem.create_state(
-            (
-                Automation.ANTE_POSTING,
-                Automation.BET_COLLECTION,
-                Automation.BLIND_OR_STRADDLE_POSTING,
-                Automation.HOLE_CARDS_SHOWING_OR_MUCKING,
-                Automation.CARD_BURNING,
-                Automation.BOARD_DEALING,
-                Automation.HAND_KILLING,
-                Automation.CHIPS_PUSHING,
-                Automation.CHIPS_PULLING,
-                Automation.HOLE_DEALING
-            ),
+            self.AUTOMATIONS,
             True,  # Uniform antes?
             0,  # Antes
             blinds,  # Blinds (SB, BB)
@@ -71,17 +92,37 @@ class OmahaGame:
     def process_action(self, position: Position, action: MoveType):
 
         if position != self.get_current_position():
-            raise InvalidPositionSequenceError()
+            raise InvalidPositionSequenceError("Wrong position sequence in OmahaGame")
 
         street = self.get_current_street()
         action_result = self._execute_pokerkit_action(action)
 
         if not action_result:
             raise InvalidActionError(f"Invalid action: {action} on {street} for {position}.", position, action, street)
-        else:
-            print(f"Action {action} for {position} successfully processed")
+
+        logger.info(f"Action {action} for {position} successfully processed")
 
         self.moves_by_street[street].append((position, action))
+
+    def simulate_all_moves(self, player_moves: dict[Position, list[MoveType]]):
+        while any(player_moves.values()):
+            current_position = self.get_current_position()
+            moves = player_moves[current_position]
+
+            if not moves:
+                # Gather diagnostic information
+                positions_with_moves = {pos: mvs for pos, mvs in player_moves.items() if mvs}
+                street = self.get_current_street()
+
+                error_msg = (
+                    f"Position sequence error: {current_position} expected to act but has no moves. "
+                    f"Street: {street}. "
+                    f"Positions with pending moves: {list(positions_with_moves.keys())}. "
+                    f"Pending moves: {positions_with_moves}"
+                )
+                raise InvalidPositionSequenceError(error_msg)
+
+            self.process_action(current_position, moves.pop(0))
 
     def _execute_pokerkit_action(self, action: MoveType) -> bool:
         try:
@@ -110,17 +151,12 @@ class OmahaGame:
 
     def get_current_street(self) -> Street:
         street_index = self.poker_state.street_index
+        street = self.STREET_INDEX_MAP.get(street_index)
 
-        if street_index == 0:
-            return Street.PREFLOP
-        elif street_index == 1:
-            return Street.FLOP
-        elif street_index == 2:
-            return Street.TURN
-        elif street_index == 3:
-            return Street.RIVER
-        else:
-            raise Exception(f"Invalid street index: {street_index}")
+        if street is None:
+            raise ValueError(f"Invalid street index: {street_index}")
+
+        return street
 
     def get_moves_by_street(self) -> Dict[Street, List[Tuple[Position, MoveType]]]:
         return self.moves_by_street.copy()
@@ -131,27 +167,15 @@ class OmahaGame:
     def _get_seat_to_position_mapping(self) -> Dict[int, Position]:
         player_count = self.poker_state.player_count
         opener_index = self.poker_state.opener_index
-
         position_order = self._get_position_order_for_player_count(player_count)
-        
-        seat_to_position = {}
-        for i in range(player_count):
-            seat_index = i
-            position_index = (i - opener_index) % player_count
-            seat_to_position[seat_index] = position_order[position_index]
 
-        return seat_to_position
+        return {
+            i: position_order[(i - opener_index) % player_count]
+            for i in range(player_count)
+        }
     
     def _get_position_order_for_player_count(self, player_count: int) -> List[Position]:
-        if player_count == 2:
-            return [Position.SMALL_BLIND, Position.BIG_BLIND]
-        elif player_count == 3:
-            return [Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
-        elif player_count == 4:
-            return [Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
-        elif player_count == 5:
-            return [Position.EARLY_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
-        elif player_count == 6:
-            return [Position.EARLY_POSITION, Position.MIDDLE_POSITION, Position.CUTOFF, Position.BUTTON, Position.SMALL_BLIND, Position.BIG_BLIND]
-        else:
+        if player_count not in self.POSITION_ORDERS:
             raise ValueError(f"Unsupported player count: {player_count}. Supported range: 2-6 players")
+
+        return self.POSITION_ORDERS[player_count]

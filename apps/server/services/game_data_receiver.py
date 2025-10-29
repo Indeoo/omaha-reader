@@ -3,14 +3,13 @@ from typing import Optional
 from loguru import logger
 
 from apps.server.services.server_game_state import ServerGameStateService
-from apps.shared.protocol.message_protocol import ServerResponseMessage, MessageParser, ClientRegistrationMessage, \
+from apps.shared.protocol.message_protocol import ServerResponseMessage, MessageParser, \
     GameUpdateMessage, TableRemovalMessage
 
 
 class GameDataReceiver:
     def __init__(self, game_state_service: ServerGameStateService):
         self.game_state_service = game_state_service
-        self.client_detection_intervals: dict[str, int] = {}  # Track detection intervals per client
 
 
     def handle_client_message(self, message_json: str) -> Optional[ServerResponseMessage]:
@@ -22,12 +21,9 @@ class GameDataReceiver:
                 logger.error(f"Failed to parse message: {message_json}")
                 return MessageParser.create_response("error", "Invalid message format")
 
-            if isinstance(message, ClientRegistrationMessage):
-                return self._handle_client_registration(message)
-            
-            elif isinstance(message, GameUpdateMessage):
+            if isinstance(message, GameUpdateMessage):
                 return self._handle_game_update(message)
-                
+
             elif isinstance(message, TableRemovalMessage):
                 return self._handle_table_removal(message)
             
@@ -38,20 +34,6 @@ class GameDataReceiver:
         except Exception as e:
             logger.error(f"Error processing client message: {str(e)}")
             return MessageParser.create_response("error", f"Processing error: {str(e)}")
-
-    def _handle_client_registration(self, message: ClientRegistrationMessage) -> ServerResponseMessage:
-        """Handle client registration."""
-        try:
-            self.game_state_service.register_client(message.client_id)
-            # Store the client's detection interval
-            self.client_detection_intervals[message.client_id] = message.detection_interval
-            logger.info(f"✅ Client registered: {message.client_id} (interval: {message.detection_interval}s)")
-            
-            return MessageParser.create_response("success", f"Client {message.client_id} registered successfully")
-        
-        except Exception as e:
-            logger.error(f"Error registering client {message.client_id}: {str(e)}")
-            return MessageParser.create_response("error", f"Registration failed: {str(e)}")
 
     def _handle_game_update(self, message: GameUpdateMessage) -> ServerResponseMessage:
         """Handle game state update from client."""
@@ -89,8 +71,6 @@ class GameDataReceiver:
         """Handle client disconnection."""
         try:
             self.game_state_service.disconnect_client(client_id)
-            # Remove the client's detection interval from tracking
-            self.client_detection_intervals.pop(client_id, None)
             logger.info(f"🔌 Client disconnected: {client_id}")
         
         except Exception as e:

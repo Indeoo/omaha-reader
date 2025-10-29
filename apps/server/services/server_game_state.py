@@ -12,11 +12,13 @@ class ServerGameStateService:
         self.connected_clients: Dict[str, datetime] = {}
 
     def register_client(self, client_id: str) -> None:
+        logger.info(f"Registering client {client_id}")
         self.connected_clients[client_id] = datetime.now()
         if client_id not in self.client_states:
             self.client_states[client_id] = {}
 
     def disconnect_client(self, client_id: str) -> None:
+        logger.info(f"Disconnecting client {client_id}")
         if client_id in self.connected_clients:
             del self.connected_clients[client_id]
         if client_id in self.client_states:
@@ -26,12 +28,8 @@ class ServerGameStateService:
         client_id = message.client_id
         window_name = message.window_name
 
-        # Ensure client is registered
-        if client_id not in self.client_states:
-            self.client_states[client_id] = {}
-
-        # Update client's last activity timestamp (tracks actual activity, not just registration)
-        self.connected_clients[client_id] = datetime.now()
+        # Ensure client is registered (reuses existing registration logic)
+        self.register_client(client_id)
 
         # Update or create game state with metadata
         self.client_states[client_id][window_name] = {
@@ -73,45 +71,49 @@ class ServerGameStateService:
             return True
         return False
 
-    def cleanup_stale_clients(self) -> int:
-        """Remove clients that haven't sent updates within their expected interval.
+    def cleanup_stale_tables(self, stale_threshold_minutes: int = 1) -> Dict[str, int]:
+        """Remove tables that haven't updated recently. Remove clients with no tables left.
 
-        Returns the number of clients disconnected.
+        Args:
+            stale_threshold_minutes: Minutes of inactivity before a table is considered stale
+
+        Returns:
+            Dictionary with 'tables_removed' and 'clients_removed' counts
         """
         now = datetime.now()
-        stale_clients = []
+        threshold = timedelta(minutes=stale_threshold_minutes)
+        tables_removed = 0
+        clients_to_check = []
 
-        for client_id, last_activity in self.connected_clients.items():
-            # Get client's detection interval from their latest game state
-            detection_interval = self._get_client_detection_interval(client_id)
+        # Phase 1: Remove stale tables
+        for client_id, windows in list(self.client_states.items()):
+            for window_name, window_data in list(windows.items()):
+                last_update_str = window_data.get('last_update')
+                if not last_update_str:
+                    # No timestamp - shouldn't happen, but skip to be safe
+                    continue
 
-            # Calculate stale threshold: max(10 seconds, 2 × detection_interval)
-            # Use 2× to account for network delays and processing time
-            threshold_seconds = max(10, 2 * detection_interval)
-            threshold = timedelta(seconds=threshold_seconds)
+                last_update = datetime.fromisoformat(last_update_str)
 
-            if now - last_activity > threshold:
-                stale_clients.append(client_id)
-                logger.debug(f"Client {client_id} is stale (last activity: {last_activity}, threshold: {threshold_seconds}s)")
+                if now - last_update > threshold:
+                    logger.info(
+                        f"🧹 Removing stale table: {client_id}/{window_name} "
+                        f"(last update: {last_update.strftime('%Y-%m-%d %H:%M:%S')})"
+                    )
+                    self.remove_client_window(client_id, window_name)
+                    tables_removed += 1
 
-        # Disconnect stale clients
-        for client_id in stale_clients:
-            logger.info(f"🔌 Disconnecting stale client: {client_id}")
-            self.disconnect_client(client_id)
+            clients_to_check.append(client_id)
 
-        return len(stale_clients)
+        # Phase 2: Remove clients with no tables left
+        clients_removed = 0
+        for client_id in clients_to_check:
+            if client_id in self.client_states and len(self.client_states[client_id]) == 0:
+                logger.info(f"🔌 Removing client with no tables: {client_id}")
+                self.disconnect_client(client_id)
+                clients_removed += 1
 
-    def _get_client_detection_interval(self, client_id: str) -> int:
-        """Get the detection interval for a client from their latest game state.
-
-        Returns 10 seconds as default if client not found or no detection interval available.
-        """
-        if client_id not in self.client_states:
-            return 10  # Default fallback
-
-        # Find the most recent detection interval from any of the client's windows
-        for window_data in self.client_states[client_id].values():
-            if 'detection_interval' in window_data:
-                return window_data['detection_interval']
-
-        return 10  # Default fallback
+        return {
+            'tables_removed': tables_removed,
+            'clients_removed': clients_removed
+        }

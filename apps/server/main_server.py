@@ -44,21 +44,24 @@ def main():
 
         app = server_api.create_app()
 
-        # Setup periodic cleanup of stale clients
+        # Setup periodic cleanup of stale tables
         scheduler = BackgroundScheduler()
         game_state_service = server_api.game_state_service
 
-        def cleanup_stale_clients():
-            disconnected_count = game_state_service.cleanup_stale_clients()
-            if disconnected_count > 0:
-                logger.info(f"🧹 Cleanup: disconnected {disconnected_count} stale clients")
+        def cleanup_stale_tables():
+            result = game_state_service.cleanup_stale_tables(stale_threshold_minutes=1)
+            if result['tables_removed'] > 0 or result['clients_removed'] > 0:
+                logger.info(
+                    f"🧹 Cleanup: removed {result['tables_removed']} stale tables, "
+                    f"{result['clients_removed']} empty clients"
+                )
 
-        # Run cleanup every 5 seconds
+        # Run cleanup every 60 seconds (1 minute)
         scheduler.add_job(
-            func=cleanup_stale_clients,
+            func=cleanup_stale_tables,
             trigger="interval",
-            seconds=5,
-            id='cleanup_stale_clients'
+            seconds=60,
+            id='cleanup_stale_tables'
         )
 
         scheduler.start()
@@ -67,12 +70,11 @@ def main():
         logger.info(f"✅ Server starting on {HOST}:{PORT}")
         logger.info(f"🌍 Web UI will be accessible at http://{HOST}:{PORT}")
         logger.info(f"📡 Client HTTP endpoints:")
-        logger.info(f"   - POST http://{HOST}:{PORT}/api/client/register")
         logger.info(f"   - POST http://{HOST}:{PORT}/api/client/update")
         logger.info(f"   - GET  http://{HOST}:{PORT}/api/detections")
         logger.info(f"   - GET  http://{HOST}:{PORT}/api/clients")
         logger.info(f"🔄 Using HTTP polling (5 second interval)")
-        logger.info(f"🧹 Stale client cleanup enabled (5 second interval)")
+        logger.info(f"🧹 Stale table cleanup enabled (60 second interval, 5 minute threshold)")
         logger.info("\nPress Ctrl+C to stop the server")
         logger.info("-" * 50)
 
