@@ -39,11 +39,11 @@ class GameFormatService:
         return formatted
 
     @staticmethod
-    def _get_moves_for_web(moves) -> List[Dict]:
+    def _get_moves_for_web(moves_arg) -> List[Dict]:
         moves_by_street = []
 
         # Use Game's domain method to get moves by street
-        for street, moves in moves.items():
+        for street, moves in moves_arg.items():
             street_moves = []
             for position, move_type in moves:
                 street_moves.append({

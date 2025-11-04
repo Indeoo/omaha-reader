@@ -181,7 +181,7 @@ class OmahaGame:
         return self.POSITION_ORDERS[player_count]
 
     @staticmethod
-    def _convert_to_position_actions(actions, positions: Dict[int, Position]) -> Dict[Position, List[MoveType]]:
+    def convert_to_position_actions(actions, positions: Dict[int, Position]) -> Dict[Position, List[MoveType]]:
         result = {}
 
         # First, add all positions to the result (even without actions)
@@ -205,10 +205,7 @@ class OmahaGame:
                         continue
 
                 # Add moves to the existing position (which may already be initialized with empty list)
-                if position_enum in result:
-                    result[position_enum].extend(move_types)
-                else:
-                    result[position_enum] = move_types
+                result[position_enum].extend(move_types)
 
         logger.info(result)
 

@@ -52,7 +52,7 @@ class PokerGameProcessor:
             action_detections)
 
         try:
-            position_actions = OmahaGame._convert_to_position_actions(action_detections, recovered_positions)
+            position_actions = OmahaGame.convert_to_position_actions(action_detections, recovered_positions)
             game = OmahaGame(len(position_actions))
             game.simulate_all_moves(position_actions)
             moves = game.get_moves_by_street()
