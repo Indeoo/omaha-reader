@@ -36,4 +36,4 @@ class PokerGameProcessor:
         image_width, image_height = captured_image.get_size()
         if image_width != 784 or image_height != 584:
             raise ValueError(
-                f"Неправильный размер картинки для окна {captured_image.window_name}. Ожидаеться: 778x580, Реальный размер: {image_width}x{image_height}. Скорее всего нужно поменять Jurojin Layout")
+                f"Неправильный размер картинки для окна {captured_image.window_name}. Ожидаеться: 784x584, Реальный размер: {image_width}x{image_height}. Скорее всего нужно поменять Jurojin Layout")
