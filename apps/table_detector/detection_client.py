@@ -6,7 +6,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from loguru import logger
 
-from table_detector.domain.omaha_game import ExpectedException
+from table_detector.domain.omaha_game import OmahaGameException
 from table_detector.services.image_capture_service import ImageCaptureService
 from table_detector.services.poker_game_processor import PokerGameProcessor
 from table_detector.utils.fs_utils import create_timestamp_folder, create_window_folder
@@ -126,7 +126,7 @@ class DetectionClient:
                 if game_data:
                     changed_games.append(game_data)
                     logger.debug(f"✅ Captured changes for {captured_image.window_name}")
-            except ExpectedException as e:
+            except OmahaGameException as e:
                 #logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
                 logger.error(f"Expected exception: {e}")
             except Exception as e:

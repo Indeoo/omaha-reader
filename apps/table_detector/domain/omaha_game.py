@@ -7,11 +7,11 @@ from shared.domain.position import Position
 from shared.domain.street import Street
 
 
-class ExpectedException(Exception):
+class OmahaGameException(Exception):
     pass
 
 
-class InvalidActionError(ExpectedException):
+class InvalidActionError(OmahaGameException):
     """Raised when an invalid action is attempted"""
     def __init__(self, message: str, position: Position, action: MoveType, current_street: Street):
         super().__init__(message)
@@ -20,10 +20,10 @@ class InvalidActionError(ExpectedException):
         self.current_street = current_street
 
 
-class InvalidPositionSequenceError(ExpectedException):
+class InvalidPositionSequenceError(OmahaGameException):
     """Raised when an invalid position sequence is attempted"""
 
-class WrongPlayerAmount(ExpectedException):
+class WrongPlayerAmount(OmahaGameException):
     def __init__(self, message: str):
         super().__init__(message)
 
