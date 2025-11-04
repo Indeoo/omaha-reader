@@ -10,10 +10,12 @@ from table_detector.utils.drawing_utils import draw_all_detections, DetectionGro
 
 class TestDetectUtils(unittest.TestCase):
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.abspath(os.path.join(current_dir, '..', '..', '..'))
-    action_folder = os.path.join(project_root, "src", "test", "resources", "detection", "action")
+    # Go up 4 levels: utils -> test -> table_detector -> apps -> project_root
+    project_root = os.path.abspath(os.path.join(current_dir, '..', '..', '..', '..'))
+    # Use correct path: apps/table_detector/test/resources/detection/action
+    action_folder = os.path.join(project_root, "apps", "table_detector", "test", "resources", "detection", "action")
 
-    def test_detect_positions_1(self):
+    def test_detect_player_actions_1(self):
         img_path = os.path.join(self.action_folder, "1.png")
         img = cv2.imread(img_path)
 
@@ -34,7 +36,7 @@ class TestDetectUtils(unittest.TestCase):
         plt.tight_layout(pad=0)
         plt.show()
 
-    def test_detect_positions_2(self):
+    def test_detect_player_actions_2(self):
         img_path = os.path.join(self.action_folder, "2.png")
         img = cv2.imread(img_path)
 
@@ -54,7 +56,7 @@ class TestDetectUtils(unittest.TestCase):
         plt.tight_layout(pad=0)
         plt.show()
 
-    def test_detect_positions_3(self):
+    def test_detect_player_actions_3(self):
         img_path = os.path.join(self.action_folder, "3.png")
         img = cv2.imread(img_path)
 
@@ -74,7 +76,7 @@ class TestDetectUtils(unittest.TestCase):
         plt.tight_layout(pad=0)
         plt.show()
 
-    def test_detect_positions_4(self):
+    def test_detect_player_actions_4(self):
         img_path = os.path.join(self.action_folder, "4.png")
         img = cv2.imread(img_path)
 
@@ -94,7 +96,7 @@ class TestDetectUtils(unittest.TestCase):
         plt.tight_layout(pad=0)
         plt.show()
 
-    def test_detect_positions_5(self):
+    def test_detect_player_actions_5(self):
         img_path = os.path.join(self.action_folder, "5.png")
         img = cv2.imread(img_path)
 
@@ -114,7 +116,7 @@ class TestDetectUtils(unittest.TestCase):
         plt.tight_layout(pad=0)
         plt.show()
 
-    def test_detect_positions_6(self):
+    def test_detect_player_actions_6(self):
         img_path = os.path.join(self.action_folder, "6.png")
         img = cv2.imread(img_path)
 
@@ -134,7 +136,7 @@ class TestDetectUtils(unittest.TestCase):
         plt.tight_layout(pad=0)
         plt.show()
 
-    def test_detect_positions_7(self):
+    def test_detect_player_actions_7(self):
         img_path = os.path.join(self.action_folder, "7.png")
         img = cv2.imread(img_path)
 
