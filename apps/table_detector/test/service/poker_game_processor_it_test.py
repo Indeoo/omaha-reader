@@ -379,3 +379,17 @@ class PokerGameProcessorTest(unittest.TestCase):
         # Execute the method under test
         with self.assertRaises(WrongPlayerAmount):
             processor.process_window(captured_window, temp_folder)
+
+
+    def test_process_window_basic_12(self):
+        # Load test image and create CapturedWindow
+        cv2_image = load_image("12.png")
+        captured_window = self.create_captured_window(cv2_image)
+
+        # Create processor and temp folder
+        processor = self.create_poker_processor()
+        temp_folder = self.create_temp_folder()
+
+        # Execute the method under test
+        with self.assertRaises(ValueError):
+            processor.process_window(captured_window, temp_folder)
