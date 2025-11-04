@@ -64,7 +64,7 @@ class FlopHeroLinkService:
         return "".join(formatted)
 
     @staticmethod
-    def _format_actions_for_flophero(moves) -> Dict[str, str]:
+    def _format_actions_for_flophero(moves_args) -> Dict[str, str]:
         action_params = {}
 
         street_param_map = {
@@ -74,7 +74,7 @@ class FlopHeroLinkService:
             Street.RIVER: 'riverActions'
         }
 
-        for street, moves in moves.items():
+        for street, moves in moves_args.items():
             param_name = street_param_map.get(street)
             if param_name:
                 # Format moves as comma-separated string
