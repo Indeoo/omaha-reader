@@ -14,8 +14,8 @@ class GameFormatService:
         return {
             'window_name': window_name,
             'player_cards_string': format_cards_simple(game.player_cards),
-            'table_cards_string': format_cards_simple(game.table_cards),
             'player_cards': GameFormatService._format_cards_for_web(game.player_cards),
+            'table_cards_string': format_cards_simple(game.table_cards),
             'table_cards': GameFormatService._format_cards_for_web(game.table_cards),
             'positions': GameFormatService._get_positions_for_web(game.positions),
             'moves': GameFormatService._get_moves_for_web(game.moves),
