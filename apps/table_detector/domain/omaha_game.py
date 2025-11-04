@@ -179,3 +179,38 @@ class OmahaGame:
             raise ValueError(f"Unsupported player count: {player_count}. Supported range: 2-6 players")
 
         return self.POSITION_ORDERS[player_count]
+
+    @staticmethod
+    def _convert_to_position_actions(actions, positions: Dict[int, Position]) -> Dict[Position, List[MoveType]]:
+        result = {}
+
+        # First, add all positions to the result (even without actions)
+        for player_id, position_enum in positions.items():
+            # Initialize with empty action list
+            result[position_enum] = []
+
+        # Then, process actual actions for players that have them
+        for player_id, detection_list in actions.items():
+            if player_id in positions:
+                position_enum = positions[player_id]
+
+                # Convert detection names to MoveType enums
+                move_types = []
+                for d in detection_list:
+                    try:
+                        move_type = MoveType.normalize_action(d.name)
+                        move_types.append(move_type)
+                    except ValueError as e:
+                        logger.warning(f"Skipping invalid move '{d.name}' for position {position_enum}: {e}")
+                        continue
+
+                # Add moves to the existing position (which may already be initialized with empty list)
+                if position_enum in result:
+                    result[position_enum].extend(move_types)
+                else:
+                    result[position_enum] = move_types
+
+        logger.info(result)
+
+        return result
+
