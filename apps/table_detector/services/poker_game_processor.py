@@ -4,7 +4,7 @@ from loguru import logger
 
 from shared.domain.game_snapshot import GameSnapshot
 from table_detector.domain.captured_window import CapturedWindow
-from table_detector.domain.omaha_game import OmahaGame
+from table_detector.domain.omaha_game import OmahaGame, OmahaGameException
 from table_detector.services.game_format_service import GameFormatService
 from table_detector.services.position_service import PositionService
 from table_detector.utils.detect_utils import DetectUtils
@@ -37,28 +37,30 @@ class PokerGameProcessor:
 
     @staticmethod
     def create_game_snapshot(cv2_image):
+        game_snapshot_build = GameSnapshot.builder()
+
         player_cards_detections = DetectUtils.detect_player_cards(cv2_image)
+        game_snapshot_build.with_player_cards(player_cards_detections)
+
         table_cards_detections = DetectUtils.detect_table_cards(cv2_image)
         position_detections = DetectUtils.detect_positions(cv2_image)
         action_detections = DetectUtils.get_player_actions_detection(cv2_image)
 
         recovered_positions = PositionService.get_positions(position_detections)
 
-        position_actions = OmahaGame._convert_to_position_actions(action_detections, recovered_positions)
-        game = OmahaGame(len(position_actions))
-        game.simulate_all_moves(position_actions)
-        moves = game.get_moves_by_street()
-        logger.info(moves)
+        game_snapshot_build.with_table_cards(table_cards_detections).with_positions(position_detections).with_actions(
+            action_detections)
 
-        game_snapshot = (
-            GameSnapshot
-            .builder()
-            .with_player_cards(player_cards_detections)
-            .with_table_cards(table_cards_detections)
-            .with_positions(position_detections)
-            .with_actions(action_detections)
-            .with_moves(moves)
-            .build()
-        )
+        try:
+            position_actions = OmahaGame._convert_to_position_actions(action_detections, recovered_positions)
+            game = OmahaGame(len(position_actions))
+            game.simulate_all_moves(position_actions)
+            moves = game.get_moves_by_street()
+            logger.info(moves)
 
-        return game_snapshot
+            game_snapshot_build.with_moves(moves)
+        except OmahaGameException as e:
+            # logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
+            logger.error(f"Expected exception: {e}")
+
+        return game_snapshot_build.build()

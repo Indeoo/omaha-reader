@@ -35,7 +35,7 @@ class FlopHeroLinkService:
                 params['boardCards'] = FlopHeroLinkService._format_cards_for_flophero(game.table_cards)
 
             # Add action parameters for each street
-            params.update(FlopHeroLinkService._format_actions_for_flophero(game))
+            params.update(FlopHeroLinkService._format_actions_for_flophero(game.moves))
             params["players"] = str(len(game.get_active_position()))
 
             # Remove empty parameters to match REAL format
@@ -64,7 +64,7 @@ class FlopHeroLinkService:
         return "".join(formatted)
 
     @staticmethod
-    def _format_actions_for_flophero(game: GameSnapshot) -> Dict[str, str]:
+    def _format_actions_for_flophero(moves) -> Dict[str, str]:
         action_params = {}
 
         street_param_map = {
@@ -74,7 +74,7 @@ class FlopHeroLinkService:
             Street.RIVER: 'riverActions'
         }
 
-        for street, moves in game.moves.items():
+        for street, moves in moves.items():
             param_name = street_param_map.get(street)
             if param_name:
                 # Format moves as comma-separated string
