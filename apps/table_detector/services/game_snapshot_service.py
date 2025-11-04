@@ -5,7 +5,6 @@ from loguru import logger
 from shared.domain.game_snapshot import GameSnapshot
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
-from shared.domain.street import Street
 from table_detector.domain.omaha_game import OmahaGame
 from table_detector.services.position_service import PositionService
 from table_detector.utils.detect_utils import DetectUtils
@@ -42,15 +41,6 @@ class GameSnapshotService:
         )
 
         return game_snapshot
-
-    @staticmethod
-    def group_moves_by_street(player_moves: Dict[Position, List[MoveType]]) -> Dict[
-        Street, List[Tuple[Position, MoveType]]]:
-        game = OmahaGame(len(player_moves))
-
-        game.simulate_all_moves(player_moves)
-
-        return game.get_moves_by_street()
 
     @staticmethod
     def _convert_to_position_actions(actions, positions: Dict[int, Position]) -> Dict[Position, List[MoveType]]:
