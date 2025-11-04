@@ -47,6 +47,30 @@ class GameSnapshot:
     def has_moves(self) -> bool:
         return any(moves for moves in self.moves.values())
 
+    def get_street(self) -> Optional[Street]:
+        card_count = len(self.table_cards)
+
+        if card_count == 0:
+            return Street.PREFLOP
+        elif card_count == 3:
+            return Street.FLOP
+        elif card_count == 4:
+            return Street.TURN
+        elif card_count == 5:
+            return Street.RIVER
+        else:
+            return None
+
+    def get_active_position(self):
+        return {player_num: position for player_num, position in self.positions.items()
+                if position.name != "NO"}
+
+    def get_street_display(self) -> str:
+        street = self.get_street()
+        if street is None:
+            return f"ERROR ({len(self.table_cards)} cards)"
+        return street.value
+
     def __repr__(self) -> str:
         player_count = len(self.player_cards)
         table_count = len(self.table_cards)

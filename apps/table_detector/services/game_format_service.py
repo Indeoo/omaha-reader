@@ -1,14 +1,14 @@
 from typing import List, Dict, Optional
 
 from shared.domain.detection import Detection
-from shared.domain.game import Game
+from shared.domain.game_snapshot import GameSnapshot
 from shared.utils.card_format_utils import format_cards_simple
 
 
 class GameFormatService:
 
     @staticmethod
-    def game_to_dict(window_name: str, game: Game) -> dict:
+    def game_to_dict(window_name: str, game: GameSnapshot) -> dict:
         return {
             'window_name': window_name,
             'player_cards_string': format_cards_simple(game.player_cards),
@@ -37,7 +37,7 @@ class GameFormatService:
         return formatted
 
     @staticmethod
-    def _get_moves_for_web(game: Game) -> List[Dict]:
+    def _get_moves_for_web(game: GameSnapshot) -> List[Dict]:
         moves_by_street = []
 
         # Use Game's domain method to get moves by street
@@ -57,14 +57,14 @@ class GameFormatService:
         return moves_by_street
 
     @staticmethod
-    def _get_solver_link_for_web(game: Game) -> Optional[str]:
+    def _get_solver_link_for_web(game: GameSnapshot) -> Optional[str]:
         from table_detector.services.flophero_link_service import FlopHeroLinkService
 
         return FlopHeroLinkService.generate_link(game)
 
 
     @staticmethod
-    def _get_positions_for_web(game: Game) -> List[Dict]:
+    def _get_positions_for_web(game: GameSnapshot) -> List[Dict]:
         if not game.positions:
             return []
 

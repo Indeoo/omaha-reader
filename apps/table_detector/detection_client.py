@@ -8,8 +8,6 @@ from loguru import logger
 
 from table_detector.domain.omaha_game import ExpectedException
 from table_detector.services.image_capture_service import ImageCaptureService
-from table_detector.services.game_state_service import GameStateService
-from table_detector.services.state_repository import GameStateRepository
 from table_detector.services.poker_game_processor import PokerGameProcessor
 from table_detector.utils.fs_utils import create_timestamp_folder, create_window_folder
 from table_detector.utils.log_accumulator import LogAccumulator
@@ -27,10 +25,7 @@ class DetectionClient:
 
         # Initialize detection services (reuse existing components)
         self.image_capture_service = ImageCaptureService()
-        self.game_state_repository = GameStateRepository()
-        self.game_state_service = GameStateService(self.game_state_repository)
-
-        self.poker_game_processor = PokerGameProcessor(self.game_state_service)
+        self.poker_game_processor = PokerGameProcessor()
         self.debug_mode = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
         self.scheduler = BackgroundScheduler()
         self._setup_scheduler()
@@ -145,7 +140,7 @@ class DetectionClient:
 
     def _handle_removed_windows(self, removed_window_names):
         """Handle removed windows and return removal message data for transmission."""
-        logger.info(f"🗑️ Removing {len(removed_window_names)} closed windows from state")
+        logger.info(f"🗑️ Removing {len(removed_window_names)} closed windows")
 
         removal_messages = []
         for window_name in removed_window_names:
@@ -159,9 +154,6 @@ class DetectionClient:
                 'timestamp': datetime.now().isoformat()
             }
             removal_messages.append(removal_data)
-
-        # Remove from local state
-        self.game_state_service.remove_windows(removed_window_names)
 
         return removal_messages
 

@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from loguru import logger
 
 from shared.domain.detection import Detection
-from shared.domain.game import Game
+from shared.domain.game_snapshot import GameSnapshot
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
 from shared.domain.street import Street
@@ -26,7 +26,7 @@ class FlopHeroLinkService:
     }
 
     @staticmethod
-    def generate_link(game: Game) -> Optional[str]:
+    def generate_link(game: GameSnapshot) -> Optional[str]:
         try:
             params = FlopHeroLinkService.DEFAULT_PARAMS.copy()
 
@@ -64,7 +64,7 @@ class FlopHeroLinkService:
         return "".join(formatted)
 
     @staticmethod
-    def _format_actions_for_flophero(game: Game) -> Dict[str, str]:
+    def _format_actions_for_flophero(game: GameSnapshot) -> Dict[str, str]:
         action_params = {}
 
         street_param_map = {
