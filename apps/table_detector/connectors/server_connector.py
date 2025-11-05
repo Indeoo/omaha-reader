@@ -1,7 +1,6 @@
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime
 from typing import List
 
 import requests

@@ -67,6 +67,66 @@ class GameSnapshot:
             return f"ERROR ({len(self.table_cards)} cards)"
         return street.value
 
+    def to_game_update_message(
+        self,
+        client_id: str,
+        window_name: str,
+        detection_interval: int
+    ):
+        """Convert GameSnapshot directly to GameUpdateMessage protocol format."""
+        from shared.protocol.message_protocol import GameUpdateMessage
+        from shared.utils.card_format_utils import format_cards_simple
+        from datetime import datetime
+        from table_detector.services.flophero_link_service import FlopHeroLinkService
+
+        return GameUpdateMessage(
+            type='game_update',
+            client_id=client_id,
+            window_name=window_name,
+            timestamp=datetime.now().isoformat(),
+            game_data={
+                'player_cards_string': format_cards_simple(self.player_cards),
+                'player_cards': [
+                    {'name': c.template_name, 'display': c.format_with_unicode(), 'score': round(c.match_score, 3)}
+                    for c in self.player_cards
+                ],
+                'table_cards_string': format_cards_simple(self.table_cards),
+                'table_cards': [
+                    {'name': c.template_name, 'display': c.format_with_unicode(), 'score': round(c.match_score, 3)}
+                    for c in self.table_cards
+                ],
+                'positions': [
+                    {'player': i+1, 'player_label': f'Player {i+1}', 'name': p.template_name, 'is_main_player': i==0}
+                    for i, p in enumerate(self.positions.values())
+                ],
+                'moves': self._format_moves_for_protocol(),
+                'street': self.get_street_display(),
+                'solver_link': FlopHeroLinkService.generate_link(self)
+            },
+            detection_interval=detection_interval
+        )
+
+    def _format_moves_for_protocol(self):
+        """Format moves dictionary for protocol transmission."""
+        if not self.moves:
+            return []
+
+        moves_by_street = []
+        for street, moves in self.moves.items():
+            street_moves = []
+            for position, move_type in moves:
+                street_moves.append({
+                    'player_label': position.name,
+                    'action': move_type.value
+                })
+
+            moves_by_street.append({
+                'street': street.value,
+                'moves': street_moves
+            })
+
+        return moves_by_street
+
     def __repr__(self) -> str:
         player_count = len(self.player_cards)
         table_count = len(self.table_cards)

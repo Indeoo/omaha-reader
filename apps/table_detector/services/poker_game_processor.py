@@ -5,7 +5,6 @@ from loguru import logger
 from shared.domain.game_snapshot import GameSnapshot
 from table_detector.domain.captured_window import CapturedWindow
 from table_detector.domain.omaha_game import OmahaGame, OmahaGameException
-from table_detector.services.game_format_service import GameFormatService
 from table_detector.services.position_service import PositionService
 from table_detector.utils.detect_utils import DetectUtils
 from table_detector.utils.drawing_utils import save_detection_result
@@ -16,8 +15,8 @@ class PokerGameProcessor:
     def __init__(self):
         self.debug_mode = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
 
-    def process_window(self, captured_image: CapturedWindow, timestamp_folder):
-        """Process captured image and return formatted game data for transmission."""
+    def process_window(self, captured_image: CapturedWindow, timestamp_folder) -> GameSnapshot:
+        """Process captured image and return GameSnapshot."""
         window_name = captured_image.window_name
 
         self.validate_image(captured_image)
@@ -26,7 +25,7 @@ class PokerGameProcessor:
         if self.debug_mode:
             save_detection_result(timestamp_folder, captured_image, game_snapshot)
 
-        return GameFormatService.game_to_dict(window_name, game_snapshot)
+        return game_snapshot
 
     def validate_image(self, captured_image: CapturedWindow):
         # Add size validation
