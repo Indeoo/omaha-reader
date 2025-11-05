@@ -37,30 +37,27 @@ class PokerGameProcessor:
 
     @staticmethod
     def create_game_snapshot(cv2_image):
-        game_snapshot_build = GameSnapshot.builder()
-
         player_cards_detections = DetectUtils.detect_player_cards(cv2_image)
-        game_snapshot_build.with_player_cards(player_cards_detections)
-
         table_cards_detections = DetectUtils.detect_table_cards(cv2_image)
         position_detections = DetectUtils.detect_positions(cv2_image)
         action_detections = DetectUtils.get_player_actions_detection(cv2_image)
 
-        recovered_positions = PositionService.get_positions(position_detections)
-
-        game_snapshot_build.with_table_cards(table_cards_detections).with_positions(position_detections).with_actions(
-            action_detections)
-
+        moves_data = None
         try:
+            recovered_positions = PositionService.get_positions(position_detections)
             position_actions = OmahaGame.convert_to_position_actions(action_detections, recovered_positions)
             game = OmahaGame(len(position_actions))
             game.simulate_all_moves(position_actions)
-            moves = game.get_moves_by_street()
-            logger.info(moves)
-
-            game_snapshot_build.with_moves(moves)
+            moves_data = game.get_moves_by_street()
+            logger.info(moves_data)
         except OmahaGameException as e:
             # logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
             logger.error(f"Expected exception: {e}")
 
-        return game_snapshot_build.build()
+        return GameSnapshot(
+            player_cards=player_cards_detections,
+            table_cards=table_cards_detections,
+            positions=position_detections,
+            actions=action_detections,
+            moves=moves_data
+        )
