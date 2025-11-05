@@ -5,7 +5,7 @@ from PIL import Image
 
 from table_detector.services.poker_game_processor import PokerGameProcessor
 from table_detector.domain.captured_window import CapturedWindow
-from table_detector.domain.omaha_game import InvalidPositionSequenceError, WrongPlayerAmount
+from table_detector.domain.omaha_engine import InvalidPositionSequenceError, WrongPlayerAmount
 from table_detector.test.service.test_utils import load_image
 
 

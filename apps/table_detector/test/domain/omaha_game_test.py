@@ -1,12 +1,12 @@
 import unittest
 
 from shared.domain.moves import MoveType
-from table_detector.domain.omaha_game import OmahaGame, InvalidPositionSequenceError
+from table_detector.domain.omaha_engine import OmahaEngine, InvalidPositionSequenceError
 from shared.domain.position import Position
 from shared.domain.street import Street
 
 
-class TestOmahaGame(unittest.TestCase):
+class TestOmahaEngine(unittest.TestCase):
     
     def setUp(self):
         """Set up test fixtures before each test method."""
@@ -25,13 +25,13 @@ class TestOmahaGame(unittest.TestCase):
     def test_constructor_single_player_raises_error(self):
         """Test that game initialization fails with only one player"""
         with self.assertRaises(ValueError) as context:
-            OmahaGame(1)
+            OmahaEngine(1)
         
         self.assertIn("Need at least 2 players", str(context.exception))
     
     def test_constructor_initializes_moves_by_street(self):
         """Test that moves_by_street is properly initialized"""
-        game = OmahaGame(6)
+        game = OmahaEngine(6)
         
         moves_by_street = game. get_moves_by_street()
         
@@ -49,7 +49,7 @@ class TestOmahaGame(unittest.TestCase):
     
     def test_process_action_multiple_players(self):
         """Test processing actions from multiple players"""
-        game = OmahaGame(6)
+        game = OmahaEngine(6)
         
         # Process actions from different players
         game.process_action(Position.EARLY_POSITION, MoveType.FOLD)
@@ -69,13 +69,13 @@ class TestOmahaGame(unittest.TestCase):
     
     def test_get_current_street_initial_state(self):
         """Test that new game starts on preflop"""
-        game = OmahaGame(6)
+        game = OmahaEngine(6)
         
         self.assertEqual(game.get_current_street(), Street.PREFLOP)
     
     def test_actions_recorded_on_correct_street(self):
         """Test that actions are recorded on the current street"""
-        game = OmahaGame(6)
+        game = OmahaEngine(6)
         
         # Test valid action sequence - should succeed
         game.process_action(Position.EARLY_POSITION, MoveType.FOLD)
@@ -101,7 +101,7 @@ class TestOmahaGame(unittest.TestCase):
 
     def test_move_history_ordering(self):
         """Test that moves are stored in chronological order"""
-        game = OmahaGame(6)
+        game = OmahaEngine(6)
         
         # Process actions in specific order
         actions = [
@@ -130,7 +130,7 @@ class TestOmahaGame(unittest.TestCase):
     
     def test_complete_preflop_scenario(self):
         """Test a complete preflop betting round"""
-        game = OmahaGame(6)
+        game = OmahaEngine(6)
         
         # Simulate a typical preflop scenario
         game.process_action(Position.EARLY_POSITION, MoveType.FOLD)
@@ -161,7 +161,7 @@ class TestOmahaGame(unittest.TestCase):
     
     def test_heads_up_scenario(self):
         """Test a heads-up (2 player) scenario"""
-        game = OmahaGame(2)
+        game = OmahaEngine(2)
         
         # Heads-up action
         game.process_action(Position.SMALL_BLIND, MoveType.CALL)  # Complete to BB
@@ -178,7 +178,7 @@ class TestOmahaGame(unittest.TestCase):
     
     def test_all_fold_scenario(self):
         """Test scenario where everyone folds to big blind"""
-        game = OmahaGame(6)
+        game = OmahaEngine(6)
         
         # Everyone folds to BB
         fold_positions = [
@@ -202,7 +202,7 @@ class TestOmahaGame(unittest.TestCase):
     
     def test_complex_betting_scenario(self):
         """Test complex multi-action scenario"""
-        game = OmahaGame(6)
+        game = OmahaEngine(6)
         
         # Complex betting sequence
         game.process_action(Position.EARLY_POSITION, MoveType.CALL)
@@ -235,7 +235,7 @@ class TestOmahaGame(unittest.TestCase):
 
     def test_heads_up_all_in_scenario(self):
         """Test heads-up all-in scenario"""
-        game = OmahaGame(2)
+        game = OmahaEngine(2)
         
         # Simulate all-in scenario
         game.process_action(Position.SMALL_BLIND, MoveType.RAISE)  # SB raises
@@ -262,7 +262,7 @@ class TestOmahaGame(unittest.TestCase):
             Position.BUTTON
         ]
         
-        game = OmahaGame(3)
+        game = OmahaEngine(3)
         
         # Test action processing
         game.process_action(Position.BUTTON, MoveType.CALL)
@@ -319,7 +319,7 @@ class TestOmahaGame(unittest.TestCase):
                 positions = test_case['positions']
                 actions = test_case['actions']
                 
-                game = OmahaGame(len(positions))
+                game = OmahaEngine(len(positions))
 
                 # Test action processing
                 for position, action in actions:
@@ -361,7 +361,7 @@ class TestOmahaGame(unittest.TestCase):
 
     def test_automatic_flop_transition(self):
         """Test automatic transition from preflop to flop with community cards"""
-        game = OmahaGame(3)
+        game = OmahaEngine(3)
         
         # Define action sequence that transitions from preflop to flop
         actions = [
@@ -398,7 +398,7 @@ class TestOmahaGame(unittest.TestCase):
 
     def test_automatic_turn_transition(self):
         """Test automatic transition through flop to turn"""
-        game = OmahaGame(3)
+        game = OmahaEngine(3)
         
         # Define action sequence that progresses from preflop through flop to turn
         actions = [
@@ -444,7 +444,7 @@ class TestOmahaGame(unittest.TestCase):
 
     def test_automatic_river_transition(self):
         """Test automatic transition through all streets to river"""
-        game = OmahaGame(3)
+        game = OmahaEngine(3)
         
         # Define action sequence that progresses through all streets to river
         actions = [
@@ -501,7 +501,7 @@ class TestOmahaGame(unittest.TestCase):
 
     def test_street_transition_with_eliminations(self):
         """Test realistic scenario with player eliminations across streets"""
-        game = OmahaGame(6)
+        game = OmahaEngine(6)
         
         # Define action sequence with eliminations
         actions = [

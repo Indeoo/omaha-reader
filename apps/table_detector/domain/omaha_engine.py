@@ -7,11 +7,11 @@ from shared.domain.position import Position
 from shared.domain.street import Street
 
 
-class OmahaGameException(Exception):
+class OmahaEngineException(Exception):
     pass
 
 
-class InvalidActionError(OmahaGameException):
+class InvalidActionError(OmahaEngineException):
     """Raised when an invalid action is attempted"""
     def __init__(self, message: str, position: Position, action: MoveType, current_street: Street):
         super().__init__(message)
@@ -20,15 +20,15 @@ class InvalidActionError(OmahaGameException):
         self.current_street = current_street
 
 
-class InvalidPositionSequenceError(OmahaGameException):
+class InvalidPositionSequenceError(OmahaEngineException):
     """Raised when an invalid position sequence is attempted"""
 
-class WrongPlayerAmount(OmahaGameException):
+class WrongPlayerAmount(OmahaEngineException):
     def __init__(self, message: str):
         super().__init__(message)
 
 
-class OmahaGame:
+class OmahaEngine:
     # Street index to Street enum mapping
     STREET_INDEX_MAP = {
         0: Street.PREFLOP,
@@ -92,7 +92,7 @@ class OmahaGame:
     def process_action(self, position: Position, action: MoveType):
 
         if position != self.get_current_position():
-            raise InvalidPositionSequenceError("Wrong position sequence in OmahaGame")
+            raise InvalidPositionSequenceError("Wrong position sequence in OmahaEngine")
 
         street = self.get_current_street()
         action_result = self._execute_pokerkit_action(action)

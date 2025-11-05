@@ -4,7 +4,7 @@ from loguru import logger
 
 from shared.domain.game_snapshot import GameSnapshot
 from table_detector.domain.captured_window import CapturedWindow
-from table_detector.domain.omaha_game import OmahaGame, OmahaGameException
+from table_detector.domain.omaha_engine import OmahaEngine, OmahaEngineException
 from table_detector.services.position_service import PositionService
 from table_detector.utils.detect_utils import DetectUtils
 from table_detector.utils.drawing_utils import save_detection_result
@@ -44,12 +44,12 @@ class PokerGameProcessor:
         moves_data = None
         try:
             recovered_positions = PositionService.get_positions(position_detections)
-            position_actions = OmahaGame.convert_to_position_actions(action_detections, recovered_positions)
-            game = OmahaGame(len(position_actions))
+            position_actions = OmahaEngine.convert_to_position_actions(action_detections, recovered_positions)
+            game = OmahaEngine(len(position_actions))
             game.simulate_all_moves(position_actions)
             moves_data = game.get_moves_by_street()
             logger.info(moves_data)
-        except OmahaGameException as e:
+        except OmahaEngineException as e:
             # logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
             logger.error(f"Expected exception: {e}")
 
