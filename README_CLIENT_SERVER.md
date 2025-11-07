@@ -302,7 +302,7 @@ For issues with the client-server setup:
 The original single-machine setup (`main_web.py`) continues to work for local-only usage.
 
 
-# Funds Updater
+# Omaha Reader
 
 heroku builds:create --app omaha-reader
 heroku logs --tail --app omaha-reader

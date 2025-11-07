@@ -12,4 +12,4 @@ pokerkit>=0.6.3
 
 # Platform-specific dependencies (commented out for cross-platform compatibility)
 #pywin32==310
-APScheduler==4.0.0a6
+APScheduler==3.11.1
