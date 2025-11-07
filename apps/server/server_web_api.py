@@ -23,7 +23,6 @@ class ServerWebApi:
         self.require_password = require_password
         self.password = password
         
-        # Initialize server-side services
         self.game_state_service = ServerGameStateService()
         self.game_data_receiver = GameDataReceiver(self.game_state_service)
         
