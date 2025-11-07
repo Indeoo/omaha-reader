@@ -24,20 +24,17 @@ def _format_cards_simple(cards: List[dict]) -> str:
     """Format cards as a simple string."""
     if not cards:
         return ""
-    return " ".join([card.get('template_name', '') for card in cards if card.get('template_name')])
+    # Handle both 'name' (current format) and 'template_name' (legacy format)
+    return " ".join([card.get('name') or card.get('template_name', '') for card in cards if card.get('name') or card.get('template_name')])
 
 
 def _format_cards_for_web(cards: List[dict]) -> List[Dict]:
-    """Format cards for web display with unicode symbols and match scores."""
-    formatted = []
-    for card in cards:
-        if card.get('template_name'):
-            formatted.append({
-                'name': card['template_name'],
-                'display': _format_card_with_unicode(card['template_name']),
-                'score': round(card.get('match_score', 0), 3)
-            })
-    return formatted
+    """Pass through cards - client already formats with correct structure.
+
+    Client sends: [{'name': 'AS', 'display': 'A♠', 'score': 0.955}, ...]
+    This is already in the correct format for the UI, no reformatting needed.
+    """
+    return cards if cards else []
 
 
 def _format_card_with_unicode(card_name: str) -> str:
