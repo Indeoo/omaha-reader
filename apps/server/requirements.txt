@@ -7,3 +7,5 @@ Flask==3.1.1
 
 # Cross-Origin Resource Sharing support
 flask-cors==6.0.1
+
+APScheduler==3.11.1

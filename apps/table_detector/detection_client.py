@@ -6,10 +6,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from loguru import logger
 
-from table_detector.domain.omaha_game import ExpectedException
 from table_detector.services.image_capture_service import ImageCaptureService
-from table_detector.services.game_state_service import GameStateService
-from table_detector.services.state_repository import GameStateRepository
 from table_detector.services.poker_game_processor import PokerGameProcessor
 from table_detector.utils.fs_utils import create_timestamp_folder, create_window_folder
 from table_detector.utils.log_accumulator import LogAccumulator
@@ -27,10 +24,7 @@ class DetectionClient:
 
         # Initialize detection services (reuse existing components)
         self.image_capture_service = ImageCaptureService()
-        self.game_state_repository = GameStateRepository()
-        self.game_state_service = GameStateService(self.game_state_repository)
-
-        self.poker_game_processor = PokerGameProcessor(self.game_state_service)
+        self.poker_game_processor = PokerGameProcessor()
         self.debug_mode = os.getenv('DEBUG_MODE', 'false').lower() == 'true'
         self.scheduler = BackgroundScheduler()
         self._setup_scheduler()
@@ -125,15 +119,13 @@ class DetectionClient:
                 # Create window-specific folder
                 window_folder = create_window_folder(base_timestamp_folder, captured_image.window_name)
 
-                # Process and get formatted game data for transmission
-                game_data = self.poker_game_processor.process_window(captured_image, window_folder)
+                # Process and get GameSnapshot
+                game_snapshot = self.poker_game_processor.process_window(captured_image, window_folder)
 
-                if game_data:
-                    changed_games.append(game_data)
+                if game_snapshot:
+                    # Store tuple of (game_snapshot, window_name) for later processing
+                    changed_games.append((game_snapshot, captured_image.window_name))
                     logger.debug(f"✅ Captured changes for {captured_image.window_name}")
-            except ExpectedException as e:
-                #logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
-                logger.error(f"Expected exception: {e}")
             except Exception as e:
                 logger.error(f"Error in detection cycle: {str(e)}\n{traceback.format_exc()}")
                 logger.error(f"❌ Error processing {captured_image.window_name}: {str(e)}")
@@ -145,7 +137,7 @@ class DetectionClient:
 
     def _handle_removed_windows(self, removed_window_names):
         """Handle removed windows and return removal message data for transmission."""
-        logger.info(f"🗑️ Removing {len(removed_window_names)} closed windows from state")
+        logger.info(f"🗑️ Removing {len(removed_window_names)} closed windows")
 
         removal_messages = []
         for window_name in removed_window_names:
@@ -160,16 +152,13 @@ class DetectionClient:
             }
             removal_messages.append(removal_data)
 
-        # Remove from local state
-        self.game_state_service.remove_windows(removed_window_names)
-
         return removal_messages
 
     def _send_updates_to_server(self, changed_games=None, removal_messages=None):
         """Send specific changed game states and removal messages to servers via HTTP requests.
-        
+
         Args:
-            changed_games: List of game data dicts to send.
+            changed_games: List of (game_snapshot, window_name) tuples to send.
             removal_messages: List of removal message dicts to send.
         """
         if not self.http_connector:
@@ -180,8 +169,8 @@ class DetectionClient:
             # Send changed games (if any)
             if changed_games:
                 logger.debug(f"Sending {len(changed_games)} changed game states to server")
-                for game_data in changed_games:
-                    self._send_game_update(game_data)
+                for game_snapshot, window_name in changed_games:
+                    self._send_game_update(game_snapshot, window_name)
 
             # Send removal messages (if any)
             if removal_messages:
@@ -197,23 +186,13 @@ class DetectionClient:
             logger.debug(f"Error sending updates to server: {str(e)}")
             # Continue detection regardless of server errors
 
-    def _send_game_update(self, game_data: dict):
+    def _send_game_update(self, game_snapshot, window_name: str):
         """Send individual game update via HTTP."""
         try:
-            # Convert game state to message protocol
-            game_update = GameUpdateMessage(
-                type='game_update',
+            # Convert GameSnapshot directly to GameUpdateMessage
+            game_update = game_snapshot.to_game_update_message(
                 client_id=self.client_id,
-                window_name=game_data.get('window_name', 'unknown'),
-                timestamp=datetime.now().isoformat(),
-                game_data={
-                    'player_cards': self._convert_cards_to_protocol(game_data.get('player_cards', [])),
-                    'table_cards': self._convert_cards_to_protocol(game_data.get('table_cards', [])),
-                    'positions': self._convert_positions_to_protocol(game_data.get('positions', [])),
-                    'moves': game_data.get('moves', []),
-                    'street': game_data.get('street', 'unknown'),
-                    'solver_link': game_data.get('solver_link')
-                },
+                window_name=window_name,
                 detection_interval=self.detection_interval
             )
 
@@ -221,7 +200,7 @@ class DetectionClient:
             self.http_connector.send_game_update(game_update)
 
         except Exception as e:
-            logger.debug(f"Failed to send game update for {game_data.get('window_name', 'unknown')}: {str(e)}")
+            logger.debug(f"Failed to send game update for {window_name}: {str(e)}")
 
     def _send_removal_update(self, removal_data: dict):
         """Send individual removal message via HTTP."""
@@ -239,33 +218,6 @@ class DetectionClient:
 
         except Exception as e:
             logger.debug(f"Failed to send removal update for {removal_data.get('window_name', 'unknown')}: {str(e)}")
-
-    def _convert_cards_to_protocol(self, cards: list) -> list:
-        """Convert card format from web format to protocol format."""
-        protocol_cards = []
-        for card in cards:
-            if isinstance(card, dict):
-                protocol_cards.append({
-                    'template_name': card.get('name', ''),
-                    'match_score': card.get('score', 0),
-                    'position': None,  # Not available from web format
-                    'name': card.get('name', '')
-                })
-        return protocol_cards
-
-    def _convert_positions_to_protocol(self, positions: list) -> dict:
-        """Convert positions from web format to protocol format."""
-        protocol_positions = {}
-        for pos in positions:
-            if isinstance(pos, dict):
-                player_id = pos.get('player', 1)
-                protocol_positions[str(player_id)] = {
-                    'template_name': pos.get('name', ''),
-                    'match_score': 1.0,  # Not available from web format
-                    'position': None,  # Not available from web format  
-                    'name': pos.get('name', '')
-                }
-        return protocol_positions
 
     def get_client_id(self) -> str:
         """Get the client ID."""

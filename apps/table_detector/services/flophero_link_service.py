@@ -4,7 +4,7 @@ from urllib.parse import urlencode
 from loguru import logger
 
 from shared.domain.detection import Detection
-from shared.domain.game import Game
+from shared.domain.game_snapshot import GameSnapshot
 from shared.domain.moves import MoveType
 from shared.domain.position import Position
 from shared.domain.street import Street
@@ -26,7 +26,7 @@ class FlopHeroLinkService:
     }
 
     @staticmethod
-    def generate_link(game: Game) -> Optional[str]:
+    def generate_link(game: GameSnapshot) -> Optional[str]:
         try:
             params = FlopHeroLinkService.DEFAULT_PARAMS.copy()
 
@@ -35,7 +35,7 @@ class FlopHeroLinkService:
                 params['boardCards'] = FlopHeroLinkService._format_cards_for_flophero(game.table_cards)
 
             # Add action parameters for each street
-            params.update(FlopHeroLinkService._format_actions_for_flophero(game))
+            params.update(FlopHeroLinkService._format_actions_for_flophero(game.moves))
             params["players"] = str(len(game.get_active_position()))
 
             # Remove empty parameters to match REAL format
@@ -64,7 +64,7 @@ class FlopHeroLinkService:
         return "".join(formatted)
 
     @staticmethod
-    def _format_actions_for_flophero(game: Game) -> Dict[str, str]:
+    def _format_actions_for_flophero(moves_args) -> Dict[str, str]:
         action_params = {}
 
         street_param_map = {
@@ -74,7 +74,7 @@ class FlopHeroLinkService:
             Street.RIVER: 'riverActions'
         }
 
-        for street, moves in game.moves.items():
+        for street, moves in moves_args.items():
             param_name = street_param_map.get(street)
             if param_name:
                 # Format moves as comma-separated string
