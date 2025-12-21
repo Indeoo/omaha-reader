@@ -25,7 +25,7 @@ def _format_cards_simple(cards: List[dict]) -> str:
     if not cards:
         return ""
     # Handle both 'name' (current format) and 'template_name' (legacy format)
-    return " ".join([card.get('name') or card.get('template_name', '') for card in cards if card.get('name') or card.get('template_name')])
+    return "".join([card.get('name') or card.get('template_name', '') for card in cards if card.get('name') or card.get('template_name')])
 
 
 def _format_cards_for_web(cards: List[dict]) -> List[Dict]:
