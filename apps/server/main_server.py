@@ -5,7 +5,7 @@ from flask.cli import load_dotenv
 from loguru import logger
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from apps.server.server_web_api import ServerWebApi
+from apps.server import create_app
 
 load_dotenv()
 
@@ -32,8 +32,7 @@ def main():
     logger.info(f"👥 Maximum concurrent clients: {MAX_CLIENTS}")
 
     try:
-        # Initialize server web API
-        server_api = ServerWebApi(
+        app = create_app(
             show_table_cards=SHOW_TABLE_CARDS,
             show_positions=SHOW_POSITIONS,
             show_moves=SHOW_MOVES,
@@ -42,11 +41,9 @@ def main():
             password=PASSWORD
         )
 
-        app = server_api.create_app()
-
         # Setup periodic cleanup of stale tables
         scheduler = BackgroundScheduler()
-        game_state_service = server_api.game_state_service
+        game_state_service = app.extensions["game_state_service"]
 
         def cleanup_stale_tables():
             result = game_state_service.cleanup_stale_tables(stale_threshold_minutes=1)
