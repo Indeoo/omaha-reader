@@ -31,7 +31,7 @@ class ServerWebApi:
     def create_app(self):
         current_path = Path(__file__).resolve().parent
         template_dir = current_path / "web" / "templates"
-        static_dir = current_path / "web" / "templates" / "static"
+        static_dir = current_path / "web" / "static"
         
         # Debug logging for Heroku deployment
         logger.info(f"🔍 Current directory: {current_path}")
