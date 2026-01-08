@@ -10,7 +10,10 @@ let config = {
 let previousDetections = [];
 
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
+    // Remove any whitespace so copied hand is contiguous (e.g. "ackd7s2h")
+    const normalized = text ? text.replace(/\s+/g, '') : '';
+
+    navigator.clipboard.writeText(normalized).then(() => {
         showToast('Copied to clipboard!');
     }).catch(err => {
         console.error('Failed to copy:', err);

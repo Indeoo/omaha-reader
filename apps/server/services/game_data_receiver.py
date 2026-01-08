@@ -40,11 +40,39 @@ class GameDataReceiver:
         try:
             # Update game state directly - no enhancement needed as client sends detection_interval
             self.game_state_service.update_game_state(message)
-            
-            logger.info(f"🎯 Game state updated - Client: {message.client_id}, Window: {message.window_name}, Interval: {message.detection_interval}s")
-            
+
+            # Log received data summary for debugging
+            game_data = message.game_data
+            player_cards_str = game_data.get('player_cards_string', '')
+            table_cards = game_data.get('table_cards', [])
+            street = game_data.get('street', 'unknown')
+            positions = game_data.get('positions', [])
+            moves = game_data.get('moves', [])
+
+            log_parts = [
+                f"Client: {message.client_id}",
+                f"Window: {message.window_name}"
+            ]
+
+            if player_cards_str:
+                log_parts.append(f"Cards: {player_cards_str}")
+
+            if table_cards:
+                log_parts.append(f"Board: {len(table_cards)} ({street})")
+            elif street != 'unknown':
+                log_parts.append(f"Street: {street}")
+
+            if positions:
+                log_parts.append(f"Positions: {len(positions)}")
+
+            if moves:
+                total_moves = sum(len(street_moves.get('moves', [])) for street_moves in moves)
+                log_parts.append(f"Moves: {total_moves}")
+
+            logger.info(f"🎯 {' | '.join(log_parts)}")
+
             return MessageParser.create_response("success", "Game state updated")
-        
+
         except Exception as e:
             logger.error(f"Error updating game state for {message.client_id}: {str(e)}")
             return MessageParser.create_response("error", f"Update failed: {str(e)}")
